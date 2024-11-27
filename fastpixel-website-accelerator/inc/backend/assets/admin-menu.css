@@ -1,0 +1,55 @@
+/* Menu styles */
+#wp-admin-bar-fastpixel-top-fastpixel-website-accelerator-menu {
+    display: block !important;
+    min-width: 150px;
+}
+#wpadminbar .quicklinks #wp-admin-bar-fastpixel-top-fastpixel-website-accelerator-menu .ab-empty-item, 
+#wp-admin-bar-fastpixel-top-fastpixel-website-accelerator-menu .ab-item.ab-empty-item {
+    display: flex;
+    flex-direction: row;
+}
+#wpadminbar #wp-admin-bar-fastpixel-top-fastpixel-website-accelerator-menu .fastpixel-top-menu-icon {
+    display: inline-block;
+    height: 32px;
+    line-height: 32px;
+    margin-top: 2px;
+    vertical-align: middle;
+}
+#wpadminbar #wp-admin-bar-fastpixel-top-fastpixel-website-accelerator-menu .fastpixel-top-menu-icon img {
+    width: 30px;
+    height: 30px;
+    line-height: 30px;
+}
+#adminmenu .toplevel_page_fastpixel-website-accelerator-settings .wp-menu-image img {
+    width: 36px;
+    padding: 0;
+}
+#adminmenu .toplevel_page_fastpixel-website-accelerator img,
+#adminmenu .toplevel_page_fastpixel-website-accelerator .wp-menu-image img {
+    width: 36px;
+    padding-top: 0;
+}
+@media screen and (max-width: 782px) {
+    #wp-admin-bar-fastpixel-top-fastpixel-website-accelerator-menu {
+        min-width: auto;
+        width: 45x;
+    }
+    #wpadminbar #wp-admin-bar-fastpixel-top-fastpixel-website-accelerator-menu a {
+        width: 45px;
+    }
+    #wpadminbar #wp-admin-bar-fastpixel-top-fastpixel-website-accelerator-menu .fastpixel-text {
+        display: none;
+    }
+    #wpadminbar #wp-admin-bar-fastpixel-top-fastpixel-website-accelerator-menu .fastpixel-top-menu-icon {
+        display: inline-block;
+        height: 46px;
+        line-height: 32px;
+        margin-top: 0px;
+        vertical-align: middle;
+    }
+    #wpadminbar #wp-admin-bar-fastpixel-top-fastpixel-website-accelerator-menu .fastpixel-top-menu-icon img {
+        width: 42px;
+        height: 42px;
+    }
+
+}
