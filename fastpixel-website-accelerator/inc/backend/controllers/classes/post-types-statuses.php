@@ -17,7 +17,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Post_Types_Statuses')) {
             $this->be_functions = FASTPIXEL_Backend_Functions::get_instance();
             $this->excludes = FASTPIXEL_Excludes::get_instance();
             //loading post types later, when all plugins and themes loaded
-            add_action('admin_init', function () {
+            add_action('init', function () {
                 $this->post_types = get_post_types(['public' => true], 'objects');
                 $this->nonce = wp_create_nonce('cache_status_nonce');
             });
@@ -30,6 +30,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Post_Types_Statuses')) {
             //handling posts statuses on status page
             add_filter('fastpixel/admin_ajax/cache_statuses/permalink', [$this, 'admin_ajax_cache_statuses'], 10, 2);
             add_action('fastpixel/backend_functions/cache_status_display/excluded', [$this, 'check_post_is_excluded'], 10, 2);
+            add_action('fastpixel/admin_bar/purge_this_button_exclude', [$this, 'check_post_is_excluded'], 10, 2);
             //handling ajax cache purge
             add_filter('fastpixel/backend/ajax/purge_single', [$this, 'backend_purge_single'], 10, 2);
             add_filter('fastpixel/backend/ajax/purge_single_post_title', [$this, 'backend_ajax_purge_single_post_title'], 10, 2);
@@ -260,16 +261,20 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Post_Types_Statuses')) {
         }
 
         public function check_post_is_excluded($status, $data) {
-            //need to check for exclusion
-            if (isset($data['id']) && !empty($data['id'])) {
-                $url = get_permalink($data['id']);
-                $status = $this->excludes->check_is_exclusion($url) || post_password_required($data['id']);
+            //first we need to check if it is aleady exclusion
+            if ($status) {
+                return $status;
+            }
+            //first we check if this class handle current post type
+            if (isset($data['post_type']) && !empty($data['post_type']) && in_array($data['post_type'], array_keys($this->post_types))) { 
+                if (isset($data['id']) && !empty($data['id'])) {
+                    $url = get_permalink($data['id']);
+                    $status = $this->excludes->check_is_exclusion($url) || post_password_required($data['id']);
+                }
             }
             return $status;
         }
     }
 
-    if (is_admin()) {
-        new FASTPIXEL_Post_Types_Statuses();
-    }
+    new FASTPIXEL_Post_Types_Statuses();
 }

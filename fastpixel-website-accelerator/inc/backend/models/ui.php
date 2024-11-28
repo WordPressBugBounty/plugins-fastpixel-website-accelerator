@@ -342,35 +342,50 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_UI')) {
         protected function admin_bar_purge_button($wp_admin_bar) {
             if (!is_admin() && function_exists('is_user_logged_in') && is_user_logged_in() && !empty($wp_admin_bar)) {
                 $page_on_front = get_option('page_on_front');
+                $args = [];
                 if (!$page_on_front && is_home()) {
                     $link = admin_url('admin.php?page=' . FASTPIXEL_TEXTDOMAIN . '&fastpixel-action=fastpixel_purge_single_cache&purge_id=homepage');
                 } else if (is_tag() || is_tax() || is_category()) {
                     $tax = get_term(get_queried_object());
                     if (isset($tax->term_id) && !empty($tax->term_id)) {
+                        $args = ['id' => $tax->term_id, 'post_type' => 'taxonomy'];
                         $link = admin_url('admin.php?page=' . FASTPIXEL_TEXTDOMAIN . '&fastpixel-action=fastpixel_purge_single_cache&purge_id=' . $tax->term_id . '&purge_type=taxonomy');
                     }
                 } else if (is_author()) {
                     $author = get_queried_object();
                     if (isset($author->ID) && !empty($author->ID)) {
+                        $args = ['id' => $author->ID, 'post_type' => 'author'];
                         $link = admin_url('admin.php?page=' . FASTPIXEL_TEXTDOMAIN . '&fastpixel-action=fastpixel_purge_single_cache&purge_id=' . $author->ID . '&purge_type=author');
                     }
                 } else if (is_archive()) {
                     $archive = get_queried_object();
                     if (isset($archive->name) && !empty($archive->name)) {
+                        $args = ['id' => $archive->name, 'post_type' => 'archive'];
                         $link = admin_url('admin.php?page=' . FASTPIXEL_TEXTDOMAIN . '&fastpixel-action=fastpixel_purge_single_cache&purge_id=' . $archive->name . '&purge_type=archive');
                     }
-                } else {
+                } else if (is_single() || is_page()) {
                     global $post;
                     if (isset($post->ID) && !empty($post->ID) && is_numeric($post->ID)) {
+                        $args = ['id' => $post->ID, 'post_type' => $post->post_type];
                         $link = admin_url('admin.php?page=' . FASTPIXEL_TEXTDOMAIN . '&fastpixel-action=fastpixel_purge_single_cache&purge_id=' . $post->ID . '&purge_type=' . $post->post_type);
                     }
                 }
+                $excluded = apply_filters('fastpixel/admin_bar/purge_this_button_exclude', false, $args);
                 if (isset($link) && !empty($link)) {
+                    $href = esc_url(wp_nonce_url($link, 'fastpixel_purge_cache', 'fastpixel_cache_nonce'));
+                    $title = esc_html__('Purge This Page Cache', 'fastpixel-website-accelerator');
+                    if ($excluded) {
+                        $href = '#';
+                        $title = esc_html__('Purge This Page Cache (Excluded)', 'fastpixel-website-accelerator');
+                    }
                     $wp_admin_bar->add_node([
                         'id'     => 'fastpixel-top-' . FASTPIXEL_TEXTDOMAIN . '-purge-current-cache',
                         'parent' => 'fastpixel-top-' . FASTPIXEL_TEXTDOMAIN . '-menu',
-                        'href'   => esc_url(wp_nonce_url($link, 'fastpixel_purge_cache', 'fastpixel_cache_nonce')),
-                        'title'  => esc_html__('Purge Curent Page Cache', 'fastpixel-website-accelerator'),
+                        'href'   => $href,
+                        'title'  => $title,
+                        'meta' => [
+                            'class'  => $excluded ? 'fastpixel-excluded' : ''
+                        ]
                     ]);
                 }
             }

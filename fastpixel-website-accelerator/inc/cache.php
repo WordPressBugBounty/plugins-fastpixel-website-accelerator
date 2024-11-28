@@ -17,9 +17,11 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Cache')) {
         protected $json_path;
         protected $header_path;
         protected $meta_path;
-        protected $request_wait_time = 90;
+        // protected $request_wait_time = 90;
         protected $debug_mode = false;
         protected $buffer;
+        protected $x_queue_mode = false;
+
 
         public function __construct() {
             self::$instance  = $this;
@@ -61,6 +63,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Cache')) {
             if (!$this->check_request()) {
                 return;
             }
+            $this->check_request_headers();
 
             do_action('fastpixel/init');
 
@@ -157,6 +160,12 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Cache')) {
                 return false;
             }
             return true;
+        }
+
+        protected function check_request_headers() {
+            if (isset($_SERVER['HTTP_X_QUEUE_MODE']) && !empty($_SERVER['HTTP_X_QUEUE_MODE'])) {
+                $this->x_queue_mode = $this->functions->sanitize_text_field($_SERVER['HTTP_X_QUEUE_MODE']);
+            }
         }
 
         //function runs on register_shutdown_function
@@ -276,7 +285,8 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Cache')) {
             do_action('fastpixel/shutdown/request/before', $this->url);
             //Doing Page Cache request
             $request = FASTPIXEL_Request::get_instance();
-            $requested = $request->cache_request($this->url->get_url());
+            $request_headers = ['x-queue-mode' => $this->x_queue_mode ? $this->x_queue_mode : 'push'];
+            $requested = $request->cache_request($this->url->get_url(), $request_headers);
             if ($requested) {
                 $this->functions->update_post_cache($this->url->get_url_path(), false, true);
                 if ($this->debug) {

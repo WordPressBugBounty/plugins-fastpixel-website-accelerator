@@ -29,6 +29,10 @@
     width: 36px;
     padding-top: 0;
 }
+#wpadminbar #wp-admin-bar-fastpixel-top-fastpixel-website-accelerator-purge-current-cache.fastpixel-excluded {
+    opacity: 0.5;
+}
+
 @media screen and (max-width: 782px) {
     #wp-admin-bar-fastpixel-top-fastpixel-website-accelerator-menu {
         min-width: auto;

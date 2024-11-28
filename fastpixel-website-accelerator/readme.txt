@@ -4,7 +4,7 @@ Tags: page speed, cache, lcp, optimization, pagespeed
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 5.6
-Stable tag: 1.0.34
+Stable tag: 1.0.35
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -182,6 +182,11 @@ For more detailed information on how to use the plugin or the API, troubleshooti
 
 
 == Changelog ==
+
+= 1.0.35 =
+Release date: Nov 28, 2024
+* Better cache purge
+* Bug Fixes
 
 = 1.0.34 =
 Release date: Nov 26, 2024

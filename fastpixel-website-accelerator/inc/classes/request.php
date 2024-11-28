@@ -19,6 +19,9 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Request')) {
 
         protected $reset_url; //url that should be cached/reset
         protected $request_data = []; //data that is used in request
+        protected $headers = [
+            'Content-Type' => 'application/json'
+        ];
 
 
         public function __construct() 
@@ -75,7 +78,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Request')) {
             $this->request_data['plugin_version'] = FASTPIXEL_VERSION;
         }
 
-        public function cache_request($url = null): bool 
+        public function cache_request($url = null, $headers = []): bool 
         {
             if (!empty($url) && filter_var($url, FILTER_VALIDATE_URL)) {
                 $this->reset_url = $url;
@@ -88,6 +91,9 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Request')) {
             $this->api_url = FASTPIXEL_API_URL;
             if (!$this->validate()) {//initial validation
                 return false;
+            }
+            if (!empty($headers)) {
+                $this->headers = array_merge($this->headers, $headers);
             }
             $this->prepare_request_params(); //preparing request data
             return $this->do_request();
@@ -116,9 +122,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Request')) {
                     'timeout'     => $this->connection_timeout,
                     'sslverify'   => false,
                     'data_format' => 'body',
-                    'headers'     => [
-                        'Content-Type' => 'application/json'
-                    ],
+                    'headers'     => $this->headers,
                     'body'        => '', //initial body
                 );
                 if (defined('FASTPIXEL_USE_SK') && FASTPIXEL_USE_SK === true) {
