@@ -11,8 +11,6 @@ $includes = [
     'FASTPIXEL\FASTPIXEL_Url'          => 'url.php',
     'FASTPIXEL\FASTPIXEL_Functions'    => 'functions.php',
     'FASTPIXEL\FASTPIXEL_Config_Model' => 'config-model.php',
-    'FASTPIXEL\FASTPIXEL_Exclude'      => 'exclude-model.php',
-    'FASTPIXEL\FASTPIXEL_Excludes'     => 'excludes.php',
     'FASTPIXEL\FASTPIXEL_Cache'        => 'cache.php',
     'FASTPIXEL\FASTPIXEL_Plugin'       => 'plugin.php'
 ];

@@ -137,8 +137,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Cache')) {
                     do_action('fastpixel/comment/approved', $comment->comment_post_ID, $comment_approved, $commentdata); //own hook
                 }
             }, 10, 3);
-            add_action('admin_post_fastpixel_admin_purge_post_cache', [$this, 'admin_purge_post_cache']);
-            add_action('admin_post_fastpixel_admin_purge_homepage_cache', [$this, 'admin_purge_homepage_cache']);
+            add_action('admin_post_fastpixel_admin_purge_cache', [$this, 'admin_purge_cache']);
             add_action('admin_post_fastpixel_admin_delete_cached', [$this, 'admin_delete_cached_files']);
             //taxonomy functions
             add_action('edit_terms', function ($term_id, $taxonomy, $args) {
@@ -236,7 +235,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Cache')) {
                 }
             }, 10, 2);
 
-            add_action('wp_ajax_fastpixel_purge_post_cache', [$this, 'admin_ajax_purge_post_cache']);
+            add_action('wp_ajax_fastpixel_purge_cache', [$this, 'admin_ajax_purge_cache']);
             add_action('wp_ajax_fastpixel_cache_statuses', [$this, 'admin_ajax_cache_statuses']);
             add_action('wp_ajax_fastpixel_delete_cached_files', [$this, 'admin_ajax_delete_cached_files']);
 
@@ -245,6 +244,14 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Cache')) {
              */
             add_action('edit_page_form', [$this, 'post_nonce_field']);
             add_action('edit_form_advanced', [$this, 'post_nonce_field']);
+            /*
+             * reset cache status for homepage when post is created, updated, edited, deleted
+             */
+            add_action('fastpixel/post/published', [$this, 'purge_homepage_cache'], 10, 1);
+            add_action('fastpixel/post/inserted', [$this, 'purge_homepage_cache'], 10, 1);
+            add_action('fastpixel/post/draft_to_publish', [$this, 'purge_homepage_cache'], 10, 1);
+            add_action('fastpixel/post/pending_to_publish', [$this, 'purge_homepage_cache'], 10, 1);
+            add_action('fastpixel/post/trashed', [$this, 'purge_homepage_cache'], 10, 1);
         }
 
         public static function get_instance()
@@ -276,7 +283,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Cache')) {
             }
 
             //Do not purge post if post type is excluded
-            $excluded_post_types = apply_filters('fastpixel_purge_excluded_post_types', []);
+            $excluded_post_types = apply_filters('fastpixel/purge_by_id/excluded_post_types', []);
             $post_type = get_post_type($post_id);
             if (in_array($post_type, $excluded_post_types)) {
                 return false;
@@ -401,101 +408,96 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Cache')) {
                 wp_cache_flush();
             }
             do_action('fastpixel/purge/all');
+            //remove cache folder if serve_stale is disabled
+            $serve_stale = $this->functions->get_option('fastpixel_serve_stale');
+            $home_url = new FASTPIXEL_Url(get_home_url());
+            if (!$serve_stale && file_exists($this->functions->get_cache_dir() . DIRECTORY_SEPARATOR . $home_url->get_url_path() )) {
+                $wp_filesystem->rmdir($this->functions->get_cache_dir() . DIRECTORY_SEPARATOR . $home_url->get_url_path(), true);
+            } else {
+                if ($this->debug) {
+                    FASTPIXEL_DEBUG::log('Class FASTPIXEL_Backend_Cache: ACTION purge_all, Error: Can\'t clear cache directory');
+                }
+                return false;
+            }
             return true;
         }
 
-        public function admin_purge_post_cache() 
+        public function admin_purge_cache($ajax = false) 
         {
-            if (!isset($_GET['nonce']) || !wp_verify_nonce(sanitize_text_field($_GET['nonce']), 'cache_status_nonce')) {
-                $this->notices->add_flash_notice(esc_html__('Can\'t run action, wrong nonce provided', 'fastpixel-website-accelerator'), 'error', false);
-                wp_redirect(wp_get_referer());
-                return;
+            if (!isset($_REQUEST['nonce']) || !wp_verify_nonce(sanitize_text_field($_REQUEST['nonce']), 'cache_status_nonce')) {
+                if ($ajax) {
+                    echo wp_json_encode(['status' => 'error', 'statusText' => esc_html__('Can\'t run action, wrong nonce provided', 'fastpixel-website-accelerator')]);
+                    wp_die();
+                } else {
+                    $this->notices->add_flash_notice(esc_html__('Can\'t run action, wrong nonce provided', 'fastpixel-website-accelerator'), 'error', false);
+                    wp_redirect(wp_get_referer());
+                }
             }
-            $post_id = sanitize_text_field($_GET['post_id']);
-            $post_type = sanitize_text_field($_GET['post_type']);
-            if (empty($post_id) || !is_numeric($post_id) || empty($post_type)) {
-                wp_redirect(wp_get_referer());
+            $id = sanitize_text_field($_REQUEST['id']);
+            $type = sanitize_text_field($_REQUEST['type']);
+            $selected_of_type = sanitize_text_field($_REQUEST['selected_of_type']);
+            if (empty($id) || !is_numeric($id) || empty($type) || empty($selected_of_type)) {
+                if ($ajax) {
+                } else {
+                    $this->notices->add_flash_notice(esc_html__('ID or Type is wrong or empty', 'fastpixel-website-accelerator'), 'error', false);
+                    wp_redirect(wp_get_referer());
+                }
             }
-            $args = ['post_id' => $post_id, 'post_type' => $post_type];
-            //handling ajax post purge            
-            $cache_reset_type = apply_filters('fastpixel/backend/cache_action/cache_reset_type', 'url', $args);
-            $permalink_to_reset = apply_filters('fastpixel/backend/cache_action/purge_single', '', $args);
+            $args = ['id' => $id, 'type' => $type, 'selected_of_type' => $selected_of_type];
+            //handling purge without ajax           
+            $cache_reset_type = apply_filters('fastpixel/backend/purge/single/reset_type', 'url', $args);
+            $permalink_to_reset = apply_filters('fastpixel/backend/purge/single/permalink', '', $args);
             if (empty($permalink_to_reset)) {
-                echo wp_json_encode(['status' => 'error', 'statusText' => esc_html__('Error occured, can\'t get cache url', 'fastpixel-website-accelerator')]);
-                wp_die();
+                if ($ajax) {
+                    echo wp_json_encode(['status' => 'error', 'statusText' => esc_html__('Error occured, can\'t get cache url', 'fastpixel-website-accelerator')]);
+                    wp_die();
+                } else {
+                    $this->notices->add_flash_notice(esc_html__('ID or Type is wrong or empty', 'fastpixel-website-accelerator'), 'error', false);
+                    wp_redirect(wp_get_referer());
+                }
             }
             $status = $this->functions->check_post_cache_status($permalink_to_reset);
             $cache_requested = false;
             if ($cache_reset_type == 'url') {
                 $cache_requested = $this->purge_cache_by_url($permalink_to_reset);
             } else {
-                $cache_requested = $this->purge_cache_by_id($post_id);
+                $cache_requested = $this->purge_cache_by_id($id);
             }
-            // $post = get_post($post_id);
             $status = $this->functions->check_post_cache_status($permalink_to_reset);
             if ($cache_requested) {
-                $post_title = apply_filters('fastpixel/backend/cache_action/purge_single_post_title', '', $args);
+                $post_title = apply_filters('fastpixel/backend/purge/single/title', '', $args);
                 $status_text = $status['have_cache'] && !$status['need_cache'] ?
-                    /* translators: status purged */
-                    esc_html__('purged.', 'fastpixel-website-accelerator') :
-                    /* translators: status requested */
-                    esc_html__('requested.', 'fastpixel-website-accelerator');
-                /* translators: %1 post name, %2 action name (purged or requested) */
-                $this->notices->add_flash_notice(sprintf(esc_html__('Cache for post "%1$s" has been %2$s', 'fastpixel-website-accelerator'), esc_html($post_title), esc_html($status_text)), 'success');
+                /* translators: status purged */
+                esc_html__('purged.', 'fastpixel-website-accelerator') :
+                /* translators: status requested */
+                esc_html__('requested.', 'fastpixel-website-accelerator');
+                if ($ajax) {
+                    $post_status = $this->be_functions->cache_status_display($permalink_to_reset, $args);
+                    echo wp_json_encode([
+                        'id'         => $id,
+                        'status'     => 'success',
+                        /* translators: %1 used to display post name, %2 should display text "purged" or "requested"(texts are translated separately) */
+                        'statusText' => sprintf(esc_html__('Cache for %1$s has been %2$s', 'fastpixel-website-accelerator'), esc_html($post_title), esc_html($status_text)),
+                        'item'       => $post_status
+                    ]);
+                    wp_die();
+                } else {
+                    /* translators: %1 post name, %2 action name (purged or requested) */
+                    $this->notices->add_flash_notice(sprintf(esc_html__('Cache for %1$s has been %2$s', 'fastpixel-website-accelerator'), esc_html($post_title), esc_html($status_text)), 'success');
+                    wp_redirect(wp_get_referer());
+                }
+            } 
+            if ($ajax) {
+                echo wp_json_encode(['status' => 'error', 'statusText' => esc_html__('Error occured while requesting cache', 'fastpixel-website-accelerator')]);
+                wp_die();
             }
+            $this->notices->add_flash_notice(esc_html__('Error occured while requesting cache', 'fastpixel-website-accelerator'), 'success');
             wp_redirect(wp_get_referer());
         }
 
-        public function admin_ajax_purge_post_cache()
+        public function admin_ajax_purge_cache()
         {
-            if (!isset($_POST['nonce']) || !wp_verify_nonce(sanitize_text_field($_POST['nonce']), 'cache_status_nonce')) {
-                echo wp_json_encode(['status' => 'error', 'statusText' => esc_html__('Can\'t run action, wrong nonce provided', 'fastpixel-website-accelerator')]);
-                wp_die();
-            }
-            $post_id = isset($_POST['post_id']) ? sanitize_text_field($_POST['post_id']) : false;
-            $post_type = isset($_POST['post_type']) ? sanitize_text_field($_POST['post_type']) : false;
-            if (empty($post_id) || empty($post_type)) {
-                echo wp_json_encode(['status' => 'error', 'statusText' => esc_html__('Post ID or Post Type is wrong or empty', 'fastpixel-website-accelerator')]);
-                wp_die();
-            }
-
-            $args = ['post_id' => $post_id, 'post_type' => $post_type];
-            //handling ajax post purge            
-            $cache_reset_type = apply_filters('fastpixel/backend/ajax/cache_reset_type', 'url', $args);
-            $permalink_to_reset = apply_filters('fastpixel/backend/ajax/purge_single', '', $args);
-            if (empty($permalink_to_reset)) {
-                echo wp_json_encode(['status' => 'error', 'statusText' => esc_html__('Error occured, can\'t get cache url', 'fastpixel-website-accelerator')]);
-                wp_die();
-            }
-            $status = $this->functions->check_post_cache_status($permalink_to_reset);
-            $cache_requested = false;
-            if ($cache_reset_type == 'url') {
-                $cache_requested = $this->purge_cache_by_url($permalink_to_reset);
-            } else {
-                $cache_requested = $this->purge_cache_by_id($post_id);
-            }
-
-            if ($cache_requested) {
-                    $post_title = apply_filters('fastpixel/backend/ajax/purge_single_post_title', '', $args);
-                    $status_text = $status['have_cache'] && !$status['need_cache'] ?
-                        /* translators: status purged */
-                        esc_html__('purged.', 'fastpixel-website-accelerator') :
-                        /* translators: status requested */
-                        esc_html__('requested.', 'fastpixel-website-accelerator');
-                    /* translators: %1 post name, %2 action name (purged or requested) */
-                    $post_status = $this->be_functions->cache_status_display($permalink_to_reset, $args);
-                    echo wp_json_encode([
-                        'post_id'    => $post_id,
-                        'post_type'  => $post_type,
-                        'status'     => 'success',
-                        /* translators: %1 used to display post name, %2 should display text "purged" or "requested"(texts are translated separately) */
-                        'statusText' => sprintf(esc_html__('Cache for post "%1$s" has been %2$s', 'fastpixel-website-accelerator'), esc_html($post_title), esc_html($status_text)),
-                        'post'       => $post_status
-                    ]);
-                    wp_die();
-            }
-            echo wp_json_encode(['status' => 'error', 'statusText' => esc_html__('Error occured while requesting cache', 'fastpixel-website-accelerator')]);
-            wp_die();
+            $this->admin_purge_cache(true);
         }
 
         public function admin_ajax_cache_statuses() {
@@ -504,72 +506,35 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Cache')) {
                 wp_die();
             }
             if (!isset($_POST['ids']) || empty($_POST['ids'])) {
-                echo wp_json_encode(['status' => 'error', 'statusText' => esc_html__('Post IDs wrong or empty', 'fastpixel-website-accelerator')]);
+                echo wp_json_encode(['status' => 'error', 'statusText' => esc_html__('Post IDs is wrong or empty', 'fastpixel-website-accelerator')]);
                 wp_die();
             }
-            if (!isset($_POST['post_type']) || empty($_POST['post_type'])) {
-                echo wp_json_encode(['status' => 'error', 'statusText' => esc_html__('Post Type wrong or empty', 'fastpixel-website-accelerator')]);
+            if (!isset($_POST['type']) || empty($_POST['type'])) {
+                echo wp_json_encode(['status' => 'error', 'statusText' => esc_html__('Object Type is wrong or empty', 'fastpixel-website-accelerator')]);
                 wp_die();
             }
-            $post_type = sanitize_text_field($_POST['post_type']);
+            if (!isset($_POST['selected_of_type']) || empty($_POST['selected_of_type'])) {
+                echo wp_json_encode(['status' => 'error', 'statusText' => esc_html__('Post Type is wrong or empty', 'fastpixel-website-accelerator')]);
+                wp_die();
+            }
+            $type = sanitize_text_field($_POST['type']);
+            $selected_of_type = sanitize_text_field($_POST['selected_of_type']);
             $post_ids = [];
             foreach ($_POST['ids'] as $id) {
                 $post_ids[] = sanitize_key($id);
             }
-            $statuses = ['status' => 'success', 'posts' => []];
-            foreach ($post_ids as $post_id) {
-                if ($post_id == 'homepage') {
-                    $permalink = $this->be_functions->get_home_url();
-                } else {
-                    $args = ['post_type' => $post_type, 'id' => $post_id];
-                    $permalink = apply_filters('fastpixel/admin_ajax/cache_statuses/permalink', '', $args);
-                }
-                $status = $this->be_functions->cache_status_display($permalink, isset($args) ? $args : (is_numeric($post_id) ? $post_id : null));
-                $status['post_type'] = $post_type;
-                if ($status) {
-                    $statuses['posts'][$post_id] = $status;
-                }
+            $statuses = ['status' => 'success', 'items' => []];
+            $items = apply_filters('fastpixel/status_page/get_statuses', [], ['type' => $type, 'selected_of_type' => $selected_of_type, 'ids' => $post_ids]);
+            if (!empty($items)) {
+                $statuses['items'] = $items;
             }
-
             echo wp_json_encode($statuses);
             wp_die();
         }
 
         public function admin_ajax_delete_cached_files()
         {
-            if (!isset($_POST['nonce']) || !wp_verify_nonce(sanitize_text_field($_POST['nonce']), 'cache_status_nonce')) {
-                echo wp_json_encode(['status' => 'error', 'statusText' => esc_html__('Can\'t run action, wrong nonce provided', 'fastpixel-website-accelerator')]);
-                wp_die();
-            }
-            $post_id = sanitize_text_field($_POST['post_id']);
-            $post_type = sanitize_text_field($_POST['post_type']);
-            if (empty($post_id || empty($post_type))) {
-                echo wp_json_encode(['status' => 'error', 'statusText' => esc_html__('Post IDs or Post Type wrong or empty', 'fastpixel-website-accelerator')]);
-                wp_die();
-            }
-            $args = ['post_id' => $post_id, 'post_type' => $post_type];
-            //handling ajax post purge            
-            $cache_reset_type = apply_filters('fastpixel/backend/ajax/cache_reset_type', 'url', $args);
-            $permalink_to_delete = apply_filters('fastpixel/backend/ajax/purge_single', '', $args);
-            if (empty($permalink_to_delete)) {
-                echo wp_json_encode(['status' => 'error', 'statusText' => esc_html__('Error occured, can\'t get url for delete', 'fastpixel-website-accelerator')]);
-                wp_die();
-            }
-            $url = new FASTPIXEL_Url($permalink_to_delete);
-            if ($this->delete_url_cache($url)) {
-                $post_status = $this->be_functions->cache_status_display($url->get_url(), $cache_reset_type == 'id' ? $post_id : $args);
-                echo wp_json_encode([
-                    'post_id'    => $post_id,
-                    'post_type'  => $post_type,
-                    'status'     => 'success',
-                    /* translators: %s used to display post name */
-                    'statusText' => sprintf(esc_html__('Cached files deleted for %s.', 'fastpixel-website-accelerator'), esc_html($url->get_url())),
-                    'post'       => $post_status
-                ]);
-            } else {
-                echo wp_json_encode(['status' => 'error', 'statusText' => esc_html__('Error occured while deleting', 'fastpixel-website-accelerator')]);
-            }
-            wp_die();
+            $this->admin_delete_cached_files(true);
         }
 
         public function admin_purge_archives($post_id = null) {
@@ -649,31 +614,74 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Cache')) {
             return $new;
         }
 
-        public function admin_delete_cached_files() {
-            if (!isset($_GET['nonce']) || !wp_verify_nonce(sanitize_text_field($_GET['nonce']), 'cache_status_nonce')) {
-                $this->notices->add_flash_notice(esc_html__('Can\'t run action, wrong nonce provided', 'fastpixel-website-accelerator'), 'error', false);
-                wp_redirect(wp_get_referer());
-                return;
+        public function admin_delete_cached_files($ajax = false) {
+            if (!isset($_REQUEST['nonce']) || !wp_verify_nonce(sanitize_text_field($_REQUEST['nonce']), 'cache_status_nonce')) {
+                if ($ajax) {
+                    echo wp_json_encode(['status' => 'error', 'statusText' => esc_html__('Can\'t run action, wrong nonce provided', 'fastpixel-website-accelerator')]);
+                    wp_die();
+                } else {
+                    $this->notices->add_flash_notice(esc_html__('Can\'t run action, wrong nonce provided', 'fastpixel-website-accelerator'), 'error', false);
+                    wp_redirect(wp_get_referer());
+                }
             }
-            $post_id = isset($_GET['post_id']) ? sanitize_text_field($_GET['post_id']) : false;
-            $post_type = isset($_GET['post_type']) ? sanitize_text_field($_GET['post_type']) : false;
-            if (empty($post_id) || empty($post_type)) {
-                $this->notices->add_flash_notice(esc_html__('Cache files cannot be deleted, wrong post_id or post type', 'fastpixel-website-accelerator'), 'error', false);
-                wp_redirect(wp_get_referer());
+            $id = isset($_REQUEST['id']) ? sanitize_text_field($_REQUEST['id']) : false;
+            $type = isset($_REQUEST['type']) ? sanitize_text_field($_REQUEST['type']) : false;
+            $selected_of_type = isset($_REQUEST['selected_of_type']) ? sanitize_text_field($_REQUEST['selected_of_type']) : false;
+            if (empty($id) || empty($type) || empty($selected_of_type)) {
+                if ($ajax) {
+                    echo wp_json_encode(['status' => 'error', 'statusText' => esc_html__('Cache files cannot be deleted, wrong ID or type', 'fastpixel-website-accelerator')]);
+                    wp_die();
+                } else {
+                    $this->notices->add_flash_notice(esc_html__('Cache files cannot be deleted, wrong ID or type', 'fastpixel-website-accelerator'), 'error', false);
+                    wp_redirect(wp_get_referer());
+                }
             }
-            $args = ['post_id' => $post_id, 'post_type' => $post_type];
-            //handling ajax post purge            
-            $permalink_to_reset = apply_filters('fastpixel/backend/delete_action/purge_single', '', $args);
+            $args = ['id' => $id, 'type' => $type, 'selected_of_type' => $selected_of_type];
+            $permalink_to_reset = apply_filters('fastpixel/backend/delete/single/permalink', '', $args);
             if (empty($permalink_to_reset)) {
-                $this->notices->add_flash_notice(esc_html__('Error occured, can\'t get cache url', 'fastpixel-website-accelerator'), 'error', false);
-                wp_redirect(wp_get_referer());
+                if ($ajax) {
+                    echo wp_json_encode(['status' => 'error', 'statusText' => esc_html__('Error occured, can\'t get url for deletion', 'fastpixel-website-accelerator')]);
+                    wp_die();
+                } else {
+                    $this->notices->add_flash_notice(esc_html__('Error occured, can\'t get url for deletion', 'fastpixel-website-accelerator'), 'error', false);
+                    wp_redirect(wp_get_referer());
+                }
             }
             $url = new FASTPIXEL_Url($permalink_to_reset);
             if ($this->delete_url_cache($url)) {
-                /* translators: %1 should be a url*/
-                $this->notices->add_flash_notice(sprintf(esc_html__('Cached files deleted for %1$s', 'fastpixel-website-accelerator'), esc_url($url->get_url())), 'success', false);
+                if ($ajax) {
+                    $post_status = $this->be_functions->cache_status_display($url->get_url(), $args);
+                    echo wp_json_encode([
+                        'id'         => $id,
+                        'status'     => 'success',
+                        /* translators: %s used to display post name */
+                        'statusText' => sprintf(esc_html__('Cached files deleted for %s.', 'fastpixel-website-accelerator'), esc_html($url->get_url())),
+                        'item'       => $post_status
+                    ]);
+                    wp_die();
+                } else {
+                    /* translators: %1 should be a url*/
+                    $this->notices->add_flash_notice(sprintf(esc_html__('Cached files deleted for %1$s', 'fastpixel-website-accelerator'), esc_url($url->get_url())), 'success', false);
+                    wp_redirect(wp_get_referer());
+                }
             }
-            wp_redirect(wp_get_referer());
+            if ($ajax) {
+                echo wp_json_encode(['status' => 'error', 'statusText' => esc_html__('Error occured while deleting', 'fastpixel-website-accelerator')]);
+                wp_die();
+            } else {
+                $this->notices->add_flash_notice(sprintf(esc_html__('Error occured while deleting', 'fastpixel-website-accelerator'), esc_url($url->get_url())), 'success', false);
+                wp_redirect(wp_get_referer());
+            }
+        }
+
+        public function purge_homepage_cache($post_id) {
+            if (function_exists('get_home_url')) {
+                $homepage_url = new FASTPIXEL_Url(get_home_url());
+                $status = $this->functions->check_post_cache_status($homepage_url->get_url());
+                if ($status['need_cache'] == false) {
+                    $this->functions->update_post_cache($homepage_url->get_url_path(), true);
+                }
+            }
         }
     }
     new FASTPIXEL_Backend_Cache();

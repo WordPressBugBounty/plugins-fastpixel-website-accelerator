@@ -17,9 +17,6 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Rest_Api')) {
         {
             self::$instance = $this;
             $this->functions = FASTPIXEL_functions::get_instance();
-            if (defined('FASTPIXEL_SHORTINIT') && FASTPIXEL_SHORTINIT == true) {
-                return;
-            }
             register_rest_route(FASTPIXEL_TEXTDOMAIN . '/v1', '/update', 
                 array(
                     'methods'             => 'POST',
@@ -64,21 +61,16 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Rest_Api')) {
         protected function save_files($parameters) // $url, $html, $headers, $css
         {
             //exclusion check moved here to have less duplicate code
-            $excludes = FASTPIXEL_Excludes::get_instance();
-            $is_exclusion = $excludes->check_is_exclusion($parameters['url']);
             $cache_dir = $this->functions->get_cache_dir();
             $url = new FASTPIXEL_Url($parameters['url']);
+            $is_exclusion = apply_filters('fastpixel/rest-api/excluded', false, $url);
             if ($is_exclusion) {
                 //trying to delete existing files if page is exclusion and for some reason cached page exists
                 $this->functions->delete_cached_files($cache_dir . DIRECTORY_SEPARATOR . $url->get_url_path());
                 if ($this->debug) {
                     FASTPIXEL_Debug::log('WP REST API RESPONSE 400: page is excluded from cache');
                 }
-                if (defined('FASTPIXEL_SHORTINIT') && FASTPIXEL_SHORTINIT == true) {
-                    return false;
-                } else {
-                    return new WP_REST_Response(['status' => 400, 'response' => 'Bad Request', 'body_response' => 'Page is excluded from cache'], 400);
-                }
+                return new WP_REST_Response(['status' => 400, 'response' => 'Bad Request', 'body_response' => 'Page is excluded from cache'], 400);
             }
 
             $path = $this->functions->check_path($parameters['url']);

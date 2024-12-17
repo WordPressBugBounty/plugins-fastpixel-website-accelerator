@@ -62,9 +62,9 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Plugin')) {
             if (empty($api_key)) {
                 $api_key = FASTPIXEL_Api_Key::get_instance();
                 $api_key->init_new_key();
-                //automatically enable "serve stale", "javascript optimization", "exclude gdpr scripts"
+                //automatically enable "javascript optimization", "exclude gdpr scripts"
                 $default_options = [
-                    'fastpixel_serve_stale' => true,
+                    'fastpixel_serve_stale' => false,
                     'fastpixel_javascript_optimization' => 1, //for basic preset
                     'fastpixel_javascript_exclude_gdpr' => true, //for basic preset
                     'fastpixel_cache_lifetime'          => 1,

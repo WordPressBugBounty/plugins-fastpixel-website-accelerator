@@ -99,6 +99,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_UI')) {
                     return $a->get_order() > $b->get_order() ? 1 : ($a->get_order() == $b->get_order() ? 0 : -1);
                 }
             );
+            do_action('fastpixel/tabs/loaded');
         }
 
         public function page_title($page_name)
@@ -207,7 +208,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_UI')) {
             if (!$this->check_capabilities()) {
                 return;
             }
-            $page_tabs = array('settings', 'javascript', 'images', 'fonts', 'diagnostics', 'presets');
+            $page_tabs = array('settings', 'javascript', 'images', 'fonts', 'diagnostics', 'presets', 'compatibility');
             echo '<div class="wrap fastpixel-website-accelerator-wrap">';
             echo wp_kses($this->page_title('settings'), $this->allowed_tags);
             echo wp_kses($this->submenu(), $this->allowed_tags);
@@ -248,40 +249,30 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_UI')) {
                                 'display_textarea' => false,
                                 'textarea_text' => ''
                             ],
-                            'site-broken-after-optimization' => [
-                                'text' => esc_html__('Site is broken after optimization', 'fastpixel-website-accelerator'),
-                                'display_textarea' => true,
-                                'textarea_text' => esc_html__('If possible, please describe issue', 'fastpixel-website-accelerator')
-                            ],
                             'not-fast-enough' => [
-                                'text'             => esc_html__('Not fast enough', 'fastpixel-website-accelerator'),
+                                'text'             => esc_html__('Doesn\'t help with the speed', 'fastpixel-website-accelerator'),
                                 'display_textarea' => true,
                                 'textarea_text'    => esc_html__('Please specify', 'fastpixel-website-accelerator')
                             ],
-                            'setup' => [
-                                'text' => esc_html__('Set up is too difficult', 'fastpixel-website-accelerator'),
+                            'site-broken-after-optimization' => [
+                                'text' => esc_html__('Breaks the website', 'fastpixel-website-accelerator'),
                                 'display_textarea' => true,
-                                'textarea_text'    => esc_html__('What was the dificult part ?', 'fastpixel-website-accelerator')
+                                'textarea_text' => esc_html__('If possible, please describe issue', 'fastpixel-website-accelerator')
                             ],
-                            'docs' => [
-                                'text' => esc_html__('Lack of documentation', 'fastpixel-website-accelerator'),
+                            'incompatibility' => [
+                                'text'             => esc_html__('Incompatible with a plugin or theme', 'fastpixel-website-accelerator'),
                                 'display_textarea' => true,
-                                'textarea_text'    => esc_html__('What can we describe more ?', 'fastpixel-website-accelerator')
-                            ],
-                            'features' => [
-                                'text' => esc_html__('Not the features I wanted', 'fastpixel-website-accelerator'),
-                                'display_textarea' => true,
-                                'textarea_text'    => esc_html__('How could we improve ?', 'fastpixel-website-accelerator')
+                                'textarea_text'    => esc_html__('With what plugin or theme is incompatible ?', 'fastpixel-website-accelerator')
                             ],
                             'better-plugin' => [
                                 'text' =>esc_html__('Found a better plugin', 'fastpixel-website-accelerator'),
                                 'display_textarea' => true,
                                 'textarea_text'    => esc_html__('Can you mention it ?', 'fastpixel-website-accelerator')
                             ],
-                            'incompatibility' => [
-                                'text' => esc_html__('Incompatible with theme or plugin', 'fastpixel-website-accelerator'),
+                            'features' => [
+                                'text'             => esc_html__('Missing feature', 'fastpixel-website-accelerator'),
                                 'display_textarea' => true,
-                                'textarea_text'    => esc_html__('With what plugin or theme is incompatible ?', 'fastpixel-website-accelerator')
+                                'textarea_text'    => esc_html__('How could we improve ?', 'fastpixel-website-accelerator')
                             ],
                             'other' => [
                                 'text'             => esc_html__('Other', 'fastpixel-website-accelerator'),
@@ -348,25 +339,25 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_UI')) {
                 } else if (is_tag() || is_tax() || is_category()) {
                     $tax = get_term(get_queried_object());
                     if (isset($tax->term_id) && !empty($tax->term_id)) {
-                        $args = ['id' => $tax->term_id, 'post_type' => 'taxonomy'];
+                        $args = ['id' => $tax->term_id, 'post_type' => 'taxonomy', 'url' => get_term_link($tax->term_id)];
                         $link = admin_url('admin.php?page=' . FASTPIXEL_TEXTDOMAIN . '&fastpixel-action=fastpixel_purge_single_cache&purge_id=' . $tax->term_id . '&purge_type=taxonomy');
                     }
                 } else if (is_author()) {
                     $author = get_queried_object();
                     if (isset($author->ID) && !empty($author->ID)) {
-                        $args = ['id' => $author->ID, 'post_type' => 'author'];
+                        $args = ['id' => $author->ID, 'post_type' => 'author', 'url' => get_author_posts_url($author->ID)];
                         $link = admin_url('admin.php?page=' . FASTPIXEL_TEXTDOMAIN . '&fastpixel-action=fastpixel_purge_single_cache&purge_id=' . $author->ID . '&purge_type=author');
                     }
                 } else if (is_archive()) {
                     $archive = get_queried_object();
                     if (isset($archive->name) && !empty($archive->name)) {
-                        $args = ['id' => $archive->name, 'post_type' => 'archive'];
+                        $args = ['id' => $archive->name, 'post_type' => 'archive', 'url' => get_post_type_archive_link($archive->name)];
                         $link = admin_url('admin.php?page=' . FASTPIXEL_TEXTDOMAIN . '&fastpixel-action=fastpixel_purge_single_cache&purge_id=' . $archive->name . '&purge_type=archive');
                     }
                 } else if (is_single() || is_page()) {
                     global $post;
                     if (isset($post->ID) && !empty($post->ID) && is_numeric($post->ID)) {
-                        $args = ['id' => $post->ID, 'post_type' => $post->post_type];
+                        $args = ['id' => $post->ID, 'post_type' => $post->post_type, 'url' => get_permalink($post->ID)];
                         $link = admin_url('admin.php?page=' . FASTPIXEL_TEXTDOMAIN . '&fastpixel-action=fastpixel_purge_single_cache&purge_id=' . $post->ID . '&purge_type=' . $post->post_type);
                     }
                 }

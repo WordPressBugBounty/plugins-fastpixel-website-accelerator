@@ -224,7 +224,29 @@
 @media (min-resolution: 96dpi) and (max-resolution: 119dpi) {
     .fastpixel-page-excludes-example-2d-row { padding-left: 63px; }
 }
-
+.fastpixel-exclude-post-types-row {
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+}
+.fastpixel-exclude-post-types-column {
+    width: 30%;
+    display: flex;
+    flex-direction: column;
+}
+.fastpixel-exclude-post-types-actions {
+    align-items: center;
+    justify-content: center;
+}
+.fastpixel-exclude-post-types-actions button {
+    margin: 5px 0;   
+}
+.fastpixel-exclude-post-types-column .fastpixel-select {
+    min-height: 76px;
+}
+.fastpixel-exclude-post-types-column .fastpixel-select option:checked {
+    background-color: #ffffff;
+}
 
 /* Javascript tab styles */
 .fastpixel-javascript-regexp-excludes-example-2d-row { padding-left: 69px;}

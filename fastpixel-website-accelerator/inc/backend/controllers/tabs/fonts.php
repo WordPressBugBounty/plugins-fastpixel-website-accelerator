@@ -14,7 +14,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Fonts')) {
         {
             parent::__construct();
             $this->name = esc_html__('Fonts', 'fastpixel-website-accelerator');
-            $this->save_options();
+            add_action('fastpixel/tabs/loaded', [$this, 'save_options'], 12);
         }
 
         public function settings()

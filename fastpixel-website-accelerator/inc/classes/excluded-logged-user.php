@@ -18,6 +18,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Excluded_Logged_User')) {
             $this->functions = FASTPIXEL_Functions::get_instance();
             $this->config = FASTPIXEL_Config_Model::get_instance();
             add_filter('fastpixel/init/excluded', [$this, 'is_excluded'], 12, 2);
+            add_filter('fastpixel/is_cache_request_allowed/excluded', [$this, 'is_excluded'], 12, 2);
         }
 
         public static function get_instance()

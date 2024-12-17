@@ -227,6 +227,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Functions')) {
             if (empty($path)) {
                 return false;
             }
+            $path = rtrim($path, DIRECTORY_SEPARATOR); //removing trailing slash
             $cache_dir = $this->get_cache_dir();
             $meta = ['invalidated_time' => false, 'cache_request_time' => false];
             if (file_exists($cache_dir . DIRECTORY_SEPARATOR . $path . DIRECTORY_SEPARATOR . 'meta')) {

@@ -33,7 +33,8 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Response_Handler')) {
                 //checking response body for 'queued' status
                 if (isset($body['status']) && $body['status'] == 'queued') {
                     //removing limit reached message if it was set
-                    if (defined('FASTPIXEL_FREE_LIMIT_REACHED') && FASTPIXEL_FREE_LIMIT_REACHED) {
+                    $free_limit_reached = $functions->get_option('fastpixel_free_limit_reached');
+                    if ($free_limit_reached) {
                         $functions->update_option('fastpixel_free_limit_reached', false);
                     }
                     return true;

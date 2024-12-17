@@ -33,8 +33,10 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Diag_Test_Conflicting_Plugins')) {
             'BJ Lazy Load'                         => '',
             'WP Meteor'                            => 'wp-meteor/wp-meteor.php',
             'ShortPixel Adaptive Images'           => 'shortpixel-adaptive-images/short-pixel-ai.php',
-            'Speed Optimizer'                      => 'sg-cachepress/sg-cachepress.php'
-
+            'Speed Optimizer'                      => 'sg-cachepress/sg-cachepress.php',
+            'Image optimization service by Optimole' => 'optimole-wp/optimole-wp.php',
+            'Jetpack Boost'                          => 'jetpack-boost/jetpack-boost.php',
+            'Asset CleanUp: Page Speed Booster'      => 'wp-asset-clean-up/wpacu.php'
         ];
         protected $conflicting_plugins_tested = [];
 
@@ -159,6 +161,18 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Diag_Test_Conflicting_Plugins')) {
                 if ($sg_cache_enabled) { 
                     $plugins["Speed Optimizer"]['status'] = false;
                 }
+            }
+
+            if (is_plugin_active($this->conflicting_plugins["Image optimization service by Optimole"]) || defined('OPTML_BASEFILE')) { // Image Optimization by Optimole
+                $plugins["Image optimization service by Optimole"]['status'] = false;
+            }
+
+            if (is_plugin_active($this->conflicting_plugins["Jetpack Boost"]) || defined('JETPACK_BOOST_VERSION')) { // Image Optimization by Optimole
+                $plugins["Jetpack Boost"]['status'] = false;
+            }
+
+            if (is_plugin_active($this->conflicting_plugins["Asset CleanUp: Page Speed Booster"]) || defined('WPACU_PLUGIN_VERSION')) { // Image Optimization by Optimole
+                $plugins["Asset CleanUp: Page Speed Booster"]['status'] = false;
             }
             
             $plugin_id = 0;

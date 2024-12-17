@@ -4,7 +4,7 @@ Tags: page speed, cache, lcp, optimization, pagespeed
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 5.6
-Stable tag: 1.0.35
+Stable tag: 1.0.37
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -182,6 +182,26 @@ For more detailed information on how to use the plugin or the API, troubleshooti
 
 
 == Changelog ==
+
+= 1.0.37 =
+Release Date: December 17, 2025
+* Status page fix
+
+= 1.0.36 =
+The Holiday Update 🎄
+Release Date: December 17, 2024
+Celebrate the season with a smoother, more feature-packed experience! Here's what's new in this festive update:
+🆕 New Features
+* Exclude WooCommerce Items: Now you can exclude specific WooCommerce products, categories, and tags from optimization, giving you more control over your store's behavior.
+* Post Type Exclusions: Added the ability to exclude custom post types, ensuring your site performs just the way you want it.
+* Automatic Homepage Cache Refresh: The homepage cache is automatically refreshed whenever a new post is added, ensuring that the displayed content is always up to date.
+* WordPress Taxonomies: You can now view cached pages on the Cache Status page filtered by your taxonomies.
+🛠️ Improvements
+* Updated Plugin Compatibility: We've refreshed the list of conflicting plugins to improve compatibility and avoid potential issues.
+* Bricks Builder Compatibility: We've added new built-in parameter exclusions to improve compatibility with Bricks Builder.
+🐞 Bug Fixes
+* Squashed several pesky bugs to ensure a more stable and reliable experience.
+Thank you for being part of our journey! Your feedback helps us make every update better. 🎁 
 
 = 1.0.35 =
 Release date: Nov 28, 2024

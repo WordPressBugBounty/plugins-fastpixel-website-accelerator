@@ -12,11 +12,12 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Settings')) {
         public $cache_dir;
         protected $config_file;
         protected $api_key;
+        protected $purge_all = false;
 
         public function __construct() {
             parent::__construct();
             $this->name = esc_html__('Settings', 'fastpixel-website-accelerator');
-            $this->save_options();
+            add_action('fastpixel/tabs/loaded', [$this, 'save_options'], 99);
         }
 
         public function settings() {
@@ -41,6 +42,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Settings')) {
             register_setting(FASTPIXEL_TEXTDOMAIN, 'fastpixel_exclusions', ['type' => 'array']);
             register_setting(FASTPIXEL_TEXTDOMAIN, 'fastpixel_exclude_all_params', ['type' => 'array']);
             register_setting(FASTPIXEL_TEXTDOMAIN, 'fastpixel_params_exclusions', ['type' => 'array']);
+            register_setting(FASTPIXEL_TEXTDOMAIN, 'fastpixel_excluded_post_types', ['type' => 'array', 'sanitize_callback' => [$this, 'sanitize_fastpixel_post_types_exclusion_cb']]);
             // Register a new section in the "settings" page.
             add_settings_section(
                 'fastpixel_settings_section',
@@ -51,14 +53,14 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Settings')) {
 
             add_settings_field(
                 'fastpixel_serve_stale',
-                esc_html__('Serve stale', 'fastpixel-website-accelerator'),
+                esc_html__('Serve Stale', 'fastpixel-website-accelerator'),
                 [$this, 'field_serve_stale_cb'],
                 FASTPIXEL_TEXTDOMAIN,
                 'fastpixel_settings_section'
             );
             add_settings_field(
                 'fastpixel_display_cached_for_logged',
-                esc_html__('Logged-in users', 'fastpixel-website-accelerator'),
+                esc_html__('Logged-in Users', 'fastpixel-website-accelerator'),
                 [$this, 'fastpixel_display_cached_for_logged_cb'],
                 FASTPIXEL_TEXTDOMAIN,
                 'fastpixel_settings_section'
@@ -107,13 +109,23 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Settings')) {
                 FASTPIXEL_TEXTDOMAIN,
                 'fastpixel_settings_section'
             );
+            add_settings_field(
+                'fastpixel_excluded_post_types',
+                esc_html__('Post Type Exclusions', 'fastpixel-website-accelerator'),
+                [$this, 'field_exclude_post_types_cb'],
+                FASTPIXEL_TEXTDOMAIN,
+                'fastpixel_settings_section'
+            );
+
+            // Registering extra settings.
+            do_action('fastpixel/settings_tab/init_settings');
         }
 
         public function field_serve_stale_cb($args) {
             // Get the value of the setting we've registered with register_setting()
             $serve_stale = $this->functions->get_option('fastpixel_serve_stale');
             ?>
-            <input id="fastpixel_serve_stale" type="checkbox" name="fastpixel_serve_stale" value="1" <?php echo checked($serve_stale); ?>> <span class="fastpixel-field-desc"><?php esc_html_e('Serve content from the cache while regenerating the optimized page version.', 'fastpixel-website-accelerator'); ?></span>
+            <input id="fastpixel_serve_stale" type="checkbox" name="fastpixel_serve_stale" value="1" <?php echo checked($serve_stale); ?>> <span class="fastpixel-field-desc"><?php esc_html_e('Serve older cache while the new cache is being generated.', 'fastpixel-website-accelerator'); ?></span>
             <?php
         }
 
@@ -185,6 +197,51 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Settings')) {
             printf(esc_html__('Request parameters that should exclude pages from caching. Each parameter should be added on a new line. %1$s.%2$sExample: param_name=param_value, another_param_name', 'fastpixel-website-accelerator'), '<a href="https://fastpixel.io/docs/fastpixel-exclusions/">' . esc_html(__('Read More', 'fastpixel-website-accelerator')) . '</a>', '<br/>'); ?></span>
             <?php
         }
+
+        public function field_exclude_post_types_cb($args)
+        {
+            // Get the value of the setting we've registered with register_setting()
+            $post_types = get_post_types(['public' => true], 'objects');
+            foreach($post_types as $post_type_name => $post_type) {
+                if (in_array($post_type_name, ['attachment'])) { //removing attachment
+                    unset($post_types[$post_type_name]);
+                }
+            }
+            $excluded = $this->functions->get_option('fastpixel_excluded_post_types', []);
+            ?>
+            <div class="fastpixel-exclude-post-types-row">
+                <div class="fastpixel-exclude-post-types-column">
+                    <p><?php esc_html_e('Post Types:', 'fastpixel-website-accelerator'); ?></p>
+                    <select id="fastpixel_exclude_post_types_list" class="fastpixel-select" name="fastpixel_exclude_post_types_list" multiple>
+                        <?php foreach($post_types as $post_type) :
+                            if (!in_array($post_type->name, $excluded)) : ?>
+                                <option value="<?php echo esc_html($post_type->name); ?>" <?php selected(in_array($post_type->name, []), true); ?>><?php echo esc_html($post_type->label); ?></option>
+                        <?php   endif; 
+                        endforeach; ?>
+                    </select>
+                </div>
+                <div class="fastpixel-exclude-post-types-column fastpixel-exclude-post-types-actions">
+                    <p>&nbsp;</p>
+                    <button id="fastpixel-exclude-post-types-move-right">>>></button>
+                    <button id="fastpixel-exclude-post-types-move-left"><<<</button>
+                </div>
+                <div class="fastpixel-exclude-post-types-column">
+                    <p><?php esc_html_e('Excluded Post Types:', 'fastpixel-website-accelerator'); ?></p>
+                    <select id="fastpixel_excluded_post_types" class="fastpixel-select" name="fastpixel_excluded_post_types[]" multiple>
+                        <?php foreach ($excluded as $post_type_name): 
+                            foreach ($post_types as $post_type) : 
+                                if ($post_type->name == $post_type_name) : ?>
+                                    <option value="<?php echo esc_html($post_type->name); ?>" <?php selected(in_array($post_type->name, []), true); ?>><?php echo esc_html($post_type->label); ?></option>
+                        <?php   endif; 
+                            endforeach; 
+                        endforeach; ?>
+                    </select>
+                </div>
+            </div>
+            <span class="fastpixel-field-desc"><?php //esc_html_e('Post types excluded from cache.', 'fastpixel-website-accelerator'); ?></span>
+            <?php
+        }
+
         public function save_options() {
             if (sanitize_text_field($_SERVER['REQUEST_METHOD']) !== 'POST' || (defined('DOING_AJAX') && DOING_AJAX) || 
                 check_admin_referer('fastpixel-settings', 'fastpixel-nonce') == false ||
@@ -207,9 +264,25 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Settings')) {
             $exclude_all_params = isset($_POST['fastpixel_exclude_all_params']) && 1 == sanitize_text_field($_POST['fastpixel_exclude_all_params']) ? 1 : 0;
             $this->functions->update_option('fastpixel_exclude_all_params', $exclude_all_params);
             $this->functions->update_option('fastpixel_params_exclusions', sanitize_textarea_field($_POST['fastpixel_params_exclusions']));
-            $notices = FASTPIXEL_Notices::get_instance();
+            $excluded_post_types = [];
+            if (!empty($_POST['fastpixel_excluded_post_types']) && is_array($_POST['fastpixel_excluded_post_types'])) {
+                foreach($_POST['fastpixel_excluded_post_types'] as $post_type) {
+                    $excluded_post_types[] = sanitize_textarea_field($post_type);
+                }
+            }
+            $this->functions->update_option('fastpixel_excluded_post_types', $excluded_post_types);
+            do_action('fastpixel/settings_tab/save_options');
             //displaying notice
-            $notices->add_flash_notice(esc_html__('Settings have been saved', 'fastpixel-website-accelerator'), 'success', false);
+            $notices = FASTPIXEL_Notices::get_instance();
+            $purge_all = apply_filters('fastpixel/settings_tab/purge_all', $this->purge_all);
+            $text_cleared = '';
+            if ($purge_all) {
+                $backend_cache = FASTPIXEL_Backend_Cache::get_instance();
+                $backend_cache->purge_all();
+                $text_cleared = esc_html__('Cache cleared!', 'fastpixel-website-accelerator');
+            }
+            /* translators: for %1$s text "cache cleared!" should be used */
+            $notices->add_flash_notice(sprintf(esc_html__('Settings have been saved. %1$s', 'fastpixel-website-accelerator'), $text_cleared), 'success', false);
         }
 
         public function save_excludes() {
@@ -253,6 +326,22 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Settings')) {
         {
             if (!in_array(sanitize_text_field($value), ['conservative', 'moderate', 'eager'])) {
                 return 'moderate';
+            }
+            return $value;
+        }
+
+        public function sanitize_fastpixel_post_types_exclusion_cb($value)
+        {
+            $old_value = $this->functions->get_option('fastpixel_excluded_post_types');
+            if (is_array($value) && is_array($old_value)) {
+                if (count($value) != count($old_value)) {
+                    $this->purge_all = true;
+                } else {
+                    $diff = array_diff($old_value, $value);
+                    if (!empty($diff)) {
+                        $this->purge_all = true;
+                    }
+                }
             }
             return $value;
         }

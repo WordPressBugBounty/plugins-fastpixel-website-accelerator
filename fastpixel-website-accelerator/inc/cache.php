@@ -17,7 +17,6 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Cache')) {
         protected $json_path;
         protected $header_path;
         protected $meta_path;
-        // protected $request_wait_time = 90;
         protected $debug_mode = false;
         protected $buffer;
         protected $x_queue_mode = false;
@@ -223,31 +222,30 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Cache')) {
                 }
                 return false;
             }
-            //Step 5: 
-            //Do not cache not published posts
-            if (is_single() && $post->post_status != 'publish') {
-                return false;
-            }
-            //Step 6: Check for excluded post types
-            $excluded_post_types = apply_filters('fastpixel_excluded_post_types', []);
-            if (!empty($post_id) && is_numeric($post_id)) {
-                $post_type = get_post_type($post_id);
-                if (in_array($post_type, $excluded_post_types)) {
-                    if ($this->debug) {
-                        FASTPIXEL_DEBUG::log('Class FASTPIXEL_Cache: request_page_cache, Stopped, post type is excluded from cache');
-                    }
+            //Step 5: Check for excluded post types
+            if (is_singular()) {
+                //Do not cache not published posts
+                if (!empty($post->post_status) && $post->post_status != 'publish') {
                     return false;
                 }
-            }
-            //Step 7: check for pages that should be excluded from cache
-            $excludes = FASTPIXEL_Excludes::get_instance();
-            $is_exclusion = $excludes->check_is_exclusion($this->url->get_url());
-            if ($is_exclusion) {
-                if ($this->debug) {
-                    FASTPIXEL_DEBUG::log('Class FASTPIXEL_Cache: Excludes and Meta Validation: Stopped. Page is excluded from cache.');
+                $fastpixel_excluded_post_types = $this->functions->get_option('fastpixel_excluded_post_types', []);
+                $excluded_post_types = apply_filters('fastpixel/is_cache_request_allowed/excludes/post_types', $fastpixel_excluded_post_types);
+                if (!empty($post->ID) && is_numeric($post->ID)) {
+                    $post_type = get_post_type($post->ID);
+                    if (in_array($post_type, $excluded_post_types)) {
+                        if ($this->debug) {
+                            FASTPIXEL_DEBUG::log('Class FASTPIXEL_Cache: request_page_cache, Stopped, post type is excluded from cache');
+                        }
+                        return false;
+                    }
                 }
-                //trying to delete existing files if page is exclusion and for some reason cached page exists, or it was created before exclusion was added
-                $this->functions->delete_cached_files($this->url->get_url_path());
+            }
+            //Step 6: check for pages that should be excluded from cache by different classes
+            $is_excluded = apply_filters('fastpixel/is_cache_request_allowed/excluded', false, $this->url);
+            if ($is_excluded) {
+                if ($this->debug) {
+                    FASTPIXEL_DEBUG::log('Class FASTPIXEL_Cache: Page is excluded from cache using filter.');
+                }
                 return false;
             }
 
@@ -407,10 +405,8 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Cache')) {
                 FASTPIXEL_Debug::log('Class FASTPIXEL_Cache_files: Checking canonical redirect $requested_url', $requested_url);
             }
             if ($redirected_url != $requested_url) {
-                if (untrailingslashit($redirected_url) == $requested_url) {
-                    //removing action when redirected
-                    remove_action('fastpixel/shutdown', [$this, 'request_page_cache']);
-                }
+                //removing action when redirected
+                remove_action('fastpixel/shutdown', [$this, 'request_page_cache']);
             }
             return $redirected_url;
         }

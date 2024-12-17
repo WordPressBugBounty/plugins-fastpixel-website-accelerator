@@ -38,6 +38,15 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Functions')) {
             if ($check_result == false) {
                 return $cache_status;
             }
+            if (empty($data['url'])) { 
+                if (!is_array($data)) {
+                    $data = [
+                        'url' => $url
+                    ];
+                } else {
+                    $data['url'] = $url;
+                }
+            }
             $excluded = apply_filters('fastpixel/backend_functions/cache_status_display/excluded', false, $data);
             if ($excluded) {
                 $cache_status['status_display'] = '<span class="have-popup"><strong>' . esc_html__('Excluded', 'fastpixel-website-accelerator') . '</strong></span>';

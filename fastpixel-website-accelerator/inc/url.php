@@ -149,7 +149,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Url')) {
                 return;
             }
             $this->strip_params = $strip_params;
-            if (is_int($url) && !empty($url) && function_exists('get_permalink')) {
+            if (!empty($url) && is_numeric($url) && function_exists('get_permalink')) {
                 $this->original_url = get_permalink($url);
                 if ($this->debug) {
                     FASTPIXEL_DEBUG::log('Class FASTPIXEL_Url: Getting URL by $post_id', $this->original_url);
@@ -251,6 +251,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Url')) {
             }
             return implode('&', $pairs);
         }
+
         protected function recursive_param_array($arr)
         {
             $string = '';
@@ -264,5 +265,12 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Url')) {
             return $string;
         }
 
+        public function params_stripped() {
+            return $this->strip_params;
+        }
+
+        public function get_original_url() {
+            return $this->original_url;
+        }
     }
 }

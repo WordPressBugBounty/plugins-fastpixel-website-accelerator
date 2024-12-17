@@ -70,33 +70,32 @@ document.addEventListener("DOMContentLoaded", function() {
     let fastpixel_delete_cached_request_in_progress = false;
 
     //ajax cache reset
-    jQuery('.fastpixel-website-accelerator-wrap').on('click', 'a.fastpixel-purge-single-post', function (e) {
+    jQuery('.fastpixel-website-accelerator-wrap').on('click', 'a.fastpixel-purge-single', function (e) {
         e.preventDefault();
-        const post_id = jQuery(this).data('post-id');
-        const post_type = jQuery(this).data('post-type');
-        if (post_id && post_type) {
-            fastpixelRequestPageCache(post_id, post_type);
+        const id = jQuery(this).data('id');
+        if (id) {
+            fastpixelRequestCache(id, fastpixel_backend_status.type, fastpixel_backend_status.selected_of_type);
         }
     });
     //ajax cached files deletion
-    jQuery('.fastpixel-website-accelerator-wrap').on('click', 'a.fastpixel-delete-cached-files-single-post', function (e) {
+    jQuery('.fastpixel-website-accelerator-wrap').on('click', 'a.fastpixel-delete-cached-files-single', function (e) {
         e.preventDefault();
-        const post_id = jQuery(this).data('post-id');
-        const post_type = jQuery(this).data('post-type');
-        if (post_id && post_type) {
-            fastpixelRequestDeleteCached(post_id, post_type);
+        const id = jQuery(this).data('id');
+        if (id) {
+            fastpixelRequestDeleteCached(id, fastpixel_backend_status.type, fastpixel_backend_status.selected_of_type);
         }
     });
 
-    function fastpixelRequestPageCache(post_id, post_type) {
-        if (!post_id || !post_type || fastpixel_cache_request_in_progress) {
+    function fastpixelRequestCache(id, type, selected_of_type) {
+        if (!id || !type || !selected_of_type || fastpixel_cache_request_in_progress) {
             return false;
         }
         const data = {
-            action: 'fastpixel_purge_post_cache',
+            action: 'fastpixel_purge_cache',
             nonce: fastpixel_backend.nonce,
-            post_id: post_id,
-            post_type: post_type
+            id: id,
+            type: type,
+            selected_of_type: selected_of_type
         }
         let original;
 
@@ -107,19 +106,19 @@ document.addEventListener("DOMContentLoaded", function() {
             data: data,
             beforeSend: function () {
                 fastpixel_cache_request_in_progress = true;
-                original = updatePostRow({post_id: post_id, display_loader: true});
+                original = updatePostRow({id: id, display_loader: true});
             },
             success: function (response) {
-                if (response.status == 'success' && !jQuery.isEmptyObject(response.post)) {
-                    const row = {...{post_id: post_id, post_type: post_type}, ...response.post};
+                if (response.status == 'success' && !jQuery.isEmptyObject(response.item)) {
+                    const row = { ...{ id: id }, ...response.item};
                     updatePostRow(row);
                 } else {
-                    updatePostRow({ ...{ post_id: post_id, post_type: post_type, display_loader: false }, ...original});
+                    updatePostRow({ ...{ id: id, display_loader: false }, ...original});
                 }
                 fastpixelDisplayMessage(response.statusText, response.status);
             },
             error: function (err) {
-                updatePostRow({ ...{ post_id: post_id, post_type: post_type, display_loader: false }, ...original });
+                updatePostRow({ ...{ id: id, display_loader: false }, ...original });
                 fastpixelDisplayMessage(err.statusText);
             },
             complete: function () {
@@ -128,15 +127,16 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
-    function fastpixelRequestDeleteCached(post_id, post_type) {
-        if (!post_id || !post_type || fastpixel_delete_cached_request_in_progress) {
+    function fastpixelRequestDeleteCached(id, type, selected_of_type) {
+        if (!id || !type || !selected_of_type || fastpixel_delete_cached_request_in_progress) {
             return false;
         }
         const data = {
             action: 'fastpixel_delete_cached_files',
             nonce: fastpixel_backend.nonce,
-            post_id: post_id,
-            post_type: post_type
+            id: id,
+            type: type,
+            selected_of_type: selected_of_type
         }
         let original;
 
@@ -147,19 +147,19 @@ document.addEventListener("DOMContentLoaded", function() {
             data: data,
             beforeSend: function () {
                 fastpixel_delete_cached_request_in_progress = true;
-                original = updatePostRow({ post_id: post_id, post_type: post_type, display_loader: true });
+                original = updatePostRow({ id: id, display_loader: true });
             },
             success: function (response) {
-                if (response.status == 'success' && !jQuery.isEmptyObject(response.post)) {
-                    const row = { ...{ post_id: post_id, post_type: post_type }, ...response.post };
+                if (response.status == 'success' && !jQuery.isEmptyObject(response.item)) {
+                    const row = { ...{ id: id }, ...response.item };
                     updatePostRow(row);
                 } else {
-                    updatePostRow({ ...{ post_id: post_id, post_type: post_type, display_loader: false }, ...original });
+                    updatePostRow({ ...{ id: id, display_loader: false }, ...original });
                 }
                 fastpixelDisplayMessage(response.statusText, response.status);
             },
             error: function (err) {
-                updatePostRow({ ...{ post_id: post_id, post_type: post_type, display_loader: false }, ...original });
+                updatePostRow({ ...{ id: id, display_loader: false }, ...original });
                 fastpixelDisplayMessage(err.statusText);
             },
             complete: function () {
@@ -168,7 +168,7 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
-    function fastpixelCacheStatuses(ids, post_type) {
+    function fastpixelCacheStatuses(ids, type, selected_of_type) {
         if (!ids || !Array.isArray(ids)) {
             return false;
         }
@@ -176,7 +176,8 @@ document.addEventListener("DOMContentLoaded", function() {
             action: 'fastpixel_cache_statuses',
             nonce: fastpixel_backend.nonce,
             ids: ids,
-            post_type: post_type
+            type: type,
+            selected_of_type: selected_of_type
         }
         jQuery.ajax({
             url: fastpixel_backend.ajax_url,
@@ -184,9 +185,9 @@ document.addEventListener("DOMContentLoaded", function() {
             dataType: 'JSON',
             data: data,
             success: function (response) {
-                if (response.status == 'success' && !jQuery.isEmptyObject(response.posts)) {
-                    jQuery.each(response.posts, function(post_id, post_data) {
-                        const row = {...{ post_id: post_id }, ...post_data};
+                if (response.status == 'success' && !jQuery.isEmptyObject(response.items)) {
+                    jQuery.each(response.items, function(id, data) {
+                        const row = {...{ id: id }, ...data};
                         updatePostRow(row);
                     });
                 } else {
@@ -203,9 +204,9 @@ document.addEventListener("DOMContentLoaded", function() {
     //checking cache status 30 secs
     if (jQuery('.fastpixel-website-accelerator-wrap input[name="rid[]"').length > 0) {
         setInterval(function() {
-            let ids = jQuery('input[name="rid[]"').map(function() {return jQuery(this).val(); }).get();
-            if (ids.length > 0 && typeof(fastpixel_backend_status.post_type) != 'undefined') {
-                let result = fastpixelCacheStatuses(ids, fastpixel_backend_status.post_type);
+            let ids = jQuery('input[name="rid[]"').map(function() { return jQuery(this).val(); }).get();
+            if (ids.length > 0 && typeof(fastpixel_backend_status.type) != 'undefined') {
+                let result = fastpixelCacheStatuses(ids, fastpixel_backend_status.type, fastpixel_backend_status.selected_of_type);
             }
         }, 30000);
     }
@@ -242,11 +243,11 @@ document.addEventListener("DOMContentLoaded", function() {
         if (typeof(data) !== 'object' || jQuery.isEmptyObject(data) || data == null) {
             return false;
         }
-        //checking post id
-        if (!data.post_id || (!parseInt(data.post_id) && data.post_id != 'homepage')) {
+        //checking item id
+        if (!data.id || (!parseInt(data.id) && data.id != 'homepage')) {
             return false;
         } else {
-            data.post_id = data.post_id != 'homepage' ? parseInt(data.post_id) : data.post_id;
+            data.id = data.id != 'homepage' ? parseInt(data.id) : data.id;
         }
         //default params
         let row = {
@@ -259,7 +260,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
         let original = { status: '', status_display: ''};
         const id_input = jQuery('input[name="rid[]"]').filter(function () {
-            return this.value == row.post_id;
+            return this.value == row.id;
         });
         if (id_input) {
             const tr = jQuery(id_input).parents('tr');
@@ -300,7 +301,7 @@ document.addEventListener("DOMContentLoaded", function() {
                         if (actions.find('span.purge_cache').length > 0) {
                             actions.find('span.purge_cache').children('a').text(cache_btn_text);
                         } else {
-                            actions.append(jQuery('<span class="purge_cache"></span>').append(jQuery('<a class="fastpixel-purge-single-post" href="' + fastpixel_backend.purge_post_link + row.post_id + '" data-post-id="' + row.post_id + '" data-post-id="' + row.post_type + '"></a>').append(cache_btn_text)));
+                            actions.append(jQuery('<span class="purge_cache"></span>').append(jQuery('<a class="fastpixel-purge-single" href="' + fastpixel_backend_status.purge_link + row.id + '" data-id="' + row.id + '"></a>').append(cache_btn_text)));
                             actions.find('span.purge_cache').prev().append(" | ");
                         }
                     }
@@ -308,7 +309,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     //then we need to check "delete cached files" link
                     if (row.status == 'stale' && actions.find('span.delete_cached').length < 1) {
                         actions.find('span.purge_cache').append(" | ");
-                        actions.append(jQuery('<span class="delete_cached"></span>').append(jQuery('<a class="fastpixel-delete-cached-files-single-post" href="' + fastpixel_backend.delete_cached_files_link + row.post_id + '" data-post-id="' + row.post_id + '" data-post-type="' + row.post_type + '"></a>').append(fastpixel_backend.delete_cached_files_text)));
+                        actions.append(jQuery('<span class="delete_cached"></span>').append(jQuery('<a class="fastpixel-delete-cached-files-single" href="' + fastpixel_backend_status.delete_cached_link + row.id + '" data-id="' + row.id + '"></a>').append(fastpixel_backend.delete_cached_files_text)));
                     } else if (row.status !== 'stale') {
                         actions.find('span.purge_cache').html(actions.find('span.purge_cache').children('a'));
                         actions.find('span.delete_cached').remove();
@@ -504,4 +505,38 @@ document.addEventListener("DOMContentLoaded", function() {
         });
         fastpixel_exclude_all_params_checkbox.trigger('fastpixelChange');
     }
+
+    //post types exclusions
+    const fastpixelPostTypesSelect = document.getElementById('fastpixel_exclude_post_types_list');
+    const fastpixelExcludedPostTypesSelect = document.getElementById('fastpixel_excluded_post_types');
+    const fastpixelMoveRightBtn = document.getElementById('fastpixel-exclude-post-types-move-right');
+    const fastpixelMoveLeftBtn = document.getElementById('fastpixel-exclude-post-types-move-left');
+    function fastpixelMoveOptions(fromSelect, toSelect) {
+        const selectedOptions = Array.from(fromSelect.options).filter(opt => opt.selected);
+        selectedOptions.forEach(option => {
+            const exists = Array.from(toSelect.options).some(o => o.value === option.value);
+            if (!exists) {
+                const newOption = new Option(option.text, option.value);
+                toSelect.add(newOption);
+            }
+            fromSelect.remove(option.index);
+        });
+    }
+    fastpixelMoveRightBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        fastpixelMoveOptions(fastpixelPostTypesSelect, fastpixelExcludedPostTypesSelect);
+    });
+    fastpixelMoveLeftBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        fastpixelMoveOptions(fastpixelExcludedPostTypesSelect, fastpixelPostTypesSelect);
+    });
+    const fastpixelSettingsForm = document.getElementById('fastpixel-settings-form');
+    fastpixelSettingsForm.addEventListener('submit', function () {
+        const select = document.getElementById('fastpixel_excluded_post_types');
+        const options_count = select.options.length;
+        for (var i = 0; i < options_count; i++) {
+            select.options[i].selected = true;
+        }
+    });
+
 });

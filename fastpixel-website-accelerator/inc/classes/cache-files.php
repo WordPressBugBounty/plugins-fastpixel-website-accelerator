@@ -11,7 +11,6 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Cache_Files')) {
         protected $functions;
         protected $config;
         protected $request_wait_time = 300;
-
         protected $cache_dir;
         protected $url;
         protected $url_path;
@@ -294,9 +293,9 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Cache_Files')) {
                         && (!$this->page_cache_status['last_cache_request_time'] //when never requested
                         || (time() > ($this->page_cache_status['last_cache_request_time'] + $this->request_wait_time)) //when time spent more than $request_wait_time
                     )) {
-                        add_action('setup_theme', function () {
+                        add_action('wp', function () {
                             if ($this->debug) {
-                                FASTPIXEL_Debug::log('Class FASTPIXEL_Cache_files: stopping wordpress on setup_theme hook');
+                                FASTPIXEL_Debug::log('Class FASTPIXEL_Cache_files: stopping wordpress on wp hook');
                             }
                             //stopping wordpress, all required functions should be already loaded
                             exit();

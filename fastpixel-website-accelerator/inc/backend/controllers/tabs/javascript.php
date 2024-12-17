@@ -9,12 +9,14 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Javascript')) {
 
         protected $slug = 'javascript';
         protected $order = 5;
+        protected $purge_all = false;
 
         public function __construct() {
             parent::__construct();
             $this->name = esc_html__('JavaScript', 'fastpixel-website-accelerator');
             add_filter('sanitize_option_fastpixel_javascript_optimization', [$this, 'sanitize_fastpixel_javascript_optimization_cb'], 10, 3);
-            $this->save_options();
+            add_action('fastpixel/tabs/loaded', [$this, 'save_options'], 10);
+            add_filter('fastpixel/settings_tab/purge_all', [$this, 'get_purge_all_status'], 10, 1);
         }
 
         public function settings() {
@@ -59,13 +61,8 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Javascript')) {
         }
         public function sanitize_fastpixel_javascript_optimization_cb($value, $option, $original_value) {
             $old_value = $this->functions->get_option($option);
-            if ($value != $old_value && !defined('FASTPIXEL_PURGE_ON_IMAGE')) {
-                define('FASTPIXEL_PURGE_ON_JS', true);
-                $backend_cache = FASTPIXEL_Backend_Cache::get_instance();
-                if ($backend_cache->purge_all()) {
-                    $notices = FASTPIXEL_Notices::get_instance();
-                    $notices->add_flash_notice(esc_html__('Javascript optimization changed. Cache cleared!', 'fastpixel-website-accelerator'), 'success', true);
-                }
+            if ($value != $old_value) {
+                $this->purge_all = true;
             }
             return $value;
         }
@@ -136,6 +133,14 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Javascript')) {
             }
             $gdpr = isset($_POST['fastpixel_javascript_exclude_gdpr']) && 1 == sanitize_text_field($_POST['fastpixel_javascript_exclude_gdpr']) ? 1 : 0;
             $this->functions->update_option('fastpixel_javascript_exclude_gdpr', $gdpr);    
+        }
+
+        public function get_purge_all_status($status)
+        {
+            if ($status == true) {
+                return $status;
+            }
+            return $this->purge_all;
         }
     }
     new FASTPIXEL_Tab_Javascript();

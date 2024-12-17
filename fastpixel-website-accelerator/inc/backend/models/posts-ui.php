@@ -244,9 +244,9 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Posts_Table')) {
                 $be_cache = FASTPIXEL_Backend_Cache::get_instance();
                 $r_count = 0;
                 for ($i = 0; $i < $k; $i++) {
-                    $filter_args = ['post_id' => $rids[$i], 'post_type' => $this->selected_post_type];
+                    $filter_args = ['id' => $rids[$i], 'selected_of_type' => $this->selected_post_type];
                     //handling post purge
-                    $cache_reset_type = apply_filters('fastpixel/backend/bulk/cache_reset_type', 'url', $filter_args);
+                    $cache_reset_type = apply_filters('fastpixel/backend/bulk/reset_type', 'url', $filter_args);
                     $cache_requested = false;
                     if ($cache_reset_type == 'url') {
                         $permalink_to_reset = apply_filters('fastpixel/backend/bulk/purge_single', '', $filter_args);

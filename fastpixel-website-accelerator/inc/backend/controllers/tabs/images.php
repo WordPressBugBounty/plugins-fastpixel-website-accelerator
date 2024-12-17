@@ -9,13 +9,15 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Images')) {
 
         protected $slug = 'images';
         protected $order = 6;
+        protected $purge_all = false;
 
         public function __construct()
         {
             parent::__construct();
             $this->name = esc_html__('Images', 'fastpixel-website-accelerator');
             add_filter('sanitize_option_fastpixel_images_optimization', [$this, 'sanitize_fastpixel_images_optimization_cb'], 10, 3);
-            $this->save_options();
+            add_action('fastpixel/tabs/loaded', [$this, 'save_options'], 11);
+            add_filter('fastpixel/settings_tab/purge_all', [$this, 'get_purge_all_status'], 11, 1);
         }
 
         public function settings()
@@ -54,16 +56,12 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Images')) {
         public function sanitize_fastpixel_images_optimization_cb($value, $option, $original_value)
         {
             $old_value = $this->functions->get_option($option);
-            if ($value != $old_value && !defined('FASTPIXEL_PURGE_ON_JS')) {
-                define('FASTPIXEL_PURGE_ON_IMAGE', true);
-                $backend_cache = FASTPIXEL_Backend_Cache::get_instance();
-                if ($backend_cache->purge_all()) {
-                    $notices = FASTPIXEL_Notices::get_instance();
-                    $notices->add_flash_notice(esc_html__('Image compression level changed. Cache cleared!', 'fastpixel-website-accelerator'), 'success', true);
-                }
+            if ($value != $old_value) {
+                $this->purge_all = true;
             }
             return $value;
         }
+
         public function field_images_optimization_cb($args)
         {
             // Get the value of the setting we've registered with register_setting()
@@ -131,6 +129,14 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Images')) {
             $this->functions->update_option('fastpixel_images_crop', $images_crop);
             $force_image_dimensions = isset($_POST['fastpixel_force_image_dimensions']) && 1 == sanitize_text_field($_POST['fastpixel_force_image_dimensions']) ? 1 : 0;
             $this->functions->update_option('fastpixel_force_image_dimensions', $force_image_dimensions);    
+        }
+
+        public function get_purge_all_status($status)
+        {
+            if ($status == true) {
+                return $status;
+            }
+            return $this->purge_all;
         }
     }
     new FASTPIXEL_Tab_Images();
