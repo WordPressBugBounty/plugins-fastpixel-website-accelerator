@@ -522,21 +522,24 @@ document.addEventListener("DOMContentLoaded", function() {
             fromSelect.remove(option.index);
         });
     }
-    fastpixelMoveRightBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        fastpixelMoveOptions(fastpixelPostTypesSelect, fastpixelExcludedPostTypesSelect);
-    });
-    fastpixelMoveLeftBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        fastpixelMoveOptions(fastpixelExcludedPostTypesSelect, fastpixelPostTypesSelect);
-    });
+    if (fastpixelMoveRightBtn != null && fastpixelMoveLeftBtn != null) {
+        fastpixelMoveRightBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            fastpixelMoveOptions(fastpixelPostTypesSelect, fastpixelExcludedPostTypesSelect);
+        });
+        fastpixelMoveLeftBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            fastpixelMoveOptions(fastpixelExcludedPostTypesSelect, fastpixelPostTypesSelect);
+        });
+    }
     const fastpixelSettingsForm = document.getElementById('fastpixel-settings-form');
-    fastpixelSettingsForm.addEventListener('submit', function () {
-        const select = document.getElementById('fastpixel_excluded_post_types');
-        const options_count = select.options.length;
-        for (var i = 0; i < options_count; i++) {
-            select.options[i].selected = true;
-        }
-    });
-
+    if (fastpixelSettingsForm != null) {
+        fastpixelSettingsForm.addEventListener('submit', function () {
+            const select = document.getElementById('fastpixel_excluded_post_types');
+            const options_count = select.options.length;
+            for (var i = 0; i < options_count; i++) {
+                select.options[i].selected = true;
+            }
+        });
+    }
 });

@@ -36,7 +36,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Diag_Test_Conflicting_Plugins')) {
             'Speed Optimizer'                      => 'sg-cachepress/sg-cachepress.php',
             'Image optimization service by Optimole' => 'optimole-wp/optimole-wp.php',
             'Jetpack Boost'                          => 'jetpack-boost/jetpack-boost.php',
-            'Asset CleanUp: Page Speed Booster'      => 'wp-asset-clean-up/wpacu.php'
+            'Asset CleanUp: Page Speed Booster'      => 'wp-asset-clean-up/wpacu.php',
         ];
         protected $conflicting_plugins_tested = [];
 
@@ -55,7 +55,9 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Diag_Test_Conflicting_Plugins')) {
             $all_mu_plugins = get_mu_plugins();
             foreach ($all_mu_plugins as $filename => $plugin_info) {
                 if (in_array($plugin_info['Title'], $conflicting_mu_plugin_names) || in_array($filename, $conflicting_mu_plugin_files)) {
-                    $mu_plugins[$plugin_info['Title']] = [
+                    //getting ours plugin name by filename
+                    $plugin_key = array_search($filename, $this->conflicting_mu_plugins);
+                    $mu_plugins[$plugin_key] = [
                         'status' => true,
                         'file'   => $filename
                     ];
@@ -81,7 +83,9 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Diag_Test_Conflicting_Plugins')) {
             $plugins = [];
             foreach ($all_plugins as $filename => $plugin_info) {
                 if (in_array($plugin_info['Title'], $conflicting_plugin_names) || in_array($filename, $conflicting_plugin_files)) {
-                    $plugins[$plugin_info['Title']] = [
+                    //getting ours plugin name by filename
+                    $plugin_key = array_search($filename, $this->conflicting_plugins);
+                    $plugins[$plugin_key] = [
                         'status' => true,
                         'file'   => $filename
                     ];
@@ -167,12 +171,16 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Diag_Test_Conflicting_Plugins')) {
                 $plugins["Image optimization service by Optimole"]['status'] = false;
             }
 
-            if (is_plugin_active($this->conflicting_plugins["Jetpack Boost"]) || defined('JETPACK_BOOST_VERSION')) { // Image Optimization by Optimole
+            if (is_plugin_active($this->conflicting_plugins["Jetpack Boost"]) || defined('JETPACK_BOOST_VERSION')) {
                 $plugins["Jetpack Boost"]['status'] = false;
             }
 
-            if (is_plugin_active($this->conflicting_plugins["Asset CleanUp: Page Speed Booster"]) || defined('WPACU_PLUGIN_VERSION')) { // Image Optimization by Optimole
+            if (is_plugin_active($this->conflicting_plugins["Asset CleanUp: Page Speed Booster"]) || defined('WPACU_PLUGIN_VERSION')) { 
                 $plugins["Asset CleanUp: Page Speed Booster"]['status'] = false;
+            }
+
+            if (is_plugin_active($this->conflicting_plugins["WP-Optimize - Clean, Compress, Cache"]) || defined('WPO_VERSION')) { // WP-Optimize
+                $plugins["WP-Optimize - Clean, Compress, Cache"]['status'] = false;
             }
             
             $plugin_id = 0;

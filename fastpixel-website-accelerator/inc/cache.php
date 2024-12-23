@@ -156,6 +156,9 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Cache')) {
             */
             $is_excluded = apply_filters('fastpixel/init/excluded', false, $requested_url);
             if ($is_excluded) {
+                if ($this->debug) {
+                    FASTPIXEL_Debug::log('Class FASTPIXEL_Cache: excluded on init');
+                }
                 return false;
             }
             return true;

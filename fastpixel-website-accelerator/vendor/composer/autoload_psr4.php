@@ -6,6 +6,8 @@ $vendorDir = dirname(__DIR__);
 $baseDir = dirname($vendorDir);
 
 return array(
+    'phpseclib3\\' => array($vendorDir . '/phpseclib/phpseclib/phpseclib'),
     'WPDesk\\PluginBuilder\\' => array($vendorDir . '/wpdesk/wp-builder/src'),
     'WPDesk\\Notice\\' => array($vendorDir . '/wpdesk/wp-notice/src/WPDesk/Notice'),
+    'ParagonIE\\ConstantTime\\' => array($vendorDir . '/paragonie/constant_time_encoding/src'),
 );

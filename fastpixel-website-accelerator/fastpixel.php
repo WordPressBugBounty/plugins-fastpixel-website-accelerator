@@ -4,7 +4,7 @@
  * Plugin URI:  https://fastpixel.io
  * Description: Faster WordPress made easy - the latest technology to speed up your website, packaged in a 1-minute setup plugin.
  * Author:      ShortPixel
- * Version:     1.0.37
+ * Version:     1.0.38
  * Text Domain: fastpixel-website-accelerator
  * Domain Path: /languages
  * License:     GPLv2 or later
@@ -20,7 +20,7 @@
 
 defined('ABSPATH') || exit;
 
-define('FASTPIXEL_VERSION', '1.0.37');
+define('FASTPIXEL_VERSION', '1.0.38');
 define('FASTPIXEL_NAME', 'FastPixel');
 if (!defined('FASTPIXEL_PLUGIN_DIR'))
     define('FASTPIXEL_PLUGIN_DIR', __DIR__);

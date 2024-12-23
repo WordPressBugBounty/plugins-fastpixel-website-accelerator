@@ -4,6 +4,9 @@ namespace FASTPIXEL;
 use WP_REST_Request;
 use WP_REST_Response;
 use WP_Error;
+use phpseclib3\Crypt\RSA;
+use phpseclib3\Crypt\PublicKeyLoader;
+
 defined('ABSPATH') || exit;
 
 if (!class_exists('FASTPIXEL\FASTPIXEL_Rest_Api')) {
@@ -12,6 +15,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Rest_Api')) {
         protected $debug = false;
         public $functions;
         public static $instance;
+        private $public_keys = [];
 
         public function __construct()
         {
@@ -48,6 +52,18 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Rest_Api')) {
                     'permission_callback' => '__return_true',
                 )
             );
+            $this->public_keys = [
+                // 20/12/2024
+                PublicKeyLoader::loadPublicKey("-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAm3fn2gQ0RFZbuJvExrPr
++UqXb5HxGljle0rxJyh+MZhFaoWcFXMuxyvLdJJ/fKhgR+22jxwAKVeekiSQi7TN
+tUVVyJDwJzjAQixI7M2TSjd9xN+/e0hjPoaAKuSz53VnFkJYIZT4wqQY4mbgWUm2
+ZnASLx+K208XZ9VcAFcvJGOfx1fG3f4NKA2M/4LdNgbg6+qCocoBHYxsZpknOpDo
+fVWYu6nWfFrbpByLiDCIdC7JjQc99cM9AFe7RjfaMSqPx0Qyrw/HkxaeCMzzVj0N
+cNYf7UGB8r71kAaNwQ727DRbVY54msbWqVVe/AtjQ8ZiTm7baPsLLzDMM1PQs/9x
+gwIDAQAB
+-----END PUBLIC KEY-----")
+            ];
         }
 
         public static function get_instance()
@@ -193,6 +209,45 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Rest_Api')) {
                     FASTPIXEL_DEBUG::log('WP REST API RESPONSE 400: invalid url parameter');
                 }
                 return new WP_REST_Response(['status' => 400, 'response' => 'Bad Request', 'body_response' => 'invalid url parameter: ' . $e->getMessage()], 400);
+            }
+            if (empty($parameters['signature'])) {
+                if ($this->debug) {
+                    FASTPIXEL_DEBUG::log('WP REST API RESPONSE 400: signature parameter is missing');
+                }
+                return new WP_REST_Response(['status' => 400, 'response' => 'Bad Request', 'body_response' => 'signature parameter is missing'], 400);
+            }
+            if (empty($parameters['timestamp'])) {
+                if ($this->debug) {
+                    FASTPIXEL_DEBUG::log('WP REST API RESPONSE 400: timestamp parameter is missing');
+                }
+                return new WP_REST_Response(['status' => 400, 'response' => 'Bad Request', 'body_response' => 'timestamp parameter is missing'], 400);
+            }
+            if ($parameters['timestamp'] < time() - 60) {
+                $error_message = 'Incoming timestamp ' . $parameters['timestamp'] . ' is too old, server time is ' . time();
+                if ($this->debug) {
+                    FASTPIXEL_DEBUG::log('WP REST API RESPONSE 400: ' . $error_message);
+                }
+                return new WP_REST_Response(['status' => 400, 'response' => 'Bad Request', 'body_response' => $error_message ], 400);
+            }
+            $signature = $parameters['timestamp'] . ':' . $parameters['url'];
+            $public_key_matched = false;
+            foreach ($this->public_keys as $public_key) {
+                if ($public_key
+                    ->withHash('sha256')
+                    ->withPadding(RSA::SIGNATURE_PKCS1)
+                    ->verify($signature, base64_decode($parameters['signature'])) === true
+                ) {
+                    $public_key_matched = true;
+                    break;
+                }
+            }
+            if (!$public_key_matched) {
+                if ($this->debug) {
+                    FASTPIXEL_DEBUG::log('WP REST API RESPONSE 401: invalid service signature');
+                }
+                $fastpixel_notices = FASTPIXEL_Notices::get_instance();
+                $fastpixel_notices->add_flash_notice( __('Invalid signature. Please upgrade the plugin to the latest version.', 'fastpixel-web-accelerator'), 'error', true, 'invalid-signature-error');
+                return new WP_REST_Response(['status' => 401, 'response' => 'Not Authorized', 'body_response' => 'Invalid signature'], 401);
             }
             //checking for error and writing error file if exists
             if (isset($parameters['error']) && !empty($parameters['error'])) {

@@ -1,30 +1,30 @@
-=== FastPixel Caching - WP Optimization made easy ===
+=== FastPixel Cache - Optimize Page Speed: Compress Images, Minify, Clean Database & CDN ===
 Contributors: shortpixel
-Tags: page speed, cache, lcp, optimization, pagespeed
+Tags: speed, cache, caching, performance, web vitals
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 5.6
-Stable tag: 1.0.37
+Stable tag: 1.0.38
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Faster WordPress made easy - all the latest technology on how to accelerate your website neatly packed in a 1-minute-setup plugin.
+Optimize Core Web Vitals and PageSpeed with advanced caching, image compression, lazy loading, critical CSS, and CDN – the ultimate performance tool.
 
 == Description ==
 
-###The Ultimate Caching and Accelerator Plugin for WordPress###
+###The Ultimate Caching and Speed Improvement Plugin for WordPress###
 
 Have you ever wished your website scored 90+ on Google PageSpeed Insights, GTMetrix and other website performance analysis tools?
 And achieve that without the need to pay expensive fees to consultants or learn a lot of advanced technical stuff? 
 
 **[FastPixel](https://fastpixel.io/?utm_source=wp-repository&utm_medium=link) automatically integrates** all the latest technical enhancements, such as Page Caching, HTML/CSS/JS minification, DNS prefetching and preloading, Critical CSS, ShortPixel's [Smart Image Optimization](https://shortpixel.com/blog/introducing-smartcompress/?/?utm_source=wp-repository&utm_medium=link), adaptive images, background image scaling and optimization, HTTP/2 support, fonts loading optimization, caching, a global CDN, and Core Web Vitals, within an **easy-to-use, 1-minute-setup interface**.
 
-== Quickly Test ==
+== Ready for a Quick TEST of our Speed Optimization Tool? ==
 There is **no need to install our plugin to run a test**.
 You can test FastPixel live on a [sandbox website@TasteWP](https://tastewp.com/template/FastPixel) or you can quickly assess how [FastPixel](https://fastpixel.io/) can optimize your website by conducting a test. Simply use [this test page](https://test.fastpixel.io/), and we will apply all optimizations to a copy of your website.
 This way, you can easily evaluate the substantial speed improvements it can achieve using the most widely recognized website performance analysis tools.
 
-== Why choose FastPixel Website Accelerator? ==
+== Why choose FastPixel Caching plugin? ==
 - **Website Performance Boost**: Just activate the plugin and within seconds the optimized webpages will start to be served.
 - **Lower the CPU/RAM Impact**: Using the plugin will reduce the impact on the resources used by your website. All the CPU intensive processing is done in the cloud and resulting pages will generally be served from a cached version and the optimized images from the CDN.
 - **Automated Core Web Vitals Optimization**: FastPixel takes care of all technical aspects automatically.
@@ -37,7 +37,7 @@ This way, you can easily evaluate the substantial speed improvements it can achi
 - **Image Resizing & Optimization**: Images are automatically resized to fit their placeholders, optimized, and delivered through the ShortPixel CDN.
 - **Automatic Next-Gen Images Delivery**: Based on the visitor's browser capabilities, original JPG, PNG, or GIF images are converted to and served as WebP or AVIF when supported. For browsers without support, the original format is provided.
 
-== Happy with your test? ==
+== Happy users that use our plugin ==
 If you're satisfied with the test, just search for "FastPixel" in your WordPress Dashboard > Plugins, install the plugin and see for yourself how much faster your site becomes.
 
 > **Testimonials:**
@@ -95,6 +95,15 @@ Yes, you can definitely exclude pages from optimization either individually or i
 
 = Will the plugin interfere with other themes, plugins or widgets? =
 We have taken great care to ensure that FastPixel plugin won't interfere with other themes, plugins or widgets, minimizing the chances of compatibility issues. Despite our best efforts to mitigate the risks, considering the vast array of hosting providers, along with tens of thousands of plugins and themes available in the WordPress ecosystem, occasional conflicts with other plugins or widgets are possible. If you encounter any issues or suspect interference with other plugins or widgets, please don't hesitate to [contact us](https://fastpixel.io/#contact).
+
+= Do I need a cache plugin for WordPress? =
+Yes, a caching plugin is essential for speeding up your website and improving its performance!
+
+= What is the importance of using caching plugins in WordPress? =
+Caching plugins in WordPress improve website performance by storing static versions of your pages, reducing server load, and speeding up load times. This enhances user experience, boosts SEO rankings, and can handle higher traffic more efficiently.
+
+= Is FastPixel compatible with other cache plugins? =
+If you're using this plugin alongside other caching tools like WP Rocket, LiteSpeed Cache, WP Optimize or W3 Total Cache, make sure to disable them to make this one work at the best performance.
 
 = Is there an external service used by FastPixel plugin? =
 Our plugin integrates with an external service via dedicated API endpoints. This process involves sending a request with specific data to the server API endpoint, which then queues and processes the request to generate HTML content. Once your request reaches the front of the queue, the service processes the data, generates the HTML content based on the specified URL, and then sends the HTML back to the plugin using the provided postback URL. The plugin automatically receives the generated HTML content and saves it to the disk on your WordPress installation. This process is designed to be seamless and requires no manual intervention.
@@ -183,9 +192,19 @@ For more detailed information on how to use the plugin or the API, troubleshooti
 
 == Changelog ==
 
+= 1.0.38 =
+Release Date: December 23, 2024
+🔒 Security Enhancements
+* Asymmetric Request Signing: Improved communication security between the FastPixel WordPress plugin and the optimization service by implementing RSA-2048 asymmetric cryptography. This ensures robust authentication and enhanced protection against unauthorized access or tampering.
+🛠️ Improvements
+* Updated Plugin Compatibility: allowing CookieYes to properly scrape optimized pages 
+* Updated conflicting plugins list
+
+✨ Your website optimization just got even more secure! 🎉
+
 = 1.0.37 =
-Release Date: December 17, 2025
-* Status page fix
+Release Date: December 17, 2024
+* Some more bug fixes to make the experience even better
 
 = 1.0.36 =
 The Holiday Update 🎄
