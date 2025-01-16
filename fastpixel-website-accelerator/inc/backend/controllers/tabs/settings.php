@@ -50,71 +50,115 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Settings')) {
                 false,
                 FASTPIXEL_TEXTDOMAIN
             );
-
+            $field_title = esc_html__('Serve Stale', 'fastpixel-website-accelerator');
             add_settings_field(
                 'fastpixel_serve_stale',
-                esc_html__('Serve Stale', 'fastpixel-website-accelerator'),
+                $field_title,
                 [$this, 'field_serve_stale_cb'],
                 FASTPIXEL_TEXTDOMAIN,
-                'fastpixel_settings_section'
+                'fastpixel_settings_section',
+                [
+                    'class' => 'fastpixel-settings-form-row',
+                    'label' => $field_title
+                ]
             );
+            $field_title = esc_html__('Logged-in Users', 'fastpixel-website-accelerator');
             add_settings_field(
                 'fastpixel_display_cached_for_logged',
-                esc_html__('Logged-in Users', 'fastpixel-website-accelerator'),
+                $field_title,
                 [$this, 'fastpixel_display_cached_for_logged_cb'],
                 FASTPIXEL_TEXTDOMAIN,
-                'fastpixel_settings_section'
+                'fastpixel_settings_section',
+                [
+                    'class' => 'fastpixel-settings-form-row',
+                    'label' => $field_title
+                ]
             );
             if (!defined('SPECULATION_RULES_VERSION')) { //displaying speculation rules fields only if speculation rules plugin is not installed/enabled
+                $field_title = esc_html__('Speculation Rules', 'fastpixel-website-accelerator');
                 add_settings_field(
                     'fastpixel_speculation_rules',
-                    esc_html__('Speculation Rules', 'fastpixel-website-accelerator'),
+                    $field_title,
                     [$this, 'field_speculation_rules_cb'],
                     FASTPIXEL_TEXTDOMAIN,
-                    'fastpixel_settings_section'
+                    'fastpixel_settings_section',
+                    [
+                        'class' => 'fastpixel-settings-form-row',
+                        'label' => $field_title
+                    ]
                 );
+                $field_title = esc_html__('Speculation Mode', 'fastpixel-website-accelerator');
                 add_settings_field(
                     'fastpixel_speculation_mode',
-                    esc_html__('Speculation Mode', 'fastpixel-website-accelerator'),
+                    $field_title,
                     [$this, 'field_speculation_mode_cb'],
                     FASTPIXEL_TEXTDOMAIN,
-                    'fastpixel_settings_section'
+                    'fastpixel_settings_section',
+                    [
+                        'class' => 'fastpixel-settings-form-row',
+                        'label' => $field_title
+                    ]
                 );
+                $field_title = esc_html__('Speculation Eagerness', 'fastpixel-website-accelerator');
                 add_settings_field(
                     'fastpixel_speculation_eagerness',
-                    esc_html__('Speculation Eagerness', 'fastpixel-website-accelerator'),
+                    $field_title,
                     [$this, 'field_speculation_eagerness_cb'],
                     FASTPIXEL_TEXTDOMAIN,
-                    'fastpixel_settings_section'
+                    'fastpixel_settings_section',
+                    [
+                        'class' => 'fastpixel-settings-form-row',
+                        'label' => $field_title
+                    ]
                 );
             }
+            $field_title = esc_html__('Page Exclusions', 'fastpixel-website-accelerator');
             add_settings_field(
                 'fastpixel_exclusions',
-                esc_html__('Page Exclusions', 'fastpixel-website-accelerator'),
+                $field_title,
                 [$this, 'field_exclusions_cb'],
                 FASTPIXEL_TEXTDOMAIN,
-                'fastpixel_settings_section'
+                'fastpixel_settings_section',
+                [
+                    'class' => 'fastpixel-settings-form-row',
+                    'label' => $field_title
+                ]
             );
+            $field_title = esc_html__('Parameter Exclusions', 'fastpixel-website-accelerator');
             add_settings_field(
                 'fastpixel_params_exclusions',
-                esc_html__('Parameter Exclusions', 'fastpixel-website-accelerator'),
+                $field_title,
                 [$this, 'field_params_exclusions_cb'],
                 FASTPIXEL_TEXTDOMAIN,
-                'fastpixel_settings_section'
+                'fastpixel_settings_section',
+                [
+                    'class' => 'fastpixel-settings-form-row',
+                    'label' => $field_title
+                ]
             );
+            $field_title = esc_html__('Disable All Parameters', 'fastpixel-website-accelerator');
             add_settings_field(
                 'fastpixel_exclude_all_params',
-                esc_html__('Disable All Parameters', 'fastpixel-website-accelerator'),
+                $field_title,
                 [$this, 'field_exclude_all_params_cb'],
                 FASTPIXEL_TEXTDOMAIN,
-                'fastpixel_settings_section'
+                'fastpixel_settings_section',
+                [
+                    'class' => 'fastpixel-settings-form-row',
+                    'label' => $field_title
+                ]
             );
+            $field_title = esc_html__('Post Type Exclusions', 'fastpixel-website-accelerator');
             add_settings_field(
                 'fastpixel_excluded_post_types',
-                esc_html__('Post Type Exclusions', 'fastpixel-website-accelerator'),
+                $field_title,
                 [$this, 'field_exclude_post_types_cb'],
                 FASTPIXEL_TEXTDOMAIN,
-                'fastpixel_settings_section'
+                'fastpixel_settings_section',
+                [
+                    'class' => 'fastpixel-settings-form-row',
+                    'label' => $field_title
+                ]
             );
 
             // Registering extra settings.
@@ -123,122 +167,158 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Settings')) {
 
         public function field_serve_stale_cb($args) {
             // Get the value of the setting we've registered with register_setting()
-            $serve_stale = $this->functions->get_option('fastpixel_serve_stale');
-            ?>
-            <input id="fastpixel_serve_stale" type="checkbox" name="fastpixel_serve_stale" value="1" <?php echo checked($serve_stale); ?>> <span class="fastpixel-field-desc"><?php esc_html_e('Serve older cache while the new cache is being generated.', 'fastpixel-website-accelerator'); ?></span>
-            <?php
+            $serve_stale = $this->functions->get_option('fastpixel_serve_stale', false);
+            $this->be_functions->print_checkbox([
+                'field_name'   => 'fastpixel_serve_stale',
+                'checked'      => $serve_stale,
+                'label'        => $args['label'],
+                'description'  => esc_html__('Serve older cache while the new cache is being generated.', 'fastpixel-website-accelerator')
+            ], true);
         }
 
         public function fastpixel_display_cached_for_logged_cb($args) {
             // Get the value of the setting we've registered with register_setting()
-            $enabled = $this->functions->get_option('fastpixel_display_cached_for_logged');
-            ?>
-            <input id="fastpixel_display_cached_for_logged" type="checkbox" name="fastpixel_display_cached_for_logged" value="1" <?php echo checked($enabled); ?>> <span class="fastpixel-field-desc"><?php esc_html_e('Display cached pages for logged-in users.', 'fastpixel-website-accelerator'); ?></span>
-            <?php
+            $enabled = $this->functions->get_option('fastpixel_display_cached_for_logged', false);
+            $this->be_functions->print_checkbox([
+                'field_name'  => 'fastpixel_display_cached_for_logged',
+                'checked'     => $enabled,
+                'label'       => $args['label'],
+                'description' => esc_html__('Display cached pages for logged-in users.', 'fastpixel-website-accelerator')
+            ], true);
         }
 
         public function field_speculation_rules_cb($args)
         {
             // Get the value of the setting we've registered with register_setting()
             $speculation_rules = $this->functions->get_option('fastpixel_speculation_rules');
-            ?>
-            <input id="fastpixel_speculation_rules" type="checkbox" name="fastpixel_speculation_rules" value="1" <?php echo checked($speculation_rules); ?>> <span class="fastpixel-field-desc"><?php printf(esc_html('Enable speculation rules. %s', 'fastpixel-website-accelerator'), '<a href="https://developer.mozilla.org/en-US/docs/Web/API/Speculation_Rules_API" target="_blank">' . esc_html(__('Read more', 'fastpixel-website-accelerator')) . '</a>'); ?></span>
-            <?php
+            /* translators: %1$s used to display "a" tag, nothing to translate */
+            $description = sprintf(esc_html__('Enable speculation rules. %1$s.', 'fastpixel-website-accelerator'), sprintf('<a href="https://fastpixel.io/docs/what-are-the-speculation-rules/" target="_blank">%1$s</a>', esc_html__('Read more', 'fastpixel-website-accelerator')));
+            $checked = checked($speculation_rules, true, false);
+            $field_name = 'fastpixel_speculation_rules';
+            $label = $args['label'];
+            $disabled = (!empty($args['disabled']) && true === $$args['disabled']) ? 'disabled' : '';
+            if (empty($field_name)) {
+                return false;
+            }
+            $switch = sprintf('<switch>
+            <label>
+                <input type="checkbox" class="fastpixel-switch" id="%1$s" name="%1$s" value="1" %2$s %3$s>
+                <div class="the_switch">&nbsp;</div>
+                %4$s
+            </label>
+            </switch>
+            <span class="fastpixel-switch-description">%5$s</span>', $field_name, $checked, $disabled, $label, $description);
+
+            $speculation_mode = $this->functions->get_option('fastpixel_speculation_mode', 'prerender');
+            $mode_html = '<h4 class="fastpixel-switch-option-subtitle">'. esc_html__('Speculation Mode', 'fastpixel-website-accelerator') .'</h3>';
+            $mode_html .= '<div class="fastpixel-settings-radio"><input id="fastpixel_speculation_mode_prefetch" type="radio" name="fastpixel_speculation_mode" value="prefetch" ' . checked($speculation_mode, 'prefetch', false) . ' data-depends-on="fastpixel-speculation-rules"> <span class="fastpixel-field-desc">' . esc_html__('Prefetch', 'fastpixel-website-accelerator') . '</span></div>';
+            $mode_html .= '<div class="fastpixel-settings-radio"><input id="fastpixel_speculation_mode_prerender" type="radio" name="fastpixel_speculation_mode" value="prerender" ' . checked($speculation_mode, 'prerender', false) . ' data-depends-on="fastpixel-speculation-rules"> <span class="fastpixel-field-desc">' . esc_html__('Prerender', 'fastpixel-website-accelerator') . '</span></div>';
+
+            $speculation_eagerness = $this->functions->get_option('fastpixel_speculation_eagerness', 'moderate');
+            $eagerness_html = '<h4 class="fastpixel-switch-option-subtitle">' . esc_html__('Speculation Eagerness', 'fastpixel-website-accelerator') . '</h3>';
+            $eagerness_html .= '<div class="fastpixel-settings-radio"><input id="fastpixel_speculation_eagerness_conservative" type="radio" name="fastpixel_speculation_eagerness" value="conservative" ' . checked($speculation_eagerness, 'conservative', false) . 'data-depends-on="fastpixel-speculation-rules"> <span class="fastpixel-field-desc">' . esc_html__('Conservative', 'fastpixel-website-accelerator') . '</span></div>';
+            $eagerness_html .= '<div class="fastpixel-settings-radio"><input id="fastpixel_speculation_eagerness_moderate" type="radio" name="fastpixel_speculation_eagerness" value="moderate" '. checked($speculation_eagerness, 'moderate', false) . ' data-depends-on="fastpixel-speculation-rules"> <span class="fastpixel-field-desc">' . esc_html__('Moderate', 'fastpixel-website-accelerator') . '</span></div>';
+            $eagerness_html .= '<div class="fastpixel-settings-radio"><input id="fastpixel_speculation_eagerness_eager" type="radio" name="fastpixel_speculation_eagerness" value="eager" ' . checked($speculation_eagerness, 'eager', false) . ' data-depends-on="fastpixel-speculation-rules"> <span class="fastpixel-field-desc">' . esc_html__('Eager', 'fastpixel-website-accelerator') . '</span></div>';
+
+            $output = '<setting id="' . $field_name . '-container" class="switch"><content>' . $switch . '<div class="fastpixel-fadein-options" ' . ($speculation_rules ? '' : 'style="display:none"') . '>'. $mode_html . $eagerness_html . '</div></content></setting>';
+            echo $output; //phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
         }
 
         public function field_speculation_mode_cb($args)
         {
-            // Get the value of the setting we've registered with register_setting()
-            $speculation_mode = $this->functions->get_option('fastpixel_speculation_mode', 'prerender');
-            ?>
-            <div class="fastpixel-settings-radio"><input id="fastpixel_speculation_mode_prefetch" type="radio" name="fastpixel_speculation_mode" value="prefetch" <?php echo checked($speculation_mode, 'prefetch'); ?> data-depends-on="fastpixel-speculation-rules"> <span class="fastpixel-field-desc"><?php esc_html_e('Prefetch', 'fastpixel-website-accelerator'); ?></span></div>
-            <div class="fastpixel-settings-radio"><input id="fastpixel_speculation_mode_prerender" type="radio" name="fastpixel_speculation_mode" value="prerender" <?php echo checked($speculation_mode, 'prerender'); ?> data-depends-on="fastpixel-speculation-rules"> <span class="fastpixel-field-desc"><?php esc_html_e('Prerender', 'fastpixel-website-accelerator'); ?></span></div>
-            <?php
+            return;
         }
 
         public function field_speculation_eagerness_cb($args)
         {
-            // Get the value of the setting we've registered with register_setting()
-            $speculation_eagerness = $this->functions->get_option('fastpixel_speculation_eagerness', 'moderate');
-            ?>
-            <div class="fastpixel-settings-radio"><input id="fastpixel_speculation_eagerness_conservative" type="radio" name="fastpixel_speculation_eagerness" value="conservative" <?php echo checked($speculation_eagerness, 'conservative'); ?> data-depends-on="fastpixel-speculation-rules"> <span class="fastpixel-field-desc"><?php esc_html_e('Conservative', 'fastpixel-website-accelerator'); ?></span></div>
-            <div class="fastpixel-settings-radio"><input id="fastpixel_speculation_eagerness_moderate" type="radio" name="fastpixel_speculation_eagerness" value="moderate" <?php echo checked($speculation_eagerness, 'moderate'); ?> data-depends-on="fastpixel-speculation-rules"> <span class="fastpixel-field-desc"><?php esc_html_e('Moderate', 'fastpixel-website-accelerator'); ?></span></div>
-            <div class="fastpixel-settings-radio"><input id="fastpixel_speculation_eagerness_eager" type="radio" name="fastpixel_speculation_eagerness" value="eager" <?php echo checked($speculation_eagerness, 'eager'); ?> data-depends-on="fastpixel-speculation-rules"> <span class="fastpixel-field-desc"><?php esc_html_e('Eager', 'fastpixel-website-accelerator'); ?></span></div>
-            <?php
+            return;
         }
 
         public function field_exclusions_cb($args) {
             // Get the value of the setting we've registered with register_setting()
             $exclusions = stripslashes($this->functions->get_option('fastpixel_exclusions'));
-            ?>
-            <textarea id="fastpixel_exclusions" name="fastpixel_exclusions" rows="7" cols="100" class="fastpixel-textarea"><?php echo esc_textarea($exclusions); ?></textarea>
-            <span class="fastpixel-field-desc fastpixel-textarea-desc"><?php
-            /* translators: %s used to display "br" tag, nothing to translate */
-            printf(esc_html__('Each URL should be added on a new line and the * character can be used to exclude pages in bulk. %1$s. %2$sExamples: /checkout/%3$s', 'fastpixel-website-accelerator'), '<a href="https://fastpixel.io/docs/fastpixel-exclusions/">' . esc_html(__('Read More', 'fastpixel-website-accelerator')) . '</a>', '<br/>', '<br/><span class="fastpixel-page-excludes-example-2d-row">/page/*</span>'); ?></span>
-            <?php
+            /* translators: %1$s used to display "read more" link, %2$s for br tag, %3$s for new line example, nothing to translate */
+            $description = sprintf(esc_html__('Each URL should be added on a new line and the * character can be used to exclude pages in bulk. %1$s. %2$sExamples: /checkout/%3$s', 'fastpixel-website-accelerator'), '<a href="https://fastpixel.io/docs/fastpixel-exclusions/" target="_blank">' . esc_html(__('Read More', 'fastpixel-website-accelerator')) . '</a>', '<br/>', '<br/><span class="fastpixel-page-excludes-example-2d-row">/page/*</span>');
+            $this->be_functions->print_textarea([
+                'field_name'  => 'fastpixel_exclusions',
+                'field_value' => $exclusions,
+                'label'       => $args['label'],
+                'description' => $description
+            ], true);
         }
 
         public function field_exclude_all_params_cb($args)
         {
             // Get the value of the setting we've registered with register_setting()
             $enabled = $this->functions->get_option('fastpixel_exclude_all_params');
-            ?>
-            <input id="fastpixel_exclude_all_params" type="checkbox" name="fastpixel_exclude_all_params" value="1" <?php echo checked($enabled); ?>> <span class="fastpixel-field-desc"><?php esc_html_e('This option allows you to save disk space. All request parameters are ignored.', 'fastpixel-website-accelerator'); ?></span>
-            <?php
+            $this->be_functions->print_checkbox([
+                'field_name'  => 'fastpixel_exclude_all_params',
+                'checked'     => $enabled,
+                'label'       => $args['label'],
+                'description' => esc_html__('This option allows you to save disk space. All request parameters are ignored.', 'fastpixel-website-accelerator')
+            ], true);
         }
 
         public function field_params_exclusions_cb($args) {
             // Get the value of the setting we've registered with register_setting()
             $params_exclusions = $this->functions->get_option('fastpixel_params_exclusions');
-            ?>
-            <textarea id="fastpixel_params_exclusions" name="fastpixel_params_exclusions" rows="7" cols="100" class="fastpixel-textarea" data-depends-on="fastpixel-exclude-all-params" data-depends-action="readonly"><?php echo esc_textarea($params_exclusions); ?></textarea>
-            <span class="fastpixel-field-desc fastpixel-textarea-desc"><?php
             /* translators: %s used to display "br" tag, nothing to translate */
-            printf(esc_html__('Request parameters that should exclude pages from caching. Each parameter should be added on a new line. %1$s.%2$sExample: param_name=param_value, another_param_name', 'fastpixel-website-accelerator'), '<a href="https://fastpixel.io/docs/fastpixel-exclusions/">' . esc_html(__('Read More', 'fastpixel-website-accelerator')) . '</a>', '<br/>'); ?></span>
-            <?php
+            $description = sprintf(esc_html__('Request parameters that should exclude pages from caching. Each parameter should be added on a new line. %1$s.%2$sExample: param_name=param_value, another_param_name', 'fastpixel-website-accelerator'), '<a href="https://fastpixel.io/docs/fastpixel-exclusions/" target="_blank">' . esc_html(__('Read More', 'fastpixel-website-accelerator')) . '</a>', '<br/>');
+            $this->be_functions->print_textarea([
+                'field_name'  => 'fastpixel_params_exclusions',
+                'field_value' => $params_exclusions,
+                'label'       => $args['label'],
+                'description' => $description
+            ], true);
         }
 
         public function field_exclude_post_types_cb($args)
         {
             // Get the value of the setting we've registered with register_setting()
             $post_types = get_post_types(['public' => true], 'objects');
+            $post_types_removed = apply_filters('fastpixel/settings_tab/disabled_post_types', ['attachment']);
             foreach($post_types as $post_type_name => $post_type) {
-                if (in_array($post_type_name, ['attachment'])) { //removing attachment
+                if (in_array($post_type_name, $post_types_removed)) { //removing attachment
                     unset($post_types[$post_type_name]);
                 }
             }
             $excluded = $this->functions->get_option('fastpixel_excluded_post_types', []);
             ?>
-            <div class="fastpixel-exclude-post-types-row">
-                <div class="fastpixel-exclude-post-types-column">
-                    <p><?php esc_html_e('Post Types:', 'fastpixel-website-accelerator'); ?></p>
-                    <select id="fastpixel_exclude_post_types_list" class="fastpixel-select" name="fastpixel_exclude_post_types_list" multiple>
-                        <?php foreach($post_types as $post_type) :
-                            if (!in_array($post_type->name, $excluded)) : ?>
-                                <option value="<?php echo esc_html($post_type->name); ?>" <?php selected(in_array($post_type->name, []), true); ?>><?php echo esc_html($post_type->label); ?></option>
-                        <?php   endif; 
-                        endforeach; ?>
-                    </select>
-                </div>
-                <div class="fastpixel-exclude-post-types-column fastpixel-exclude-post-types-actions">
-                    <p>&nbsp;</p>
-                    <button id="fastpixel-exclude-post-types-move-right">>>></button>
-                    <button id="fastpixel-exclude-post-types-move-left"><<<</button>
-                </div>
-                <div class="fastpixel-exclude-post-types-column">
-                    <p><?php esc_html_e('Excluded Post Types:', 'fastpixel-website-accelerator'); ?></p>
-                    <select id="fastpixel_excluded_post_types" class="fastpixel-select" name="fastpixel_excluded_post_types[]" multiple>
-                        <?php foreach ($excluded as $post_type_name): 
-                            foreach ($post_types as $post_type) : 
-                                if ($post_type->name == $post_type_name) : ?>
-                                    <option value="<?php echo esc_html($post_type->name); ?>" <?php selected(in_array($post_type->name, []), true); ?>><?php echo esc_html($post_type->label); ?></option>
-                        <?php   endif; 
-                            endforeach; 
-                        endforeach; ?>
-                    </select>
-                </div>
-            </div>
-            <span class="fastpixel-field-desc"><?php //esc_html_e('Post types excluded from cache.', 'fastpixel-website-accelerator'); ?></span>
+            <setting id="fastpixel_excluded_post_types-container" class="fastpixel-excluded-post-types-container">
+                <content>
+                    <name><?php echo esc_attr($args['label']); ?></name>
+                    <div class="fastpixel-exclude-post-types-row">
+                        <div class="fastpixel-exclude-post-types-column">
+                            <p><?php esc_html_e('Post Types:', 'fastpixel-website-accelerator'); ?></p>
+                            <select id="fastpixel_exclude_post_types_list" class="fastpixel-select" name="fastpixel_exclude_post_types_list" multiple>
+                                <?php foreach($post_types as $post_type) :
+                                    if (!in_array($post_type->name, $excluded)) : ?>
+                                        <option value="<?php echo esc_html($post_type->name); ?>" <?php selected(in_array($post_type->name, []), true); ?>><?php echo esc_html($post_type->label); ?></option>
+                                <?php   endif;
+                                endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="fastpixel-exclude-post-types-column fastpixel-exclude-post-types-actions">
+                            <p>&nbsp;</p>
+                            <button id="fastpixel-exclude-post-types-move-right">>>></button>
+                            <button id="fastpixel-exclude-post-types-move-left"><<<</button>
+                        </div>
+                        <div class="fastpixel-exclude-post-types-column">
+                            <p><?php esc_html_e('Excluded Post Types:', 'fastpixel-website-accelerator'); ?></p>
+                            <select id="fastpixel_excluded_post_types" class="fastpixel-select" name="fastpixel_excluded_post_types[]" multiple>
+                                <?php foreach ($excluded as $post_type_name):
+                                    foreach ($post_types as $post_type) :
+                                        if ($post_type->name == $post_type_name) : ?>
+                                            <option value="<?php echo esc_html($post_type->name); ?>" <?php selected(in_array($post_type->name, []), true); ?>><?php echo esc_html($post_type->label); ?></option>
+                                <?php   endif;
+                                    endforeach;
+                                endforeach; ?>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="fastpixel-textarea-description"><?php //esc_html_e('Post types excluded from cache.', 'fastpixel-website-accelerator'); ?></div>
+                </content>
+            </setting>
             <?php
         }
 
@@ -279,10 +359,10 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Settings')) {
             if ($purge_all) {
                 $backend_cache = FASTPIXEL_Backend_Cache::get_instance();
                 $backend_cache->purge_all();
-                $text_cleared = esc_html__('Cache cleared!', 'fastpixel-website-accelerator');
+                $text_cleared = esc_html__('Cache has been cleared!', 'fastpixel-website-accelerator');
             }
             /* translators: for %1$s text "cache cleared!" should be used */
-            $notices->add_flash_notice(sprintf(esc_html__('Settings have been saved. %1$s', 'fastpixel-website-accelerator'), $text_cleared), 'success', false);
+            $notices->add_flash_notice(sprintf(esc_html__('Settings saved successfully. %1$s', 'fastpixel-website-accelerator'), $text_cleared), 'success', false);
         }
 
         public function save_excludes() {

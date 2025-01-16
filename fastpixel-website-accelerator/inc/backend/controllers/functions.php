@@ -106,7 +106,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Functions')) {
                     } else {
                         $cache_status['status_display'] = '<span class="not-cached">' . esc_html__('Not Cached', 'fastpixel-website-accelerator') . '</span>';
                         $cache_status['status_display'] .= '<span class="have-popup dashicons dashicons-editor-help"></span>';
-                        $cache_status['status_display'] .= '<div class="pop-up">' . esc_html__('To efficiently use the resources on your website, pages are processed and cached as they are visited by outside visitors. You can manually force a page to be processed by clicking "Cache now"', 'fastpixel-website-accelerator') . '</div>';
+                        $cache_status['status_display'] .= '<div class="pop-up">' . esc_html__('To make efficient use of your website\'s resources, pages are processed and cached as they are visited by external visitors. You can manually force a page to be processed by clicking "Cache Now."', 'fastpixel-website-accelerator') . '</div>';
                         $cache_status['status'] = 'not-cached';
                     }
                 }
@@ -153,6 +153,141 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Functions')) {
             endfor;
 
             return $page_links;
+        }
+
+        public function print_checkbox($args = [], $display = false)
+        {
+            $defaults = array(
+                'field_name'   => '',
+                'checked'      => false,
+                'label'        => '',
+                'switch_class' => false,
+                'data'         => [],
+                'disabled'     => false,
+                'description'  => ''
+            );
+
+            $args = wp_parse_args($args, $defaults);
+            $switch_class = ($args['switch_class'] !== false) ? 'class="' . $args['switch_class'] . '"' : '';
+            $checked = checked($args['checked'], true, false);
+            $field_name = esc_attr($args['field_name']);
+            $label = $args['label'];
+            $description = $args['description'];
+            $data = implode(' ', $args['data']);
+            $disabled = $args['disabled'];
+            $disabled = (true === $disabled) ? 'disabled' : '';
+            if (empty($field_name)) {
+                return false;
+            }
+            $switch = sprintf('<switch %1$s>
+            <label>
+                <input type="checkbox" class="fastpixel-switch" id="%2$s" name="%2$s" value="1" %3$s %4$s %5$s>
+                <div class="the_switch">&nbsp;</div>
+                %6$s
+            </label>
+            </switch>
+            <span class="fastpixel-switch-description">%7$s</span>', $switch_class, $field_name, $checked, $disabled, $data, $label, $description);
+            $output = '<setting id="' . $field_name . '-container" class="switch"><content>' . $switch . '</content></setting>';
+            if ($display) {
+                echo $output; //phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+            } else {
+                return $output;
+            }
+        }
+
+        public function print_textarea($args = [], $display = false)
+        {
+            $defaults = array(
+                'field_name'  => '',
+                'field_value' => '',
+                'label'       => '',
+                'class'       => 'fastpixel-textarea',
+                'data'        => [],
+                'disabled'    => false,
+                'description' => ''
+            );
+
+            $args = wp_parse_args($args, $defaults);
+            $class = ($args['class'] !== false) ? 'class="' . $args['class'] . '"' : '';
+            $field_value = !empty($args['field_value']) ? $args['field_value'] : '';
+            $field_name = esc_attr($args['field_name']);
+            $label = $args['label'];
+            $description = $args['description'];
+            $data = implode(' ', $args['data']);
+            $disabled = (!empty($args['disabled']) && true == $args['disabled']) ? 'disabled' : '';
+            if (empty($field_name)) {
+                return false;
+            }
+
+            $textarea = sprintf('<label class="fastpixel-textarea-label">%1$s</label>
+            <textarea %2$s name="%3$s" %4$s %5$s>%6$s</textarea>
+            <span class="fastpixel-textarea-description">%7$s</span>', $label, $class, $field_name, $disabled, $data, $field_value, $description);
+            $output = '<setting id="' . $field_name . '-container" class="fastpixel-textarea-setting"><content>' . $textarea . '</content></setting>';
+            if ($display) {
+                echo $output; //phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+            } else {
+                return $output;
+            }
+        }
+
+        public function print_horizontal_selector($args = [], $display = false) {
+            $defaults = array(
+                'field_name'   => '',
+                'field_values' => [],
+                'selected'     => false,
+                'label'        => '',
+                'class'        => 'fastpixel-horizontal-selector',
+                'data'         => [],
+                'disabled'     => false,
+                'description'  => '',
+            );
+            $args = wp_parse_args($args, $defaults);
+            $field_name = esc_attr($args['field_name']);
+            $class = ($args['class'] !== false) ? 'class="' . $args['class'] . '"' : '';
+            $field_values = !empty($args['field_values']) ? $args['field_values'] : [];
+            $selected = !empty($args['selected']) ? $args['selected'] : false;
+            $value_descriptions = !empty($args['value_descriptions']) ? $args['value_descriptions'] : [];
+            $label = $args['label'];
+            $description = $args['description'];
+            $data = implode(' ', $args['data']);
+            if (empty($field_name)) {
+                return false;
+            }
+
+            $radio_buttons = '';
+            foreach ($field_values as $value => $radio_label) {
+                $checked = '';
+                if ($value == $selected) {
+                    $checked = 'checked';
+                }
+                $radio_buttons .= sprintf('<label class="fastpixel-horizontal-selector-label"><input type="radio" class="fastpixel-horizontal-selector-radio" name="%1$s" value="%2$s" %3$s><span>%4$s</span></label>', $field_name, $value, $checked, $radio_label);
+            }
+            $descriptions = '';
+            if (!empty($value_descriptions)) {
+                foreach($value_descriptions as $key => $value) {
+                    $descriptions .= sprintf('<p class="fastpixel-horizontal-selector-settings-description fastpixel-desc-hidden" data-value="%1$s">%2$s</p>', $key, $value);
+                }
+            } else {
+                $descriptions = $description;
+            }
+            $selector = sprintf('<content>
+                    <name>%1$s</name>
+                    <div class="fastpixel-horizontal-options">%2$s</div>
+                <info>
+                %3$s
+                </info>
+                </content>', $label, $radio_buttons, $descriptions); //, $label, $class, $field_name, $data, $field_value, $description);
+            $output = '<setting id="' . $field_name . '-container" class="fastpixel-horizontal-selector">' . $selector . '</setting>';
+            if ($display) {
+                echo $output; //phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+            } else {
+                return $output;
+            }
+        }
+
+        public function print_save_button()
+        {
+            echo '<button class="save-button" name="settings-submit"><i class="fastpixel-icon save"></i>' . esc_html__('Save Settings', 'fastpixel-website-accelerator') . '</button>';
         }
     }
 

@@ -26,22 +26,29 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Fonts')) {
                 false,
                 FASTPIXEL_TEXTDOMAIN . '-fonts'
             );
+            $field_title = esc_html__('Compatibility Mode', 'fastpixel-website-accelerator');
             add_settings_field(
                 'fastpixel_fonts_soft',
-                esc_html__('Soft Reduce', 'fastpixel-website-accelerator'),
+                $field_title,
                 [$this, 'field_fonts_soft_cb'],
                 FASTPIXEL_TEXTDOMAIN . '-fonts',
-                'fastpixel_settings_section-fonts'
+                'fastpixel_settings_section-fonts',
+                [
+                    'class' => 'fastpixel-settings-form-row',
+                    'label' => $field_title
+                ]
             );
         }
 
         public function field_fonts_soft_cb($args) {
             // Get the value of the setting we've registered with register_setting()
             $soft = $this->functions->get_option('fastpixel_fonts_soft');
-            ?>
-            <input type="checkbox" id="fastpixel_fonts_soft" name="fastpixel_fonts_soft" value="1" <?php echo checked($soft); ?> />
-            <span class="fastpixel-field-desc"><?php esc_html_e('Add fallback to the original font.', 'fastpixel-website-accelerator'); ?></span>
-            <?php
+            $this->be_functions->print_checkbox([
+                'field_name'  => 'fastpixel_fonts_soft',
+                'checked'     => $soft,
+                'label'       => $args['label'],
+                'description' => esc_html__('Improve compatibility by also loading the original font in cases where the optimized fonts display glitches.', 'fastpixel-website-accelerator')
+            ], true);
         }
 
         public function save_options() {

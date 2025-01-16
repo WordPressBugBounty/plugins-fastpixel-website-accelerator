@@ -216,7 +216,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Posts_Table')) {
         public function get_bulk_actions()
         {
             $action = array(
-                'reset' => esc_html__('Reset Cache', 'fastpixel-website-accelerator')
+                'reset' => esc_html__('Purge Cache', 'fastpixel-website-accelerator')
             );
             return $action;
         }

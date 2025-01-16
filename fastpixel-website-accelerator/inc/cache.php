@@ -67,7 +67,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Cache')) {
             do_action('fastpixel/init');
 
             //registering cache request on shutdown
-            add_action('fastpixel/shutdown', [$this, 'request_page_cache']);
+            add_action('fastpixel/shutdown', [$this, 'request_page_cache'], 20);
             //registering shutdown callback function
             register_shutdown_function([$this, 'on_shutdown']);
             //registering function that detect canonical redirect
@@ -268,22 +268,8 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Cache')) {
                 return false;
             }
 
-            //TODO: check if we need cache lifetime
-            // $cache_lifetime = $this->config->get_option('fastpixel_cache_lifetime');
-            // //checking cache lifetime
-            // if ($cache_lifetime && is_numeric($cache_lifetime) && in_array($cache_lifetime, array(2, 3)) && !empty($this->url) && is_object($this->url)) {
-            //     $cache_status = $this->functions->check_post_cache_status($this->url->get_url());
-            //     //checking 24H
-            //     if ($cache_lifetime == 2 && ($cache_status['have_cache'] && !$cache_status['need_cache']) && time() > $cache_status['html_created_time'] + 24 * 3600) {
-            //         $this->functions->update_post_cache($this->url_path, true);
-            //     } else 
-            //     //checking 12H
-            //     if ($cache_lifetime == 3 && ($cache_status['have_cache'] && !$cache_status['need_cache']) && time() > $cache_status['html_created_time'] + 12 * 3600) {
-            //         $this->functions->update_post_cache($this->url_path, true);
-            //     }
-            // }
-
             do_action('fastpixel/shutdown/request/before', $this->url);
+
             //Doing Page Cache request
             $request = FASTPIXEL_Request::get_instance();
             $request_headers = ['x-queue-mode' => $this->x_queue_mode ? $this->x_queue_mode : 'push'];
@@ -409,7 +395,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Cache')) {
             }
             if ($redirected_url != $requested_url) {
                 //removing action when redirected
-                remove_action('fastpixel/shutdown', [$this, 'request_page_cache']);
+                remove_action('fastpixel/shutdown', [$this, 'request_page_cache'], 20);
             }
             return $redirected_url;
         }

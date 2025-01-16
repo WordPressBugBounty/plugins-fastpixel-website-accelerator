@@ -7,6 +7,11 @@ document.addEventListener("DOMContentLoaded", function() {
         activate: function (e, ui) {
             h = "#" + ui.newPanel.attr("id");
             window.history.pushState(null, null, h);
+            const mobile_menu = jQuery('.fastpixel-mobile-header-menu');
+            if (mobile_menu.hasClass('opened')) {
+                mobile_menu.removeClass('opened').addClass('closed');
+                jQuery('article.fastpixel-settings menu').removeClass('opened').addClass('closed');
+            }
         }
     });
     function fastpixelOnHashChange() {
@@ -33,13 +38,13 @@ document.addEventListener("DOMContentLoaded", function() {
     jQuery('#fastpixel_javascript_optimization').on('change', function () {
         jQuery(this).trigger('fastpixelChange');
     });
-    jQuery('.fastpixel-select select').on('change', function($) { 
+    jQuery('.fastpixel-horizontal-selector input').on('change', function($) {
         const value = jQuery(this).val();
-        jQuery(this).parents('.fastpixel-select').find('.optimization-description').addClass('fastpixel-desc-hidden'); 
-        jQuery(this).parents('.fastpixel-select').find('.optimization-description[data-value="'+value+'"]').removeClass('fastpixel-desc-hidden'); 
+        jQuery(this).parents('.fastpixel-horizontal-selector').find('.fastpixel-horizontal-selector-settings-description').addClass('fastpixel-desc-hidden'); 
+        jQuery(this).parents('.fastpixel-horizontal-selector').find('.fastpixel-horizontal-selector-settings-description[data-value="'+value+'"]').removeClass('fastpixel-desc-hidden'); 
     });
-    if (jQuery('.fastpixel-select select').length > 0) {
-        jQuery('.fastpixel-select select').trigger('change');
+    if (jQuery('.fastpixel-horizontal-selector input').length > 0) {
+        jQuery('.fastpixel-horizontal-selector input:checked').trigger('change');
     }
     
     //status page
@@ -229,7 +234,7 @@ document.addEventListener("DOMContentLoaded", function() {
             jQuery('#fastpixel-js-notice').remove();
         }
         const msg = jQuery('<div id="fastpixel-js-notice" class="notice ' + notice_type + '"><p><strong>FastPixel Website Accelerator:</strong> ' + message + '</p></div>');
-        jQuery('h2.fastpixel-page-title').after(msg);
+        jQuery('hr.wp-header-end').after(msg);
         clearTimeout(msgTimeout);
         msgTimeout = setTimeout(function () {
             if (jQuery('#fastpixel-js-notice').length > 0) {
@@ -471,9 +476,9 @@ document.addEventListener("DOMContentLoaded", function() {
     //Speculation Rules
     function fastpixelOnSpeculationRulesChange(disable = true) {
         if (disable) {
-            jQuery('[data-depends-on="fastpixel-speculation-rules"]').attr('disabled', 'disabled');
+            jQuery('#fastpixel_speculation_rules-container').find('.fastpixel-fadein-options').slideUp(1000);
         } else {
-            jQuery('[data-depends-on="fastpixel-speculation-rules"]').removeAttr('disabled');
+            jQuery('#fastpixel_speculation_rules-container').find('.fastpixel-fadein-options').slideDown(1000);
         }
     }
     const fastpixel_speculation_rules_checkbox = jQuery('#fastpixel_speculation_rules');
@@ -542,4 +547,19 @@ document.addEventListener("DOMContentLoaded", function() {
             }
         });
     }
+
+    //mobile menu
+    jQuery('.fastpixel-mobile-header-menu').on('click', function (e) {
+        e.preventDefault();
+        if (jQuery(this).hasClass('opened')) {
+            jQuery(this).removeClass('opened').addClass('closed'); //top menu
+            jQuery('article.fastpixel-settings menu').removeClass('opened').addClass('closed'); //menu
+        } else {
+            jQuery(this).removeClass('closed').addClass('opened'); //top menu
+            jQuery('article.fastpixel-settings menu').removeClass('closed').addClass('opened'); //menu
+        }
+    });
+    jQuery('.fastpixel-mobile-header-menu').on('classChange', function (e) {
+        console.log('class change');
+    });
 });

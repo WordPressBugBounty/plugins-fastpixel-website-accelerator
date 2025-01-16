@@ -6,4 +6,4 @@ defined('ABSPATH') || exit;
 settings_errors('fastpixel_messages');
 settings_fields(FASTPIXEL_TEXTDOMAIN);
 do_settings_sections(FASTPIXEL_TEXTDOMAIN . '-javascript');
-submit_button(esc_html__('Save Settings', 'fastpixel-website-accelerator'), 'primary', 'javascript-submit');
+$this->be_functions->print_save_button();

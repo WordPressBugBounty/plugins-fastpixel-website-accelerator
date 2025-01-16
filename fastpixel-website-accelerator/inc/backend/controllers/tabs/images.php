@@ -31,26 +31,41 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Images')) {
                 false,
                 FASTPIXEL_TEXTDOMAIN . '-images'
             );
+            $field_title = esc_html__('Image Compression Level', 'fastpixel-website-accelerator');
             add_settings_field(
                 'fastpixel_images_optimization',
-                esc_html__('Image Compression Level', 'fastpixel-website-accelerator'),
+                $field_title,
                 [$this, 'field_images_optimization_cb'],
                 FASTPIXEL_TEXTDOMAIN . '-images',
-                'fastpixel_settings_section-images'
+                'fastpixel_settings_section-images',
+                [
+                    'class' => 'fastpixel-settings-form-row',
+                    'label' => $field_title
+                ]
             );
+            $field_title = esc_html__('Image Crop', 'fastpixel-website-accelerator');
             add_settings_field(
                 'fastpixel_images_crop',
-                esc_html__('Image Crop', 'fastpixel-website-accelerator'),
+                $field_title,
                 [$this, 'field_images_crop_cb'],
                 FASTPIXEL_TEXTDOMAIN.'-images',
-                'fastpixel_settings_section-images'
+                'fastpixel_settings_section-images',
+                [
+                    'class' => 'fastpixel-settings-form-row',
+                    'label' => $field_title
+                ]
             );
+            $field_title = esc_html__('Image Sizes', 'fastpixel-website-accelerator');
             add_settings_field(
                 'fastpixel_force_image_dimensions',
-                esc_html__('Image Sizes', 'fastpixel-website-accelerator'),
+                $field_title,
                 [$this, 'field_force_image_dimensions_cb'],
                 FASTPIXEL_TEXTDOMAIN . '-images',
-                'fastpixel_settings_section-images'
+                'fastpixel_settings_section-images',
+                [
+                    'class' => 'fastpixel-settings-form-row',
+                    'label' => $field_title
+                ]
             );
         }
         public function sanitize_fastpixel_images_optimization_cb($value, $option, $original_value)
@@ -66,54 +81,44 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Images')) {
         {
             // Get the value of the setting we've registered with register_setting()
             $option = $this->functions->get_option('fastpixel_images_optimization', 1);
-            ?>
-            <div class="fastpixel-select-with-description fastpixel-select">
-                <div class="fastpixel-row">
-                    <select id="fastpixel_images_optimization" name="fastpixel_images_optimization">
-                        <option value="1" <?php echo $option == '1' ? 'selected="selected"' : ''; ?>><?php esc_html_e('Lossy', 'fastpixel-website-accelerator'); ?></option>
-                        <option value="2" <?php echo $option == '2' ? 'selected="selected"' : ''; ?>><?php esc_html_e('Glossy', 'fastpixel-website-accelerator'); ?></option>
-                        <option value="3" <?php echo $option == '3' ? 'selected="selected"' : ''; ?>><?php esc_html_e('Lossless', 'fastpixel-website-accelerator'); ?></option>
-                    </select>
-                    <div class="field-description">
-                        <span class="optimization-description fastpixel-desc-hidden" data-value="1"><?php
-                        /* translators: %s used to display option name, option name is translated separately */
-                        printf(esc_html__('%s offers the best compression rate.', 'fastpixel-website-accelerator'), sprintf('<b>%s</b>', esc_html__('Lossy SmartCompression (recommended):', 'fastpixel-website-accelerator'))); ?></span>
-                        <span class="optimization-description fastpixel-desc-hidden" data-value="2"><?php
-                        /* translators: %s used to display option name, option name is translated separately */
-                        printf(esc_html__('%s creates images that are almost pixel-perfect identical with the originals.', 'fastpixel-website-accelerator'), sprintf('<b>%s</b>', esc_html__('Glossy SmartCompression:', 'fastpixel-website-accelerator'))); ?></span>
-                        <span class="optimization-description fastpixel-desc-hidden" data-value="3"><?php
-                        /* translators: %s used to display option name, option name is translated separately */
-                        printf(esc_html__('%s the resulting image is pixel-identical with the original image.', 'fastpixel-website-accelerator'), sprintf('<b>%s</b>', esc_html__('Lossless SmartCompression:', 'fastpixel-website-accelerator'))); ?></span>
-                    </div>
-                </div>
-                <div class="fastpixel-row">
-                    <div class="field-extra-description">
-                        <span class="optimization-description fastpixel-desc-hidden" data-value="1"><?php esc_html_e('This is the recommended option for most users, producing results that look the same as the original to the human eye.', 'fastpixel-website-accelerator'); ?></span>
-                        <span class="optimization-description fastpixel-desc-hidden" data-value="2"><?php esc_html_e('Best option for photographers and other professionals that use very high quality images on their sites and want the best compression while keeping the quality untouched.', 'fastpixel-website-accelerator'); ?></span>
-                        <span class="optimization-description fastpixel-desc-hidden" data-value="3"><?php esc_html_e('Make sure not a single pixel looks different in the optimized image compared with the original. In some rare cases you will need to use this type of compression. Some technical drawings or images from vector graphics are possible situations.', 'fastpixel-website-accelerator'); ?></span>
-                    </div>
-                </div>
-            </div>
-            <?php
+            $this->be_functions->print_horizontal_selector([
+                'field_name'         => 'fastpixel_images_optimization',
+                'field_values'       => [
+                    1 => esc_html__('Lossy', 'fastpixel-website-accelerator'),
+                    2 => esc_html__('Glossy', 'fastpixel-website-accelerator'),
+                    3 => esc_html__('Lossless', 'fastpixel-website-accelerator')
+                ],
+                'selected'           => $option,
+                'label'              => $args['label'],
+                'value_descriptions' => [
+                    1 => esc_html__('This is the recommended option for most users, producing results that appear identical to the original to the human eye.', 'fastpixel-website-accelerator'),
+                    2 => esc_html__('Best option for photographers and other professionals who use very high-quality images on their sites and want the best compression while keeping the quality untouched.', 'fastpixel-website-accelerator'),
+                    3 => esc_html__('Make sure not a single pixel looks different in the optimized image compared with the original. In some rare cases, you will need to use this type of compression. Technical drawings or images from vector graphics are possible situations.', 'fastpixel-website-accelerator')
+                ]
+            ], true);
         }
 
         public function field_images_crop_cb($args) {
             // Get the value of the setting we've registered with register_setting()
             $crop = $this->functions->get_option('fastpixel_images_crop');
-            ?>
-            <input type="checkbox" id="fastpixel_images_crop" name="fastpixel_images_crop" value="1" <?php echo checked($crop); ?> />
-            <span class="fastpixel-field-desc"><?php esc_html_e('Crop images to reduce size and fit better.', 'fastpixel-website-accelerator'); ?></span>
-            <?php
+            $this->be_functions->print_checkbox([
+                'field_name'  => 'fastpixel_images_crop',
+                'checked'     => $crop,
+                'label'       => $args['label'],
+                'description' => esc_html__('Automatically crop images to fit their display area perfectly, based on the visitor\'s screen size.', 'fastpixel-website-accelerator')
+            ], true);
         }
 
         public function field_force_image_dimensions_cb($args)
         {
             // Get the value of the setting we've registered with register_setting()
             $force = $this->functions->get_option('fastpixel_force_image_dimensions');
-            ?>
-            <input type="checkbox" id="fastpixel_force_image_dimensions" name="fastpixel_force_image_dimensions" value="1" <?php echo checked($force); ?> />
-            <span class="fastpixel-field-desc"><?php esc_html_e('Add missing Width and Height to image elements.', 'fastpixel-website-accelerator'); ?></span>
-            <?php
+            $this->be_functions->print_checkbox([
+                'field_name'  => 'fastpixel_force_image_dimensions',
+                'checked'     => $force,
+                'label'       => $args['label'],
+                'description' => esc_html__('Add missing Width and Height to image elements.', 'fastpixel-website-accelerator')
+            ], true);
         }
 
         public function save_options() {

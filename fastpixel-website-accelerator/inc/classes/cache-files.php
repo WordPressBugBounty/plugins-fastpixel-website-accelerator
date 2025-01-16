@@ -305,13 +305,13 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Cache_Files')) {
                             FASTPIXEL_Debug::log('Class FASTPIXEL_Cache_files: stopping wordpress and removing request');
                         }
                         //removing default hook which do cache request
-                        remove_action('fastpixel/shutdown', [$fastpixel_cache, 'request_page_cache']);
+                        remove_action('fastpixel/shutdown', [$fastpixel_cache, 'request_page_cache'], 20);
                         exit();
                     }
                 }
             } else {
                 //removing default hook which do cache request
-                remove_action('fastpixel/shutdown', [$fastpixel_cache, 'request_page_cache']);
+                remove_action('fastpixel/shutdown', [$fastpixel_cache, 'request_page_cache'], 20);
                 if ($this->debug) {
                     FASTPIXEL_Debug::log('Class FASTPIXEL_Cache_files: display_for_logged is true, no need to stop wordpress, page cache request removed');
                 }

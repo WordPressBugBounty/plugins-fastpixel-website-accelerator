@@ -132,7 +132,13 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Url')) {
             "kmw",
 
             // Adobe Analytics (cid)
-            "cid"
+            "cid",
+
+            "wbraid",
+            "gbraid",
+            "gclid",
+            "guid",
+            "gad_source"
         ];
         private $original_url;
         private $url;

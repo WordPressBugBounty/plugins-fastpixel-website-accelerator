@@ -10,9 +10,11 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_WooCommerce_Compatibility')) {
         protected $exclude_all_categories = false;
         protected $exclude_all_tags = false;
         protected $purge_all = false;
+        protected $be_functions;
 
         public function __construct() {
             $this->functions              = FASTPIXEL_Functions::get_instance();
+            $this->be_functions           = FASTPIXEL_Backend_Functions::get_instance();
             $this->exclude_all_posts      = (bool) $this->functions->get_option('fastpixel_woocommerce_exclude_products', false);
             $this->exclude_all_categories = (bool) $this->functions->get_option('fastpixel_woocommerce_exclude_categories', false);
             $this->exclude_all_tags       = (bool) $this->functions->get_option('fastpixel_woocommerce_exclude_tags', false);
@@ -29,6 +31,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_WooCommerce_Compatibility')) {
                     $this->register_settings();
                 });
                 add_filter('fastpixel/settings_tab/purge_all', [$this, 'get_purge_all_status']);
+                add_filter('fastpixel/settings_tab/disabled_post_types', [$this, 'backend_remove_from_post_types_selector'], 10, 1);
             }
             add_filter('fastpixel/admin_bar/purge_this_button_exclude', [$this, 'admin_bar_purge_this_button_exclude'], 15, 2);
             add_filter('fastpixel/is_cache_request_allowed/excluded', [$this, 'check_is_excluded'], 10, 2);
@@ -93,58 +96,84 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_WooCommerce_Compatibility')) {
             // Register a new section in the "settings" page.
             add_settings_section(
                 'fastpixel_woocommerce_settings_section',
-                __('Woocommerce', 'fastpixel-website-accelerator'),
-                // [$this, 'fastpixel_woocommerce_exclude_products_callback'],
+                __('WooCommerce', 'fastpixel-website-accelerator'),
                 null,
                 FASTPIXEL_TEXTDOMAIN,
-                []
+                [
+                    'before_section' => '<div class="fastpixel-woocommerce-settings-section">',
+                    'after_section'  => '</div>'
+                ]
             );
+            $field_title = esc_html__('Exclude All Products', 'fastpixel-website-accelerator');
             add_settings_field(
                 'fastpixel_woocommerce_exclude_products',
-                esc_html__('Exclude All Products', 'fastpixel-website-accelerator'),
+                $field_title,
                 [$this, 'fastpixel_woocommerce_exclude_products_callback'],
                 FASTPIXEL_TEXTDOMAIN,
-                'fastpixel_woocommerce_settings_section'
+                'fastpixel_woocommerce_settings_section',
+                [
+                    'class' => 'fastpixel-settings-form-row',
+                    'label' => $field_title
+                ]
             );
+            $field_title = esc_html__('Exclude All Categories', 'fastpixel-website-accelerator');
             add_settings_field(
                 'fastpixel_woocommerce_exclude_categories',
-                esc_html__('Exclude All Categories', 'fastpixel-website-accelerator'),
+                $field_title,
                 [$this, 'fastpixel_woocommerce_exclude_categories_callback'],
                 FASTPIXEL_TEXTDOMAIN,
-                'fastpixel_woocommerce_settings_section'
+                'fastpixel_woocommerce_settings_section',
+                [
+                    'class' => 'fastpixel-settings-form-row',
+                    'label' => $field_title
+                ]
             );
+            $field_title = esc_html__('Exclude All Tags', 'fastpixel-website-accelerator');
             add_settings_field(
                 'fastpixel_woocommerce_exclude_tags',
-                esc_html__('Exclude All Tags', 'fastpixel-website-accelerator'),
+                $field_title,
                 [$this, 'fastpixel_woocommerce_exclude_tags_callback'],
                 FASTPIXEL_TEXTDOMAIN,
-                'fastpixel_woocommerce_settings_section'
+                'fastpixel_woocommerce_settings_section',
+                [
+                    'class' => 'fastpixel-settings-form-row',
+                    'label' => $field_title
+                ]
             );
         }
 
         public function fastpixel_woocommerce_exclude_products_callback($args) {
             // Get the value of the setting we've registered with register_setting()
             $exclude_products = $this->functions->get_option('fastpixel_woocommerce_exclude_products');
-            ?>
-            <input id="fastpixel_woocommerce_exclude_products" type="checkbox" name="fastpixel_woocommerce_exclude_products" value="1" <?php echo checked($exclude_products); ?>> <span class="fastpixel-field-desc"><?php esc_html_e('Exclude all woocommerce products from cache.', 'fastpixel-website-accelerator'); ?></span>
-            <?php
+            $this->be_functions->print_checkbox([
+                'field_name'  => 'fastpixel_woocommerce_exclude_products',
+                'checked'     => $exclude_products,
+                'label'       => $args['label'],
+                'description' => esc_html__('Exclude all WooCommerce products from cache.', 'fastpixel-website-accelerator')
+            ], true);
         }
 
         public function fastpixel_woocommerce_exclude_categories_callback($args) {
             // Get the value of the setting we've registered with register_setting()
             $exclude_categories = $this->functions->get_option('fastpixel_woocommerce_exclude_categories');
-            ?>
-            <input id="fastpixel_woocommerce_exclude_categories" type="checkbox" name="fastpixel_woocommerce_exclude_categories" value="1" <?php echo checked($exclude_categories); ?>> <span class="fastpixel-field-desc"><?php esc_html_e('Exclude all woocommerce categories from cache.', 'fastpixel-website-accelerator'); ?></span>
-            <?php
+            $this->be_functions->print_checkbox([
+                'field_name'  => 'fastpixel_woocommerce_exclude_categories',
+                'checked'     => $exclude_categories,
+                'label'       => $args['label'],
+                'description' => esc_html__('Exclude all WooCommerce categories from cache.', 'fastpixel-website-accelerator')
+            ], true);
         }
 
         public function fastpixel_woocommerce_exclude_tags_callback($args)
         {
             // Get the value of the setting we've registered with register_setting()
             $exclude_tags = $this->functions->get_option('fastpixel_woocommerce_exclude_tags');
-            ?>
-                <input id="fastpixel_woocommerce_exclude_tags" type="checkbox" name="fastpixel_woocommerce_exclude_tags" value="1" <?php echo checked($exclude_tags); ?>> <span class="fastpixel-field-desc"><?php esc_html_e('Exclude all woocommerce tags from cache.', 'fastpixel-website-accelerator'); ?></span>
-                <?php
+            $this->be_functions->print_checkbox([
+                'field_name'  => 'fastpixel_woocommerce_exclude_tags',
+                'checked'     => $exclude_tags,
+                'label'       => $args['label'],
+                'description' => esc_html__('Exclude all WooCommerce tags from cache.', 'fastpixel-website-accelerator')
+            ], true);
         }
 
         public function save_options()
@@ -300,6 +329,11 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_WooCommerce_Compatibility')) {
                 return $status;
             }
             return $this->purge_all;
+        }
+
+        public function backend_remove_from_post_types_selector($post_types) {
+            $post_types[] = 'product';
+            return $post_types;
         }
     }
 

@@ -10,6 +10,8 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Local_Cache')) {
         public static $instance;
         protected $functions;
         protected $config;
+        protected $page_content = '';
+        protected $is_html_content = true;
 
         public function __construct() {
             self::$instance = $this;
@@ -23,7 +25,8 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Local_Cache')) {
                         FASTPIXEL_Debug::log('Class FASTPIXEL_Local_Cache: Starting output buffering', $_SERVER['REQUEST_URI']);
                     }
                     ob_start(); //starting buffering output
-                    add_action('fastpixel/shutdown/request/before', [$this, 'save'], 10, 1); //saving buffer, if page passed validation
+                    add_action('fastpixel/shutdown', [$this, 'get_buffer'], 10); //getting buffer into variable
+                    add_action('fastpixel/shutdown/request/before', [$this, 'save'], 10, 1); //saving buffer to file, if page passed validation
                 }
             });
             add_action('fastpixel/cachefiles/saved', [$this, 'delete_file_on_api_request'], 10, 1);
@@ -39,7 +42,21 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Local_Cache')) {
             }
             return self::$instance;
         }
-      
+
+        public function get_buffer() {
+            if (ob_get_level() == 0) {
+                return false;
+            }
+            //getting buffered output
+            $this->page_content = ob_get_contents();
+            if (!preg_match('/<html/i', $this->page_content)) {
+                $this->is_html_content = false;
+                //preventing request if there is no html tag in output
+                add_filter('fastpixel/is_cache_request_allowed/excluded', function ($excluded) {
+                    return true;
+                }, 20, 1);
+            }
+        }      
 
         public function save($url)
         {
@@ -49,19 +66,9 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Local_Cache')) {
                 }
                 return false;
             }
-            if (ob_get_level() == 0) {
-                if ($this->debug) {
-                    FASTPIXEL_Debug::log('Class FASTPIXEL_Local_Cache: ob_get_level returned 0, seems that buffer wasn\'t started');
-                }
-                return false;
-            }
-            //getting buffered output
-            $page_content = ob_get_contents();
-            if ($this->debug) {
-                FASTPIXEL_Debug::log('Class FASTPIXEL_Local_Cache: Getting output buffer', strlen($page_content));
-            }
-            if (strlen($page_content) > 0) {
-                $this->file($url, 'add', $page_content);
+            //if content is not empty, save it to file
+            if (strlen($this->page_content) > 0 && $this->is_html_content) {
+                $this->file($url, 'add', $this->page_content);
             } else {
                 if ($this->debug) {
                     FASTPIXEL_Debug::log('Class FASTPIXEL_Local_Cache: Buffer is empty');

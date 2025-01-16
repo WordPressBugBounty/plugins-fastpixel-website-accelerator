@@ -75,7 +75,9 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Request')) {
             }
 
             //adding plugin version to all requests
-            $this->request_data['plugin_version'] = FASTPIXEL_VERSION;
+            if (defined('FASTPIXEL_VERSION')) {
+                $this->request_data['plugin_version'] = FASTPIXEL_VERSION;
+            }
         }
 
         public function cache_request($url = null, $headers = []): bool 

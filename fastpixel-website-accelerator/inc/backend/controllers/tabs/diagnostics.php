@@ -19,7 +19,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Diag')) {
             if ($diag->have_failed_tests()) {
                 $error_img = '<img class="fastpixel-icon-diag-tab" src="' . esc_url(FASTPIXEL_PLUGIN_URL . 'icons/exclamation.png') . '" />';
             } 
-            $this->name = $error_img . esc_html__('Diagnostics', 'fastpixel-website-accelerator');
+            $this->name = esc_html__('Diagnostics', 'fastpixel-website-accelerator') . $error_img;
             $this->diag = FASTPIXEL_Diag::get_instance();
         }
 

@@ -29,7 +29,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Diag_Test_WP_Dot_Com')) {
         }
 
         public function activation_test() {
-            if ((!file_exists(WPMU_PLUGIN_DIR . DIRECTORY_SEPARATOR . '0fastpixel.php') || 
+            if (defined('WPMU_PLUGIN_DIR') && (!file_exists(WPMU_PLUGIN_DIR . DIRECTORY_SEPARATOR . '0fastpixel.php') || 
                 strlen(file_get_contents(WPMU_PLUGIN_DIR . DIRECTORY_SEPARATOR . '0fastpixel.php')) == 0) &&
                 class_exists('batcache')) { //for wordpress.com
                 return false;

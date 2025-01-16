@@ -9,9 +9,11 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_UI_Tab')) {
         protected $name;
         protected $slug;
         protected $functions;
+        protected $be_functions;
 
         public function __construct() {
             $this->functions = FASTPIXEL_Functions::get_instance();
+            $this->be_functions = FASTPIXEL_Backend_Functions::get_instance();
             //registering tab settings
             $this->settings();
             //adding tab to UI
@@ -53,8 +55,9 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_UI_Tab')) {
         abstract public function settings();
 
         public function view() {
-            if (file_exists(FASTPIXEL_PLUGIN_DIR . DIRECTORY_SEPARATOR . 'inc' . DIRECTORY_SEPARATOR . 'backend' . DIRECTORY_SEPARATOR . 'views' . DIRECTORY_SEPARATOR . $this->slug . '.php')) {
-                include_once FASTPIXEL_PLUGIN_DIR . DIRECTORY_SEPARATOR . 'inc' . DIRECTORY_SEPARATOR . 'backend' . DIRECTORY_SEPARATOR . 'views' . DIRECTORY_SEPARATOR . $this->slug . '.php';
+            $slug = str_replace('_', '-', $this->slug);
+            if (file_exists(FASTPIXEL_PLUGIN_DIR . DIRECTORY_SEPARATOR . 'inc' . DIRECTORY_SEPARATOR . 'backend' . DIRECTORY_SEPARATOR . 'views' . DIRECTORY_SEPARATOR . $slug . '.php')) {
+                include_once FASTPIXEL_PLUGIN_DIR . DIRECTORY_SEPARATOR . 'inc' . DIRECTORY_SEPARATOR . 'backend' . DIRECTORY_SEPARATOR . 'views' . DIRECTORY_SEPARATOR . $slug . '.php';
             }
         }
 

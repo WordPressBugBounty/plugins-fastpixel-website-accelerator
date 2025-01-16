@@ -10,6 +10,23 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_UI')) {
         protected $icon_url;
         protected $current_tab = 'cache-status';
         protected $allowed_tags = [
+            'article' => [
+                'class' => []
+            ],
+            'header' => [
+                'class' => []
+            ],
+            'menu' => [
+                'id' => [],
+                'class' => []
+            ],
+            'section' => [
+                'id' => [],
+                'class' => []
+            ],
+            'h1'  => [
+                'class' => []
+            ],
             'h2'  => [
                 'class' => []
             ],
@@ -18,7 +35,18 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_UI')) {
             ],
             'a'   => [
                 'href'   => [],
-                'target' => []
+                'target' => [],
+                'class'  => []
+            ],
+            'img' => [
+                'src' => []
+            ],
+            'i' => [
+                'class' => []
+            ],
+            'name' => [],
+            'span' => [
+                'class' => []
             ]
         ];
 
@@ -102,21 +130,6 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_UI')) {
             do_action('fastpixel/tabs/loaded');
         }
 
-        public function page_title($page_name)
-        {
-            switch ($page_name) {
-                case 'status':
-                    return '<h2 class="fastpixel-page-title">' . esc_html__('FastPixel', 'fastpixel-website-accelerator') . '</h2>';
-                    break;
-                case 'settings':
-                    return '<h2 class="fastpixel-page-title">' . esc_html__('FastPixel Settings', 'fastpixel-website-accelerator') . '</h2>';
-                    break;
-                default:
-                    return '<h2 class="fastpixel-page-title">' . esc_html__('FastPixel', 'fastpixel-website-accelerator') . '</h2>';
-                    break;
-            }
-        }
-
         public function add_tab($tab)
         {
             $this->tabs[] = $tab;
@@ -151,14 +164,21 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_UI')) {
             return '<div class="fastpixel-top-menu-icon"><img src="' . $this->icon_url . '" /></div>';
         }
 
-        public function submenu()
-        {
-            return '<div class="fastpixel-submenu">
-                    <a href="https://fastpixel.io/pricing/" target="_blank">' . esc_html__('Upgrade Plan', 'fastpixel-website-accelerator') . '</a>
-                    <a href="https://fastpixel.io/docs/" target="_blank">' . esc_html__('Knowledge Base', 'fastpixel-website-accelerator') . '</a>
-                    <a href="https://fastpixel.io/#contact" target="_blank">' . esc_html__('Contact Support', 'fastpixel-website-accelerator') . '</a>
-                    <a href="https://dash.fastpixel.io/" target="_blank">' . esc_html__('FastPixel Account', 'fastpixel-website-accelerator') . '</a>
-                    </div>';
+        protected function header($page = false) {
+            $header = '<header>';
+            if ($page == 'settings') 
+                $header .= '<div class="fastpixel-mobile-header-menu closed">
+                    <span class="open"><img src="' . (FASTPIXEL_PLUGIN_URL) . 'icons/accordion.svg" class="icon"></span>
+                    <span class="close"><img src="' . (FASTPIXEL_PLUGIN_URL) . 'icons/close.svg" class="icon"></span>
+                </div>';
+            $header .= '<h1><img src="'.(FASTPIXEL_PLUGIN_URL).'icons/fastpixel-logo.png" class="icon"></h1>
+            <div class="top-buttons">
+                <a class="header-button" href="https://dash.fastpixel.io/" target="_blank">
+                    <i class="fastpixel-icon user"></i><name>' . __('FastPixel Account', 'fastpixel-website-accelerator') . '</name>
+                </a>
+            </div>
+            </header>';
+            return $header;
         }
 
         // add screen options
@@ -191,9 +211,8 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_UI')) {
             if (!$this->check_capabilities()) {
                 return;
             }
-            echo '<div class="wrap fastpixel-website-accelerator-wrap">';
-            echo wp_kses($this->page_title('status'), $this->allowed_tags);
-            echo wp_kses($this->submenu(), $this->allowed_tags);
+            echo '<hr class="wp-header-end"><hr class="fastpixel-header-hr"><div class="wrap fastpixel-website-accelerator-wrap">';
+            echo wp_kses($this->header(), $this->allowed_tags);
             foreach ($this->tabs as $tab) {
                 if (!in_array($tab->get_slug(), array('cache-status')) || !$tab->is_enabled()) {
                     continue;
@@ -208,27 +227,28 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_UI')) {
             if (!$this->check_capabilities()) {
                 return;
             }
-            $page_tabs = array('settings', 'javascript', 'images', 'fonts', 'diagnostics', 'presets', 'compatibility');
-            echo '<div class="wrap fastpixel-website-accelerator-wrap">';
-            echo wp_kses($this->page_title('settings'), $this->allowed_tags);
-            echo wp_kses($this->submenu(), $this->allowed_tags);
-            echo '<div id="fastpixel-tabs"><ul class="fastpixel-settings-tabs">';
+            $page_tabs = array('settings', 'javascript', 'images', 'fonts', 'diagnostics', 'presets', 'compatibility', 'help_center');
+            echo '<hr class="wp-header-end"><hr class="fastpixel-header-hr"><div class="wrap fastpixel-website-accelerator-wrap">';
+            echo wp_kses($this->header('settings'), $this->allowed_tags);
+            echo '<article class="fastpixel-settings" id="fastpixel-tabs"><menu><ul>';
             foreach ($this->tabs as $tab) {
                 if (!in_array($tab->get_slug(), $page_tabs) || !$tab->is_enabled()) {
                     continue;
                 }
-                echo '<li data-slug="' . esc_attr($tab->get_slug()) . '"><a class="fastpixel-tab" href="#' . esc_attr($tab->get_slug()) . '">' . wp_kses_post($tab->get_name()) . '</a></li>';
+                echo '<li data-slug="' . esc_attr($tab->get_slug()) . '"><a class="fastpixel-tab" href="#' . esc_attr($tab->get_slug()) . '"><i class="fastpixel-icon '. esc_attr(strtolower($tab->get_slug())) .'"></i>' . wp_kses_post($tab->get_name()) . '</a></li>';
             }
-            echo '</ul><form id="fastpixel-settings-form" name="fastpixel-settings-form" method="post">';
+            echo '</ul>';
+            echo '</menu><section class="wrapper">';
+            echo '<form id="fastpixel-settings-form" name="fastpixel-settings-form" method="post">';
             wp_nonce_field('fastpixel-settings', 'fastpixel-nonce', false);
             echo '<input type="hidden" name="fastpixel-action" value="save_settings" />';
             foreach ($this->tabs as $tab) {
                 if (!in_array($tab->get_slug(), $page_tabs) || !$tab->is_enabled()) {
                     continue;
                 }
-                echo '<div id="' . esc_attr($tab->get_slug()) . '" class="fastpixel-tab-content">';
+                echo '<section id="' . esc_attr($tab->get_slug()) . '" class="fastpixel-options-tab"><settinglist><h2>' . $tab->get_name() . '</h2>'; //phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
                 $tab->view();
-                echo '</div>';
+                echo '</settinglist></section>';
             }
             echo '</form></div>';
         }
@@ -288,7 +308,6 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_UI')) {
                             'delete_cached_files'       => esc_html__('Delete cached files', 'fastpixel-webisite-accelerator'),
                             'btn_deactivate'            => esc_html__('Deactivate', 'fastpixel-webisite-accelerator'),
                             'btn_submit_and_deactivate' => esc_html__('Submit and Deactivate', 'fastpixel-webisite-accelerator'),
-                            // 'deactivation_message' => esc_html__('Do you want to delete cached files before plugin deactivation?', 'fastpixel-webisite-accelerator'),
                         ],
                     ]);
                     if (is_multisite()) {

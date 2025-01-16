@@ -48,7 +48,7 @@ if (!empty($tests_results) && is_array($tests_results)) : ?>
                         <td colspan="2">
                             <p>
                             <?php /* translators: %s is for new line */
-                            printf(esc_html__('FastPixel Website Accelerator may conflict and not work properly if some plugins are active. %s Below is a list of conflicting plugins. Please make sure you disable them for maximum performance.', 'fastpixel-website-accelerator'), '<br/>'); ?>
+                            printf(esc_html__('FastPixel Website Accelerator might not work properly if certain plugins are active. %s Below is a list of conflicting plugins - please disable them to ensure maximum performance.', 'fastpixel-website-accelerator'), '<br/>'); ?>
                             </p>
                             <table class="wp-list-table widefat fixed striped table-view-list">
                                 <thead>
