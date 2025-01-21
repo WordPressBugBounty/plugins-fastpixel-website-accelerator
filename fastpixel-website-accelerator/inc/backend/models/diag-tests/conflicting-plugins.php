@@ -18,7 +18,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Diag_Test_Conflicting_Plugins')) {
             'W3 Total Cache'                       => 'w3-total-cache/w3-total-cache.php',
             'WP Fastest Cache'                     => 'wp-fastest-cache/wpFastestCache.php',
             'PhastPress'                           => 'phastpress/phastpress.php',
-            'Perfmatters'                          => '',
+            'Perfmatters'                          => 'perfmatters/perfmatters.php',
             'WP Super Cache'                       => 'wp-super-cache/wp-cache.php',
             'LiteSpeed Cache'                      => 'litespeed-cache/litespeed-cache.php',
             'Swift Performance Lite'               => 'swift-performance-lite/performance.php',
@@ -37,6 +37,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Diag_Test_Conflicting_Plugins')) {
             'Image optimization service by Optimole' => 'optimole-wp/optimole-wp.php',
             'Jetpack Boost'                          => 'jetpack-boost/jetpack-boost.php',
             'Asset CleanUp: Page Speed Booster'      => 'wp-asset-clean-up/wpacu.php',
+            'BerqWP'                                 => 'searchpro/berqwp.php'
         ];
         protected $conflicting_plugins_tested = [];
 
@@ -107,6 +108,10 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Diag_Test_Conflicting_Plugins')) {
             }
             if (defined('PHASTPRESS_VERSION')) { // PhastPress
                 $plugins["PhastPress"]['status'] = false;
+            }
+            if (is_plugin_active($this->conflicting_plugins["Perfmatters"]) || defined('PERFMATTERS_VERSION')
+                || class_exists('Perfmatters\Config')) { // Perfmatters
+                $plugins["Perfmatters"]['status'] = false;
             }
             if (defined('WPCACHEHOME') && function_exists("wp_cache_phase2")) { // WP Super Cache
                 $plugins["WP Super Cache"]['status'] = false;
@@ -182,7 +187,11 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Diag_Test_Conflicting_Plugins')) {
             if (is_plugin_active($this->conflicting_plugins["WP-Optimize - Clean, Compress, Cache"]) || defined('WPO_VERSION')) { // WP-Optimize
                 $plugins["WP-Optimize - Clean, Compress, Cache"]['status'] = false;
             }
-            
+
+            if (is_plugin_active($this->conflicting_plugins["BerqWP"]) || defined('BERQWP_VERSION')) { // WP-Optimize
+                $plugins["BerqWP"]['status'] = false;
+            }
+
             $plugin_id = 0;
             foreach ($plugins as $plugin_name => $passed) {
                 $plugin_id++;

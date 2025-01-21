@@ -113,7 +113,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Javascript')) {
             $description = sprintf(esc_html__('Scripts that should be excluded from caching. Each script URL should be added on a new line. %1$s', 'fastpixel-website-accelerator'), '<a href="https://fastpixel.io/docs/fastpixel-exclusions/" target="_blank">' . esc_html(__('Read More', 'fastpixel-website-accelerator')) . '</a>');
             $description .= '<br/><br/>' . esc_html__('Example:', 'fastpixel-website-accelerator') . '&nbsp;' . esc_url(home_url('/wp-includes/js/jquery/jquery.js'));
             $this->be_functions->print_textarea([
-                'field_name'  => 'fastpixel_javascript_excludes_regexp',
+                'field_name'  => 'fastpixel_javascript_excludes',
                 'field_value' => $excludes,
                 'label'       => $args['label'],
                 'description' => $description
