@@ -33,31 +33,35 @@ if (!empty($tests_results) && is_array($tests_results)) : ?>
         </thead>
         <tbody>
         <?php foreach ($tests_results as $test_result) :
-            if ($test_result['array_result'] && is_array($test_result['display'])) : ?>
+            if ($test_result['array_result'] && is_array($test_result['display'])) : 
+                //need to get column names
+                $column_names = $test_result['display']['column_names'];
+                $tests = $test_result['display']['rows'];
+                $description = $test_result['display']['description'];
+                ?>
                 <tr><td>
                     <?php echo wp_kses($test_result['name'], $allowed_tags); ?>
                 </td><td>
-                    <?php if (empty($test_result['display'])) : ?> 
+                    <?php if (empty($tests)) : ?> 
                     <strong class="passed"><?php esc_html_e('None', 'fastpixel-website-accelerator'); ?></strong>
                     <?php else: 
                         echo '&nbsp;'; 
                     endif; ?>
                 </td></tr>
-                <?php if (!empty($test_result['display']) && is_array($test_result['display'])) : ?>
+                <?php if (!empty($tests) && is_array($tests)) : ?>
                     <tr>
                         <td colspan="2">
                             <p>
-                            <?php /* translators: %s is for new line */
-                            printf(esc_html__('FastPixel Website Accelerator might not work properly if certain plugins are active. %s Below is a list of conflicting plugins - please disable them to ensure maximum performance.', 'fastpixel-website-accelerator'), '<br/>'); ?>
+                            <?php echo !empty($description) ? wp_kses($description, ['p' => [], 'br' => []]) : ''; ?>
                             </p>
                             <table class="wp-list-table widefat fixed striped table-view-list">
                                 <thead>
                                     <tr>
-                                        <th><?php esc_html_e('Plugin:', 'fastpixel-website-accelerator'); ?></th>
-                                        <th><?php esc_html_e('Status', 'fastpixel-website-accelerator'); ?></th>
+                                        <th><?php echo esc_attr($column_names[0]); ?></th>
+                                        <th><?php echo esc_attr($column_names[1]); ?></th>
                                     </tr>
                                 </thead>
-                                <?php foreach ($test_result['display'] as $key => $pass) : ?>
+                                <?php foreach ($tests as $key => $pass) : ?>
                                     <tr class="plugin-status-row <?php echo esc_attr($pass['status'] == true ? 'passed' : 'failed'); ?>">
                                         <td><?php echo wp_kses($key, $allowed_tags); ?></td>
                                         <td><?php echo wp_kses($pass['display_status'], $allowed_tags); ?></td>

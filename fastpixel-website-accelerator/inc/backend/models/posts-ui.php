@@ -290,7 +290,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Posts_Table')) {
                         <label class="-reader-text" for="post-search-input"><?php 
                         /* translators: %s is used to display Post type */
                         printf(esc_html__('Search %s', 'fastpixel-website-accelerator'), esc_html($post_type_name)); ?>:</label>
-                        <input type="search" id="post-search-input" name="s" value="">
+                        <input type="search" id="post-search-input" name="s" value="<?php echo !empty($this->search) ? esc_attr($this->search) : ''; ?>">
                         <input type="submit" id="search-submit" class="button" value="<?php
                         /* translators: %s is used to display Post type */
                         printf(esc_html__('Search %s', 'fastpixel-website-accelerator'), esc_html($post_type_name)); ?>"></p>

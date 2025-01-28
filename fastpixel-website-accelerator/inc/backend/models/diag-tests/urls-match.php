@@ -8,7 +8,6 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Diag_Test_Urls_Match')) {
     {
         protected $order_id = 18;
         protected $name = 'Urls Match';
-        protected $display_notifications = true;
         protected $rest_url = '';
         protected $visible_on_diagnostics_page = false;
 

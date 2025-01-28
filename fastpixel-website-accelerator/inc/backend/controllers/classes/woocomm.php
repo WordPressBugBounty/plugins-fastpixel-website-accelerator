@@ -243,7 +243,9 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_WooCommerce_Compatibility')) {
             if ($status) {
                 return $status;
             }
-            if (!empty($args['post_type']) && $args['post_type'] == 'product' && $this->exclude_all_posts) {
+            if (((!empty($args['selected_of_type']) && $args['selected_of_type'] == 'product') || //for cache status page
+                 (!empty($args['post_type']) && $args['post_type'] == 'product'))  //for top admin bar
+                && $this->exclude_all_posts) {
                 $status = true;
             }
             return $status;

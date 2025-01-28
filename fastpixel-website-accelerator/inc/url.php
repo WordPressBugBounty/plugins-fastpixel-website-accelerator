@@ -181,13 +181,26 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Url')) {
             $this->generate_path();
             $this->clear_url();
         }
+
+        protected function get_request_host_name() {
+            $host_name = '';
+            if (!empty($_SERVER['HTTP_HOST'])) {
+                $host_name = $_SERVER['HTTP_HOST'];
+            } else if (defined('WP_HOME')) {
+                $host_name = parse_url(WP_HOME, PHP_URL_HOST);
+            } else if (!empty($_SERVER['SERVER_NAME'])) {
+                $host_name = $_SERVER['SERVER_NAME'];
+            }
+            return rtrim($host_name, '/');
+        }
+
         protected function get_data_from_request()
         {
             $functions = FASTPIXEL_Functions::get_instance();
             return $functions->esc_url(
                 (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] ? $functions->sanitize_text_field($_SERVER['HTTP_X_FORWARDED_PROTO']) : 
                 (isset($_SERVER['REQUEST_SCHEME']) && $_SERVER['REQUEST_SCHEME'] ? $functions->sanitize_text_field($_SERVER['REQUEST_SCHEME']) : 
-                (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] ? 'https' : 'http'))) . '://' . $functions->sanitize_text_field($_SERVER['HTTP_HOST']) . $functions->sanitize_text_field($_SERVER['REQUEST_URI']));
+                (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] ? 'https' : 'http'))) . '://' . $functions->sanitize_text_field($this->get_request_host_name()) . '/' . $functions->sanitize_text_field(ltrim($_SERVER['REQUEST_URI'], '/')));
         }
         public function get_path()
         {

@@ -6,7 +6,7 @@ defined('ABSPATH') || exit;
 if (!class_exists('FASTPIXEL\FASTPIXEL_Diag_Test_Conflicting_Plugins')) {
     class FASTPIXEL_Diag_Test_Conflicting_Plugins extends FASTPIXEL_Diag_Test 
     {
-        protected $order_id = 18;
+        protected $order_id = 30;
         protected $name = 'Conflicting Plugins';
         protected $array_result = true;
         protected $conflicting_mu_plugins = [
@@ -234,7 +234,17 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Diag_Test_Conflicting_Plugins')) {
 
         public function get_display() {
             if (!empty($this->conflicting_plugins_tested)) {
-                return $this->conflicting_plugins_tested;
+                /* translators: %s is for new line */
+                $description = sprintf(esc_html__('FastPixel Website Accelerator might not work properly if certain plugins are active. %s Below is a list of conflicting plugins - please disable them to ensure maximum performance.', 'fastpixel-website-accelerator'), '<br/>');
+                $data = [
+                    'column_names' => [
+                        __('Plugin:', 'fastpixel-website-accelerator'),
+                        __('Status', 'fastpixel-website-accelerator')
+                    ],
+                    'description' => $description,
+                    'rows' => $this->conflicting_plugins_tested
+                ];
+                return $data;
             } else {
                 /* translators: diagnostics page message for 'conflicting plugins' row when there are no conflicting plugins */
                 return '<strong class="passed">'.esc_html__('NONE', 'fastpixel-website-accelerator').'</strong>';

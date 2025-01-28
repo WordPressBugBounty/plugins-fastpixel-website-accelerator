@@ -268,7 +268,8 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Settings')) {
                 'field_name'  => 'fastpixel_params_exclusions',
                 'field_value' => $params_exclusions,
                 'label'       => $args['label'],
-                'description' => $description
+                'description' => $description,
+                'data'        => ['data-depends-on="fastpixel-exclude-all-params"']
             ], true);
         }
 

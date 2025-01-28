@@ -116,9 +116,10 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Post_Types_Statuses')) {
             }
             $extra_pages = [];
             if ($args['post_type'] == 'page') {
+                $show_on_front  = get_option('show_on_front');
                 $page_on_front  = get_option('page_on_front');
                 //if static page is not set, adding homepage to list
-                if ($page_on_front == 0 && $args['current_page'] == 1) {
+                if (($show_on_front == 'posts' || $page_on_front == 0) && $args['current_page'] == 1 && empty($args['s'])) {
                     $cache_status = $this->be_functions->cache_status_display(get_home_url(), ['id' => 'homepage', 'post_type' => $this->selected_post_type]);
                     $extra_pages[] = [
                         'ID'             => 'homepage',

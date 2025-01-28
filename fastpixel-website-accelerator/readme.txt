@@ -4,7 +4,7 @@ Tags: speed, cache, caching, performance, web vitals
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 5.6
-Stable tag: 1.0.40
+Stable tag: 1.0.41
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -200,10 +200,20 @@ For more detailed information on how to use the plugin or the API, troubleshooti
 
 == Changelog ==
 
+= 1.0.41 =
+🔧 Maintenance Update
+Release Date: January 28, 2025
+🛠️ Fixes & Improvements
+* PHP 8.4 Compatibility: Enhanced compatibility to ensure smooth performance with the latest PHP version.
+* Exclusion Fixes: Resolved minor issues with exclusions for a more reliable optimization process.
+* UI Fixes: Made small UI adjustments for a cleaner and more intuitive experience.
+
+Update now to keep everything running smoothly and efficiently! 🚀
+
 = 1.0.40 =
 🛠️ Maintenance Update
 Release Date: January 21, 2025
-⚙️Fixes & Improvements:
+⚙️ Fixes & Improvements:
 * JavaScript Exclusions: Resolved minor issues to ensure smoother handling of excluded scripts.
 * Conflicting Plugins List: Updated the list of known conflicting plugins for improved compatibility and seamless integration.
 

@@ -139,6 +139,12 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Cache')) {
             */
             $requested_url = $this->url;
             /**
+             * check if url have domain
+             */
+            if (empty($requested_url->get_host())) {
+                return false;
+            }
+            /**
             * no need to activate class on api request or if wp-includes is present in the url
             */
             // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- none available before WordPress is loaded.
@@ -148,7 +154,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Cache')) {
             /**
             * run only for index.php
             */
-            if (!in_array($this->functions->sanitize_text_field($_SERVER['SCRIPT_NAME']), ['/index.php'])) {
+            if (!preg_match('/index\.php/i', $this->functions->sanitize_text_field($_SERVER['SCRIPT_NAME']))) {
                 return false;
             }
             /**
