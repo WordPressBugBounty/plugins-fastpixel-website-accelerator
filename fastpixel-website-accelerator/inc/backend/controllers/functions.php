@@ -57,22 +57,6 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Functions')) {
             }
 
             $cache_status['html_created_time'] = $check_result['html_created_time'];
-            //TODO: check if we will display paged urls
-            /*//checking if page is paged
-            if (preg_match('/\/page\/\d+/', $url)) {
-                //checking for parent page invalidation date
-                $parent_url = preg_replace('/page.+$/i', '', $url);
-                $parent_meta = $this->functions->check_post_cache_status($parent_url);
-
-                if ((isset($check_result['have_cache']) && $check_result['have_cache'])
-                    && $parent_meta['local_invalidation_time'] > $check_result['local_invalidation_time'] &&
-                    $check_result['html_created_time'] < $parent_meta['local_invalidation_time']) {
-                    //updating page meta with parent meta
-                    $check_result['need_cache'] = true;
-                    $check_result['local_invalidation_time'] = $parent_meta['local_invalidation_time'];
-                }
-            }*/
-
             //checking page status
             if ($check_result['error'] != false && $check_result['error_time'] > $check_result['last_cache_request_time']) {
                 $cache_status['status_display'] = '<span class="have-popup error"><strong>' . esc_html__('Error', 'fastpixel-website-accelerator') . '</strong></span>';
@@ -188,6 +172,50 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Functions')) {
             </switch>
             <span class="fastpixel-switch-description">%7$s</span>', $switch_class, $field_name, $checked, $disabled, $data, $label, $description);
             $output = '<setting id="' . $field_name . '-container" class="switch"><content>' . $switch . '</content></setting>';
+            if ($display) {
+                echo $output; //phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+            } else {
+                return $output;
+            }
+        }
+
+        public function print_input($args = [], $display = false)
+        {
+            $defaults = array(
+                'type'        => 'text',
+                'field_name'  => '',
+                'field_value' => '',
+                'label'       => '',
+                'class'       => 'fastpixel-input',
+                'data'        => [],
+                'disabled'    => false,
+                'description' => '',
+                'error'       => ''
+            );
+
+            $args = wp_parse_args($args, $defaults);
+            $error = !empty($args['error']) ? $args['error'] : '';
+            $args['class'] .= !empty($args['error']) ? ' fastpixel-input-error' : '';
+            $type = $args['type'];
+            $class = ($args['class'] !== false) ? 'class="' . $args['class'] . '"' : '';
+            $field_value = $args['field_value'];
+            $field_name = esc_attr($args['field_name']);
+            $label = $args['label'];
+            $description = $args['description'];
+            $data = implode(' ', $args['data']);
+            $disabled = (!empty($args['disabled']) && true == $args['disabled']) ? 'disabled' : '';
+            if (empty($field_name)) {
+                return false;
+            }
+
+            $output = sprintf('<setting id="%4$s-container" class="fastpixel-input-setting"><content>
+            <span class="fastpixel-input-row">
+            <label class="fastpixel-input-label">%1$s</label>
+            <input type="%2$s" %3$s name="%4$s" %5$s %6$s value="%7$s" />
+            <span class="fastpixel-error-text">%9$s</span>
+            </span>
+            <span class="fastpixel-input-description">%8$s</span>
+            </content></setting>', $label, $type, $class, $field_name, $disabled, $data, $field_value, $description, $error);
             if ($display) {
                 echo $output; //phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
             } else {

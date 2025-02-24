@@ -4,7 +4,7 @@ Tags: speed, cache, caching, performance, web vitals
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 5.6
-Stable tag: 1.0.41
+Stable tag: 1.0.42
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -199,6 +199,24 @@ For more detailed information on how to use the plugin or the API, troubleshooti
 
 
 == Changelog ==
+
+= 1.0.42 =
+
+☁️ The Cloudflare Boost Update
+
+Release Date: February 24, 2025
+
+🚀 New Features
+
+* Cloudflare Integration: FastPixel now integrates directly with Cloudflare! Automatically purge your Cloudflare cache after optimizing pages, ensuring visitors always see the latest version.
+* Smarter Cache Purging: The cache is now automatically cleared when adding/removing plugins, themes, or updating WordPress, keeping your site fresh without extra effort.
+
+🛠️ Fixes
+
+* Bugfixes: We've squashed various bugs to enhance performance and stability.
+* UI Fixes: Made small UI adjustments for a cleaner and more intuitive experience.
+
+Update now to take advantage of the new Cloudflare integration and improved caching! ✨
 
 = 1.0.41 =
 🔧 Maintenance Update

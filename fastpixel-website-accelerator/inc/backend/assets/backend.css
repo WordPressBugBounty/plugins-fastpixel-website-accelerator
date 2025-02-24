@@ -19,7 +19,7 @@
     }
 }
 .fastpixel-website-accelerator-wrap {
-    font-family: Roboto, sans-serif;
+    font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen-Sans,Ubuntu,Cantarell,"Helvetica Neue",sans-serif;
 }
 .fastpixel-website-accelerator-wrap .fastpixel-icon {
     margin-right: 8px;
@@ -75,7 +75,7 @@
     padding: 10px 12px;
     border: 0;
     margin: 4px;
-    font-family: Roboto;
+    font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen-Sans,Ubuntu,Cantarell,"Helvetica Neue",sans-serif;
     font-weight: 700;
     border-radius: 6px;
     text-decoration: none;
@@ -107,13 +107,19 @@
 }
 .fastpixel-website-accelerator-wrap .fastpixel-options-tab h2 {
     font-size: 24px;
-    font-family: Roboto;
+    font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen-Sans,Ubuntu,Cantarell,"Helvetica Neue",sans-serif;
     font-weight: 700;
     outline: 0;
     text-decoration: none;
     color: #0f6a7d;
     margin: 1px 0 24px 0;
     line-height: 30px;
+}
+.fastpixel-website-accelerator-wrap .fastpixel-options-tab .fastpixel-settings-section-description {
+    color: #333333;
+    font-size: 13px;
+    line-height: 1.5;
+    margin: 1em 0px;
 }
 .fastpixel-website-accelerator-wrap .save-button {
     padding: 15px 20px;
@@ -123,7 +129,7 @@
     background: #1ABDCA;
     border: 0;
     margin: 15px 4px 4px 4px;
-    font-family: Roboto;
+    font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen-Sans,Ubuntu,Cantarell,"Helvetica Neue",sans-serif;
     font-weight: 700;
     border-radius: 6px;
     text-decoration: none;
@@ -146,7 +152,7 @@
 
 .fastpixel-website-accelerator-wrap table { 
     border-radius: 6px; 
-    font-family: Roboto, sans-serif;
+    font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen-Sans,Ubuntu,Cantarell,"Helvetica Neue",sans-serif;
 }
 .fastpixel-website-accelerator-wrap table > tbody > :nth-child(odd) {
     background-color: #F4FBFC;
@@ -159,7 +165,11 @@
 .fastpixel-website-accelerator-wrap table td { 
     font-size: 14px;
     font-weight: 500;
-    /* color: #116C7E; */
+    color: #333333;
+}
+.fastpixel-website-accelerator-wrap .fastpixel-tab-description { 
+    font-size: 14px;
+    font-weight: 700;
     color: #333333;
 }
 
@@ -281,7 +291,7 @@
     justify-self: start
 }
 .fastpixel-website-accelerator-wrap .fastpixel-submenu a {
-    font-family: Roboto, serif;
+    font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen-Sans,Ubuntu,Cantarell,"Helvetica Neue",sans-serif;
     font-weight: 400;
     font-size: 14px;
     line-height: 1.5;
@@ -354,7 +364,7 @@
 /* Status tab styles */
 .fastpixel-website-accelerator-wrap p.search-box,
 .fastpixel-website-accelerator-wrap .tablenav-pages {
-    font-family: Roboto;
+    font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen-Sans,Ubuntu,Cantarell,"Helvetica Neue",sans-serif;
     font-weight: 700;
     text-decoration: none;
 }
@@ -503,7 +513,7 @@
     padding: 10px 12px;
     border: 0;
     margin: 4px;
-    font-family: Roboto;
+    font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen-Sans,Ubuntu,Cantarell,"Helvetica Neue",sans-serif;
     font-weight: 700;
     border-radius: 6px;
     cursor: pointer;
@@ -526,7 +536,7 @@
 }
 .fastpixel-website-accelerator-wrap .fastpixel-woocommerce-settings-section h2 {
     font-size: 18px;
-    font-family: Roboto;
+    font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen-Sans,Ubuntu,Cantarell,"Helvetica Neue",sans-serif;
     font-weight: 700;
     color: #1d2327;
     margin-top: 25px;
@@ -549,6 +559,11 @@
 /* Fonts tab styles */
 .fastpixel-website-accelerator-wrap .fastpixel-icon.fonts {
     background-image: url(../../../icons/eye.svg);   
+}
+
+/* Integrations tab styles */
+.fastpixel-website-accelerator-wrap .fastpixel-icon.integrations {
+    background-image: url(../../../icons/integrations.svg);   
 }
 
 /* Diagnostics tab */
@@ -707,7 +722,7 @@
 }
 .fastpixel-website-accelerator-wrap .help-center .button-setting {
     color: #fff;
-    font-family: Roboto;
+    font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen-Sans,Ubuntu,Cantarell,"Helvetica Neue",sans-serif;
     font-weight: 700;
     text-decoration: none;
     box-shadow: none;
@@ -827,7 +842,7 @@
 /* Form elements styles */
 .wp-core-ui .fastpixel-website-accelerator-wrap .button {
     color: #fff;
-    font-family: Roboto;
+    font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen-Sans,Ubuntu,Cantarell,"Helvetica Neue",sans-serif;
     font-weight: 700;
     text-decoration: none;
     box-shadow: none;
@@ -840,7 +855,7 @@
 }
 .wp-core-ui .fastpixel-website-accelerator-wrap input,
 .wp-core-ui .fastpixel-website-accelerator-wrap select {
-    font-family: Roboto;
+    font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen-Sans,Ubuntu,Cantarell,"Helvetica Neue",sans-serif;
     font-weight: 500;
     border: 1px solid #1ABDCA;
 }
@@ -861,19 +876,21 @@
 .fastpixel-website-accelerator-wrap textarea:focus {
     box-shadow: none;
 }
-
+.fastpixel-website-accelerator-wrap .fastpixel-settings-form-row {
+}
 .fastpixel-website-accelerator-wrap .fastpixel-settings-form-row th {
     display: none;
 }
 .fastpixel-website-accelerator-wrap .fastpixel-settings-form-row td {
     width: 100%;
     margin: 0;
-    padding: 0 20px 0 0;
+    padding: 0 0 0 0;
+    background-color: #ffffff;
 }
 .fastpixel-website-accelerator-wrap setting {
     padding: 12px;
     background-color: #F4FBFC;
-    border-radius: 0.7rem;
+    border-radius: 6px;
     margin: 10px 0;
     display: flex;
     width: auto;
@@ -924,7 +941,8 @@
     margin: 10px 0;
 }
 .fastpixel-website-accelerator-wrap switch label,
-.fastpixel-website-accelerator-wrap .fastpixel-textarea-label {
+.fastpixel-website-accelerator-wrap .fastpixel-textarea-label,
+.fastpixel-website-accelerator-wrap .fastpixel-input-label {
     font-weight: 700;
     padding: 0px 5px 8px 0;
     vertical-align: middle;
@@ -1042,6 +1060,48 @@
 .fastpixel-website-accelerator-wrap setting .fastpixel-desc-hidden {
     display: none;
 }
+
+.fastpixel-website-accelerator-wrap setting .fastpixel-input-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: start;
+    line-height: 30px;
+}
+.fastpixel-website-accelerator-wrap setting .fastpixel-input-row .fastpixel-input-label {
+    margin: 0;
+    padding: 0;
+    min-width: 100px;
+}
+.fastpixel-website-accelerator-wrap setting .fastpixel-input-row .fastpixel-input {
+    width: auto;
+    width: 290px;
+    border: 1px solid #1ABDCA;
+    box-sizing: border-box;
+    /* margin-top: 15px; */
+}
+.fastpixel-website-accelerator-wrap setting .fastpixel-input-row .fastpixel-input:focus {
+    box-shadow: 0 0 0 1px #2271b1;
+}
+.fastpixel-website-accelerator-wrap setting .fastpixel-input-row .fastpixel-input.fastpixel-input-error {
+    border: 1px solid #ff0000;
+}
+.fastpixel-website-accelerator-wrap setting .fastpixel-input-row .fastpixel-input.fastpixel-input-error:focus {
+    box-shadow: 0 0 0 1px #ff0000;
+}
+.fastpixel-website-accelerator-wrap setting .fastpixel-input-row .fastpixel-error-text {
+    color: #ff0000;
+    font-size: 14px;
+    font-weight: 700;
+    margin-left: 30px;
+}
+.fastpixel-website-accelerator-wrap setting .fastpixel-input-description {
+    display: block;
+    color: #818181;
+    font-size: 13px;
+    margin: 15px 0 0 0;
+}
+
 
 @media screen and (max-width: 782px) {
     .fastpixel-presets-container {

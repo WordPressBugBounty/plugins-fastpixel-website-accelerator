@@ -25,6 +25,9 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Excluded_Urls')) {
             add_filter('fastpixel/init/excluded', [$this, 'is_excluded'], 13, 2);
             if (is_admin()) {
                 add_filter('fastpixel/backend_functions/cache_status_display/excluded', [$this, 'admin_check_is_excluded'], 13, 2);
+                add_filter('fastpixel/backend/purge/single/post/is_excluded', [$this, 'admin_check_is_excluded'], 13, 2);
+                add_filter('fastpixel/backend/purge/single/term/is_excluded', [$this, 'admin_check_is_excluded'], 13, 2);
+                add_filter('fastpixel/backend/purge/single/by_url/excluded', [$this, 'admin_check_is_excluded'], 13, 2);
             }
             add_filter('fastpixel/admin_bar/purge_this_button_exclude', [$this, 'admin_bar_check_url_is_excluded'], 20, 2);
             add_filter('fastpixel/rest-api/excluded', [$this, 'is_excluded'], 13, 2);
@@ -77,7 +80,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Excluded_Urls')) {
                         if ($this->debug) {
                             FASTPIXEL_Debug::log('Excluded Urls direct: excluded_url', $prepared_exc_url);
                             FASTPIXEL_Debug::log('Excluded Urls direct: requested_url', $prepared_req_url);
-                            FASTPIXEL_Debug::log('Excluded Urls direct: match', $prepared_req_url);
+                            FASTPIXEL_Debug::log('Excluded Urls direct: match', $prepared_req_url == $prepared_exc_url);
                         }
                         if (!empty($prepared_req_url) && $prepared_req_url == $prepared_exc_url) {
                             //need to delete if url is excluded

@@ -23,7 +23,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Post_Types_Statuses')) {
             add_action('init', function () {
                 $this->post_types = get_post_types(['public' => true], 'objects');
                 $this->nonce = wp_create_nonce('cache_status_nonce');
-                $this->excluded_post_types = $this->functions->get_option('fastpixel_excluded_post_types', []);
+                $this->excluded_post_types = apply_filters('fastpixel/backend/posts_statuses/init/excluded_post_types', $this->functions->get_option('fastpixel_excluded_post_types', []));
             });
             //adding post type options into selector
             add_filter('fastpixel/status_page/options', [$this, 'add_option'], 10, 2);
@@ -34,14 +34,19 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Post_Types_Statuses')) {
             //handling posts statuses on status page
             add_filter('fastpixel/status_page/get_statuses', [$this, 'status_page_get_statuses'], 10, 2);
             add_filter('fastpixel/backend_functions/cache_status_display/excluded', [$this, 'check_post_is_excluded'], 10, 2);
+            //handling admin bar purge button
             add_filter('fastpixel/admin_bar/purge_this_button_exclude', [$this, 'check_post_is_excluded'], 10, 2);
             //handling purge
+            add_filter('fastpixel/backend/purge/single/object', [$this, 'backend_purge_single_object'], 10, 2);
             add_filter('fastpixel/backend/purge/single/reset_type', [$this, 'backend_cache_reset_type'], 10, 2);
             add_filter('fastpixel/backend/purge/single/permalink', [$this, 'backend_single_permalink'], 10, 2);
             add_filter('fastpixel/backend/purge/single/title', [$this, 'backend_ajax_purge_single_post_title'], 10, 2);
+            add_filter('fastpixel/backend/purge/single/post/is_excluded', [$this, 'check_post_is_excluded'], 10, 2);
+            add_filter('fastpixel/backend/bulk/type', [$this, 'backend_bulk_statuses_type'], 10, 2);
             //handling cached files deletion
             add_filter('fastpixel/backend/delete/single/permalink', [$this, 'backend_single_permalink'], 10, 2);
         }
+
         public function default_post_type($post_type) { 
             if (empty($post_type)) {
                 return 'page';
@@ -201,12 +206,17 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Post_Types_Statuses')) {
             return $default;
         }
 
-        public function admin_ajax_cache_statuses($permalink, $args)
-        {
-            if (in_array($args['post_type'], array_keys($this->post_types))) {
-                $permalink = get_permalink($args['id']);
+        //purge action for post types
+        public function backend_purge_single_object($object = false, $args = []) {
+            //if object is already set, return it
+            if ($object) {
+                return $object;
             }
-            return $permalink;
+            //check if id and type is present
+            if (empty($args['id']) || empty($args['type']) || $args['type'] != $this->type) {
+                return false;
+            }
+            return get_post($args['id']);
         }
 
         public function backend_single_permalink($permalink_to_reset, $args)
@@ -230,6 +240,17 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Post_Types_Statuses')) {
                 $permalink_to_reset = $this->backend_single_permalink($permalink_to_reset, $args);
             }
             return $permalink_to_reset;
+        }
+
+        public function backend_bulk_statuses_type($type, $args)
+        {
+            if (!empty($type)) {
+                return $type;
+            }
+            if (!empty($args['selected_of_type']) && in_array($args['selected_of_type'], array_keys($this->post_types))) {
+                $type = $this->type;
+            }
+            return $type;
         }
 
         public function backend_ajax_purge_single_post_title($post_title, $args)
@@ -304,7 +325,6 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Post_Types_Statuses')) {
                 if (in_array($data['selected_of_type'], $this->excluded_post_types)) {
                     $status = true;
                 } else if (!empty($data['id'])) {
-                    $is_excluded = apply_filters('fastpixel/backend/statuses/excluded', false, $data);
                     $is_password_protected = false;
                     $is_private = false;
                     if (is_numeric($data['id'])) {
@@ -314,7 +334,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Post_Types_Statuses')) {
                             $is_private = $post->post_status == 'private' ? true : false;
                         }
                     }
-                    $status = $is_excluded || $is_password_protected || $is_private;
+                    $status = $is_password_protected || $is_private;
                 }
             }
             return $status;
@@ -338,6 +358,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Post_Types_Statuses')) {
             }
             return $items;
         }
+
     }
 
     new FASTPIXEL_Post_Types_Statuses();

@@ -37,7 +37,8 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Diag_Test_Conflicting_Plugins')) {
             'Image optimization service by Optimole' => 'optimole-wp/optimole-wp.php',
             'Jetpack Boost'                          => 'jetpack-boost/jetpack-boost.php',
             'Asset CleanUp: Page Speed Booster'      => 'wp-asset-clean-up/wpacu.php',
-            'BerqWP'                                 => 'searchpro/berqwp.php'
+            'BerqWP'                                 => 'searchpro/berqwp.php',
+            'Rabbit Loader'                          => 'rabbit-loader/rabbit-loader.php',
         ];
         protected $conflicting_plugins_tested = [];
 
@@ -188,8 +189,12 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Diag_Test_Conflicting_Plugins')) {
                 $plugins["WP-Optimize - Clean, Compress, Cache"]['status'] = false;
             }
 
-            if (is_plugin_active($this->conflicting_plugins["BerqWP"]) || defined('BERQWP_VERSION')) { // WP-Optimize
+            if (is_plugin_active($this->conflicting_plugins["BerqWP"]) || defined('BERQWP_VERSION')) { // BerqWP
                 $plugins["BerqWP"]['status'] = false;
+            }
+            
+            if (is_plugin_active($this->conflicting_plugins["Rabbit Loader"]) || defined('RABBITLOADER_PLUG_VERSION')) { // Rabbit Loader
+                $plugins["Rabbit Loader"]['status'] = false;
             }
 
             $plugin_id = 0;

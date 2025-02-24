@@ -36,7 +36,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Help_Center')) {
                 [
                     'icon' => FASTPIXEL_PLUGIN_URL . 'icons/processing.svg',
                     'title' => __('Upgrade Plan', 'fastpixel-website-accelerator'),
-                    'description' => __('Upgrade your plan to get more pageviews and higher page concurrency.', 'fastpixel-website-accelerator'),
+                    'description' => __('Upgrade your plan to get more pageviews and priority caching for your website.', 'fastpixel-website-accelerator'),
                     'link' => 'https://fastpixel.io/pricing/'
                 ],
                 [

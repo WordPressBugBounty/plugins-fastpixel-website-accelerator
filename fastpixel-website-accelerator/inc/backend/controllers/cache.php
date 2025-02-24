@@ -14,6 +14,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Cache')) {
         protected $time_to_wait = 5; //need this option to avoid multiple page cache requests
         protected $serve_stale;
         protected $be_functions;
+        protected $purged_objects_cache = false;
 
         public function __construct()
         {
@@ -49,8 +50,10 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Cache')) {
                     if (!defined('FASTPIXEL_SAVE_POST')) {
                         define('FASTPIXEL_SAVE_POST', true);
                     }
-                    $cache = FASTPIXEL_Backend_Cache::get_instance();
-                    $cache->purge_cache_by_id($post_id);
+                    if (!$this->purged_objects_cache) {
+                        $this->purge_post_object($post_id);
+                        $this->purged_objects_cache = true;
+                    }
                     do_action('fastpixel/post/published', $post_id); //own hook
                 }
             }, 10, 3);
@@ -72,8 +75,10 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Cache')) {
                     return;
                 }
                 if ($post->post_status == 'publish') {
-                    $cache = FASTPIXEL_Backend_Cache::get_instance();
-                    $cache->purge_cache_by_id($post_id);
+                    if (!$this->purged_objects_cache) {
+                        $this->purge_post_object($post_id);
+                        $this->purged_objects_cache = true;
+                    }
                     do_action('fastpixel/post/inserted', $post_id); //own hook
                 }
             }, 10, 3);
@@ -85,8 +90,10 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Cache')) {
                     return;
                 }
                 if (!empty($post) && $post->post_status == 'publish') {
-                    $cache = FASTPIXEL_Backend_Cache::get_instance();
-                    $cache->purge_cache_by_id($post->ID);
+                    if (!$this->purged_objects_cache) {
+                        $this->purge_post_object($post->ID);
+                        $this->purged_objects_cache = true;
+                    }
                     do_action('fastpixel/post/draft_to_publish', $post->ID); //own hook
                 }
             }, 10, 1);
@@ -98,8 +105,10 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Cache')) {
                     return;
                 }
                 if (!empty($post)) {
-                    $cache = FASTPIXEL_Backend_Cache::get_instance();
-                    $cache->purge_cache_by_id($post->ID);
+                    if (!$this->purged_objects_cache) {
+                        $this->purge_post_object($post->ID);
+                        $this->purged_objects_cache = true;
+                    }
                     do_action('fastpixel/post/pending_to_publish', $post->ID); //own hook
                 }
             }, 10, 1);
@@ -125,15 +134,19 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Cache')) {
             }, 10, 2);
 
             add_action('transition_comment_status', function ($new_status, $old_status, $comment) {
-                $cache = FASTPIXEL_Backend_Cache::get_instance();
-                $cache->purge_cache_by_id($comment->comment_post_ID);
+                if (!$this->purged_objects_cache) {
+                    $this->purge_post_object($comment->comment_post_ID);
+                    $this->purged_objects_cache = true;
+                }
                 do_action('fastpixel/comment/transition_status', $new_status, $old_status, $comment); //own hook
             }, 10, 3);
             add_action('comment_post', function ($comment_id, $comment_approved, $commentdata) {
                 if ($comment_approved == 1) {
                     $comment = get_comment($comment_id);
-                    $cache = FASTPIXEL_Backend_Cache::get_instance();
-                    $cache->purge_cache_by_id($comment->comment_post_ID);
+                    if (!$this->purged_objects_cache) {
+                        $this->purge_post_object($comment->comment_post_ID);
+                        $this->purged_objects_cache = true;
+                    }
                     do_action('fastpixel/comment/approved', $comment->comment_post_ID, $comment_approved, $commentdata); //own hook
                 }
             }, 10, 3);
@@ -252,6 +265,13 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Cache')) {
             add_action('fastpixel/post/draft_to_publish', [$this, 'purge_homepage_cache'], 10, 1);
             add_action('fastpixel/post/pending_to_publish', [$this, 'purge_homepage_cache'], 10, 1);
             add_action('fastpixel/post/trashed', [$this, 'purge_homepage_cache'], 10, 1);
+            /*
+             * reset cache status when plugins are activated, deactivated, upgraded, theme is changed or upgraded
+             */
+            add_action('activated_plugin', [$this, 'purge_all_without_request']);
+            add_action('deactivated_plugin', [$this, 'purge_all_without_request']);
+            add_action('after_switch_theme', [$this, 'purge_all_without_request']);
+            add_action('upgrader_process_complete', [$this, 'check_upgraded'], 10, 2);
         }
 
         public static function get_instance()
@@ -266,84 +286,52 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Cache')) {
             wp_nonce_field('fastpixel_edit_post', 'fastpixel-nonce', false);
         }
 
-        public function purge_cache_by_id($post_id)
+        public function purge_cache_by_id($args = [])
         {
-            if (empty($post_id)) {
+            //check if id and type is present
+            if (empty($args['id']) || empty($args['type'])) {
                 return false;
             }
-            $post = get_post(esc_sql($post_id));
-
-            // Do not purge the cache if it's an autosave or it is updating a revision.
-            if ((defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) || 'revision' === $post->post_type) {
-                return false;
-            } elseif (in_array($post->post_status, ['draft', 'auto-draft', 'pending'])) { // Do not purge the cache if the user is editing an unpublished post.
-                return false;
-            } elseif (!current_user_can('edit_post', $post_id) && (!defined('DOING_CRON') || !DOING_CRON)) { // Do not purge the cache if the user cannot edit the post.
+            $object_for_purge = apply_filters('fastpixel/backend/purge/single/object', false, $args);
+            //do not purge cache if object is empty
+            if (empty($object_for_purge)) {
                 return false;
             }
-
-            //Do not purge post if post type is excluded
-            $excluded_post_types = apply_filters('fastpixel/purge_by_id/excluded_post_types', []);
-            $post_type = get_post_type($post_id);
-            if (in_array($post_type, $excluded_post_types)) {
-                return false;
+            $purged = false;
+            if (class_exists('WP_Post') && $object_for_purge instanceof \WP_Post) {
+                $purged = $this->purge_post_object($object_for_purge->ID, $args);
             }
-
-            $url = new FASTPIXEL_Url( (int)$post_id);
-            $path = untrailingslashit($url->get_url_path());
-            //need to check if request already was sent, because on post save much hooks are fired and each can trigger cache request
-            $status = $this->functions->check_post_cache_status($url->get_url());
-            if (time() <= ($this->time_to_wait + $status['last_cache_request_time'])) {
-                return false;
+            if (class_exists('WP_Term') && $object_for_purge instanceof \WP_Term) {
+                $purged = $this->purge_term_object($object_for_purge->term_id, $args);
             }
-            //delete cached files if serve stale is disabled(adding this to keep more free space and avoid serving cached pages)
-            if (!$this->functions->get_option('fastpixel_serve_stale')) {
-                $this->functions->delete_cached_files($path);
-            } else {
-                do_action('fastpixel/admin/purge_cache_by_id', $url->get_url());
-            }
-            $this->functions->update_post_cache($path, true);
-            //request page cache after reset
-            if (class_exists('FASTPIXEL\FASTPIXEL_Request') && $request = FASTPIXEL_Request::get_instance()) {
-                $requested = $request->cache_request($url->get_url());
-                if ($requested) {
-                    $this->functions->update_post_cache($url->get_url_path(), false, true);
-                    if ($this->debug) {
-                        FASTPIXEL_DEBUG::log('Class FASTPIXEL_Backend_Cache: request_cache, Ended Successfully');
-                    }
-                    //purging categories/tags/taxonomies pages
-                    $this->admin_purge_taxonomies($post_id);
-                    return true;
-                } else {
-                    if ($this->debug) {
-                        FASTPIXEL_DEBUG::log('Class FASTPIXEL_Backend_Cache: request_cache, Ended with error');
-                    }
-                    return false;
-                }
-            } else {
-                if ($this->debug) {
-                    FASTPIXEL_DEBUG::log('Class FASTPIXEL_Backend_Cache: ACTION purge_post, Error: Class FASTPIXEL_CACHE is not available during post purge');
-                }
-            }
-            return true;
+            return $purged;
         }
 
-        public function purge_cache_by_url($purge_url) {
+        public function purge_cache_by_url($args = []) {
+            $purge_url = apply_filters('fastpixel/backend/purge/single/permalink', '', $args);
             if (empty($purge_url)) {
                 return false;
             }
-            if ($this->debug) {
-                FASTPIXEL_Debug::log('Class FASTPIXEL_Backend_Cache: purging cache by url: ', $purge_url);
-            }
             $url = new FASTPIXEL_Url($purge_url);
             $path = untrailingslashit($url->get_url_path());
-            $status = $this->functions->check_post_cache_status($url->get_url());
+            $args['url'] = $url->get_url();
+            if ($this->debug) {
+                FASTPIXEL_Debug::log('Class FASTPIXEL_Backend_Cache: purging cache by url: ', $url->get_url());
+            }
+            //Do not purge post if post is excluded
+            $post_is_excluded = apply_filters('fastpixel/backend/purge/single/by_url/excluded', false, $args);
+            if ($post_is_excluded) {
+                if ($this->debug) {
+                    FASTPIXEL_DEBUG::log('Class FASTPIXEL_Backend_Cache: purge_cache_by_url, post is excluded from cache', $url->get_url());
+                }
+                return false;
+            }
+
             //delete cached files if serve stale is disabled(adding this to keep more free space and avoid serving cached pages)
             if (!$this->functions->get_option('fastpixel_serve_stale')) {
                 $this->functions->delete_cached_files($path);
-            } else {
-                do_action('fastpixel/admin/purge_cache_by_url', $purge_url);
             }
+            do_action('fastpixel/backend/purged/single/by_url', $url->get_url());
             //setting invalidation time
             $this->functions->update_post_cache($path, true);
             //request page cache after invalidation
@@ -352,21 +340,147 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Cache')) {
                 if ($requested) {
                     $this->functions->update_post_cache($url->get_url_path(), false, true);
                     if ($this->debug) {
-                        FASTPIXEL_DEBUG::log('Class FASTPIXEL_Backend_Cache: request_cache_by_url, Ended Successfully');
+                        FASTPIXEL_DEBUG::log('Class FASTPIXEL_Backend_Cache: Action purge_cache_by_url, Success: cache request ended Successfully', $url->get_url());
                     }
                     return true;
                 } else {
                     if ($this->debug) {
-                        FASTPIXEL_DEBUG::log('Class FASTPIXEL_Backend_Cache: request_cache_by_url, Ended with error');
+                        FASTPIXEL_DEBUG::log('Class FASTPIXEL_Backend_Cache: Action purge_cache_by_url, Error: cache request ended with error', $url->get_url());
                     }
                     return false;
                 }
             } else {
                 if ($this->debug) {
-                    FASTPIXEL_DEBUG::log('Class FASTPIXEL_Backend_Cache: ACTION purge_cache_by_url, Error: Class FASTPIXEL_Request is not available on purge');
+                    FASTPIXEL_DEBUG::log('Class FASTPIXEL_Backend_Cache: Action purge_cache_by_url, Error: Class FASTPIXEL_Request is not available on purge');
                 }
             }
             return true;
+        }
+
+        protected function purge_post_object($post_id, $args = []) {
+            if ($this->debug) {
+                FASTPIXEL_DEBUG::log('Class FASTPIXEL_Backend_Cache: Action purge_post_object', ['post_id' => $post_id, 'args' => $args]);
+            }
+            if (empty($post_id) || !is_numeric($post_id)) {
+                return false;
+            }
+            $post = get_post($post_id);
+            // Do not purge the cache if it's an autosave or it is updating a revision.
+            if ((defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) || 'revision' === $post->post_type) {
+                return false;
+            } elseif (in_array($post->post_status, ['draft', 'auto-draft', 'pending'])) { // Do not purge the cache if the user is editing an unpublished post.
+                return false;
+            } elseif (!current_user_can('edit_post', $post->ID) && (!defined('DOING_CRON') || !DOING_CRON)) { // Do not purge the cache if the user cannot edit the post.
+                return false;
+            }
+
+            //Do not purge post if post type is excluded
+            $fastpixel_excluded_post_types = $this->functions->get_option('fastpixel_excluded_post_types', []);
+            $excluded_post_types = apply_filters('fastpixel/backend/purge/single/post/excluded_post_types', $fastpixel_excluded_post_types);
+            $post_type = get_post_type($post->ID);
+            if (in_array($post_type, $excluded_post_types)) {
+                return false;
+            }
+            $url = new FASTPIXEL_Url( (int)$post->ID);
+            $path = untrailingslashit($url->get_url_path());
+            $args['url'] = $url->get_url();
+            //Do not purge post if post is excluded
+            $post_is_excluded = apply_filters('fastpixel/backend/purge/single/post/is_excluded', false, $args);
+            if ($post_is_excluded) {
+                if ($this->debug) {
+                    FASTPIXEL_DEBUG::log('Class FASTPIXEL_Backend_Cache: purge_post_object, post is excluded from cache', $url->get_url());
+                }
+                //TODO: check if we need to delete cached when post is excluded
+                $this->functions->delete_cached_files($path);
+                return false;
+            }
+
+            //need to check if request already was sent, because on post save much hooks are fired and each can trigger cache request
+            $status = $this->functions->check_post_cache_status($url->get_url());
+            if (time() <= ($this->time_to_wait + $status['last_cache_request_time'])) {
+                return false;
+            }
+            //delete cached files if serve stale is disabled(adding this to keep more free space and avoid serving cached pages)
+            if (!$this->functions->get_option('fastpixel_serve_stale')) {
+                $this->functions->delete_cached_files($path);
+            }
+            do_action('fastpixel/backend/purged/single/post', $url->get_url());
+            $this->functions->update_post_cache($path, true);
+            //request page cache after reset
+            if (class_exists('FASTPIXEL\FASTPIXEL_Request') && $request = FASTPIXEL_Request::get_instance()) {
+                $requested = $request->cache_request($url->get_url());
+                if ($requested) {
+                    $this->functions->update_post_cache($url->get_url_path(), false, true);
+                    if ($this->debug) {
+                        FASTPIXEL_DEBUG::log('Class FASTPIXEL_Backend_Cache: Action purge_post_object, Success: cache request ended successfully', $url->get_url());
+                    }
+                    //purging categories/tags/taxonomies pages
+                    $this->admin_purge_taxonomies($args['id']);
+                    return true;
+                } else {
+                    if ($this->debug) {
+                        FASTPIXEL_DEBUG::log('Class FASTPIXEL_Backend_Cache: Action purge_post_object, Error: cache request ended with error', $url->get_url());
+                    }
+                    return false;
+                }
+            } else {
+                if ($this->debug) {
+                    FASTPIXEL_DEBUG::log('Class FASTPIXEL_Backend_Cache: Action purge_post_object, Error: Class FASTPIXEL_CACHE is not available');
+                }
+            }
+        }
+
+        protected function purge_term_object($term_id, $args = []) {
+            //return false if term is empty
+            if (empty($term_id) || !is_numeric($term_id)) {
+                return false;
+            }
+            $term = get_term($term_id);
+            $term_link = get_term_link($term);
+            if (!empty($term_link)) {
+                $url = new FASTPIXEL_Url($term_link);
+                $path = untrailingslashit($url->get_url_path());
+                $args['url'] = $url->get_url();
+                // Do not purge term if it is excluded
+                $term_is_excluded = apply_filters('fastpixel/backend/purge/single/term/is_excluded', false, $args);
+                if ($term_is_excluded) {
+                    if ($this->debug) {
+                        FASTPIXEL_DEBUG::log('Class FASTPIXEL_Backend_Cache: Action purge_term_object, Warning: term is excluded from cache', $url->get_url());
+                    }
+                    //TODO: check if we need to delete cached when term is excluded
+                    $this->functions->delete_cached_files($path);
+                    return false;
+                }
+                // $status = $this->functions->check_post_cache_status($url->get_url());
+                //delete cached files if serve stale is disabled(adding this to keep more free space and avoid serving cached pages)
+                if (!$this->functions->get_option('fastpixel_serve_stale')) {
+                    $this->functions->delete_cached_files($path);
+                }
+                do_action('fastpixel/backend/purged/single/term', $term_link);
+                //setting invalidation time
+                $this->functions->update_post_cache($path, true);
+                //request page cache after invalidation
+                if (class_exists('FASTPIXEL\FASTPIXEL_Request') && $request = FASTPIXEL_Request::get_instance()) {
+                    $requested = $request->cache_request($url->get_url());
+                    if ($requested) {
+                        $this->functions->update_post_cache($url->get_url_path(), false, true);
+                        if ($this->debug) {
+                            FASTPIXEL_DEBUG::log('Class FASTPIXEL_Backend_Cache: Action purge_term_object, Success: cache request ended successfully', $url->get_url());
+                        }
+                        return true;
+                    } else {
+                        if ($this->debug) {
+                            FASTPIXEL_DEBUG::log('Class FASTPIXEL_Backend_Cache: Action purge_term_object, Error: cache request ended with error', $url->get_url());
+                        }
+                        return false;
+                    }
+                } else {
+                    if ($this->debug) {
+                        FASTPIXEL_DEBUG::log('Class FASTPIXEL_Backend_Cache: Action purge_term_object, Error: Class FASTPIXEL_Request is not available');
+                    }
+                }
+                return true;
+            }
         }
 
         public function purge_all()
@@ -378,14 +492,14 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Cache')) {
                 WP_Filesystem();
             }
             if (file_exists($this->functions->get_cache_dir())) {
-                $wp_filesystem->put_contents($this->functions->get_cache_dir() . DIRECTORY_SEPARATOR . 'invalidated', '');
+                $wp_filesystem->put_contents($this->functions->get_cache_dir() . DIRECTORY_SEPARATOR . 'invalidated', json_encode(['time' => gmdate('Y-m-d H:i:s', time())]));
             } else {
                 if ($this->debug) {
                     FASTPIXEL_DEBUG::log('Class FASTPIXEL_Backend_Cache: ACTION purge_all, Error: Can\'t purge cache, cache directory not exists');
                 }
                 return false;
             }
-            $do_request = apply_filters('fastpixel_request_purge_all', true);
+            $do_request = apply_filters('fastpixel/purge_all/do_request', true);
             if ($this->debug) {
                 FASTPIXEL_DEBUG::log('Class FASTPIXEL_Backend_Cache: ACTION purge_all, $do_request:', $do_request);
             }
@@ -407,12 +521,29 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Cache')) {
             if (function_exists('wp_cache_flush')) {
                 wp_cache_flush();
             }
-            do_action('fastpixel/purge/all');
+            do_action('fastpixel/purge_all');
             //remove cache folder if serve_stale is disabled
+            $clear_folder = apply_filters('fastpixel/purge_all/clear_cache_folder', true);
+            if ($this->debug) {
+                FASTPIXEL_DEBUG::log('Class FASTPIXEL_Backend_Cache: ACTION purge_all, clear cache directory', $clear_folder);
+            }
             $serve_stale = $this->functions->get_option('fastpixel_serve_stale');
-            $home_url = new FASTPIXEL_Url(get_home_url());
-            if (!$serve_stale && file_exists($this->functions->get_cache_dir() . DIRECTORY_SEPARATOR . $home_url->get_url_path() )) {
-                $wp_filesystem->rmdir($this->functions->get_cache_dir() . DIRECTORY_SEPARATOR . $home_url->get_url_path(), true);
+            if (($clear_folder && !$serve_stale)) {
+                add_action('fastpixel/shutdown', function () {
+                    if ($this->debug) {
+                        FASTPIXEL_DEBUG::log('Class FASTPIXEL_Backend_Cache: ACTION purge_all, removing cache folder on fastpixel/shutdown');
+                    }
+                    global $wp_filesystem;
+                    if (empty($wp_filesystem)) {
+                        require_once ABSPATH . '/wp-admin/includes/file.php';
+                        WP_Filesystem();
+                    }
+                    $home_url = new FASTPIXEL_Url(get_home_url());
+                    $cache_dir = $this->functions->get_cache_dir() . DIRECTORY_SEPARATOR . $home_url->get_url_path();
+                    if (file_exists($cache_dir)) {
+                        $wp_filesystem->rmdir($cache_dir, true);
+                    }
+                });
             } else {
                 if ($this->debug) {
                     FASTPIXEL_DEBUG::log('Class FASTPIXEL_Backend_Cache: ACTION purge_all, Error: Can\'t clear cache directory');
@@ -459,9 +590,9 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Cache')) {
             $status = $this->functions->check_post_cache_status($permalink_to_reset);
             $cache_requested = false;
             if ($cache_reset_type == 'url') {
-                $cache_requested = $this->purge_cache_by_url($permalink_to_reset);
+                $cache_requested = $this->purge_cache_by_url($args);
             } else {
-                $cache_requested = $this->purge_cache_by_id($id);
+                $cache_requested = $this->purge_cache_by_id($args);
             }
             $status = $this->functions->check_post_cache_status($permalink_to_reset);
             if ($cache_requested) {
@@ -682,6 +813,51 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Cache')) {
                     $this->functions->update_post_cache($homepage_url->get_url_path(), true);
                 }
             }
+        }
+
+        public function check_upgraded($upgrader, $extra)
+        {
+            if ($this->debug) {
+                FASTPIXEL_DEBUG::log('Class FASTPIXEL_Backend_Cache: Cheking on upgrade', ['extra' => $extra]);
+            }
+            if (empty($extra) || empty($extra['type']))
+                return;
+            $run_purge = false;
+            $skin = $upgrader->skin;
+            if ($extra['type'] === 'plugin') {
+                if (property_exists($skin, 'plugin_active') && $skin->plugin_active) {
+                    $run_purge = true;
+                }
+            }
+            if ($extra['type'] === 'theme') {
+                $active_theme = get_stylesheet();
+                $parent_theme = get_template();
+                if ($this->debug) {
+                    FASTPIXEL_DEBUG::log('Class FASTPIXEL_Backend_Cache: Cheking on upgrade', ['active_theme' => $active_theme, 'parent_theme' => $parent_theme]);
+                }
+                if (!empty($extra['action']) && $extra['action'] == 'update' && !empty($extra['themes']) && is_array($extra['themes'])) {
+                    if (in_array($active_theme, $extra['themes']) || in_array($parent_theme, $extra['themes'])) {
+                        $run_purge = true;
+                    }
+                }
+            }
+            if ($run_purge) {
+                $this->purge_all_without_request();
+            }
+        }
+
+        public function purge_all_without_request()
+        {
+            if ($this->debug) {
+                FASTPIXEL_DEBUG::log('Class FASTPIXEL_Backend_Cache: Purging All Cache on Hook', current_filter());
+            }
+            //preventing request
+            add_filter('fastpixel/purge_all/do_request', function () {
+                return false; });
+            //preventing folder removal if serve_stale is disabled, becuase it can take much time to remove it
+            add_filter('fastpixel/purge_all/clear_cache_folder', function () {
+                return false; });
+            $this->purge_all();
         }
     }
     new FASTPIXEL_Backend_Cache();

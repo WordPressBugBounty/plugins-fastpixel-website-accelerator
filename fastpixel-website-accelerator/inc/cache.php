@@ -53,6 +53,9 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Cache')) {
         }
 
         public function init() {
+            //registering shutdown callback function
+            register_shutdown_function([$this, 'on_shutdown']);
+
             //initializing url
             $this->url = new FASTPIXEL_Url(null, $this->config->get_option('fastpixel_exclude_all_params'));
 
@@ -68,8 +71,6 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Cache')) {
 
             //registering cache request on shutdown
             add_action('fastpixel/shutdown', [$this, 'request_page_cache'], 20);
-            //registering shutdown callback function
-            register_shutdown_function([$this, 'on_shutdown']);
             //registering function that detect canonical redirect
             add_filter('redirect_canonical', [$this, 'check_redirect_canonical'], 10, 2);
             //returning cached file if it exists
@@ -163,7 +164,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Cache')) {
             $is_excluded = apply_filters('fastpixel/init/excluded', false, $requested_url);
             if ($is_excluded) {
                 if ($this->debug) {
-                    FASTPIXEL_Debug::log('Class FASTPIXEL_Cache: excluded on init');
+                    FASTPIXEL_Debug::log('Class FASTPIXEL_Cache: excluded on init', $requested_url->get_url());
                 }
                 return false;
             }
@@ -185,7 +186,10 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Cache')) {
         }
 
         protected function is_cache_request_allowed() {
-            global $post;
+            global $post, $wp_query;
+            if (!isset($wp_query)) {
+                return false; // no need to do cache request if wp_query is not set
+            }
             //Step 1: check if there are no Fastpixel errors.
             if ($this->debug && $this->debug_mode) {
                 FASTPIXEL_Debug::log('Class FASTPIXEL_Cache: Basic Validation: Stopped. Debug request.');
@@ -209,6 +213,17 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Cache')) {
                 if ($this->debug) {
                     FASTPIXEL_DEBUG::log('Class FASTPIXEL_Cache: request_page_cache, stopping request for logged in user');
                 }
+                return false;
+            }
+            //if any of the functions is not available, do not allow cache request because we can't detect if page should be cached
+            // and probably wordress is not loaded properly
+            if (
+                !function_exists('is_404')
+                || !function_exists('is_search')
+                || !function_exists('post_password_required')
+                || !function_exists('is_feed')
+                || !function_exists('is_login')
+            ) {
                 return false;
             }
             //Step 4: Check if page is 404, search, feed, password protected, or login page
@@ -238,7 +253,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Cache')) {
                     return false;
                 }
                 $fastpixel_excluded_post_types = $this->functions->get_option('fastpixel_excluded_post_types', []);
-                $excluded_post_types = apply_filters('fastpixel/is_cache_request_allowed/excludes/post_types', $fastpixel_excluded_post_types);
+                $excluded_post_types = apply_filters('fastpixel/is_cache_request_allowed/excluded/post_types', $fastpixel_excluded_post_types);
                 if (!empty($post->ID) && is_numeric($post->ID)) {
                     $post_type = get_post_type($post->ID);
                     if (in_array($post_type, $excluded_post_types)) {
@@ -267,8 +282,8 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Cache')) {
                 if ($this->debug) {
                     FASTPIXEL_DEBUG::log('Class FASTPIXEL_Cache: request not allowed, trying to delete cached if exists for path', $this->url->get_url_path());
                 }
-                //trying to delete only on outside requests, when users not logged in
-                if (!is_user_logged_in()) {
+                //trying to delete only on outside requests, when users not logged in, no need to delete if we can't determine user is logged in
+                if (function_exists('is_user_logged_in') && !is_user_logged_in()) {
                     $this->functions->delete_cached_files($this->url->get_url_path());
                 }
                 return false;
@@ -396,8 +411,16 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Cache')) {
 
         public function check_redirect_canonical($redirected_url, $requested_url) {
             if ($this->debug) {
-                FASTPIXEL_Debug::log('Class FASTPIXEL_Cache_files: Checking canonical redirect $redirected_url', $redirected_url);
-                FASTPIXEL_Debug::log('Class FASTPIXEL_Cache_files: Checking canonical redirect $requested_url', $requested_url);
+                FASTPIXEL_Debug::log('Class FASTPIXEL_Cache: Checking canonical redirect $redirected_url', $redirected_url);
+                FASTPIXEL_Debug::log('Class FASTPIXEL_Cache: Checking canonical redirect $requested_url', $requested_url);
+            }
+            if (function_exists('get_home_url')) {
+                $domain = preg_replace('/https?:\/\//i', '', get_home_url());
+                if (!preg_match('/' . $domain . '/i', $redirected_url)
+                    || !preg_match('/' . $domain . '/i', $requested_url)) {
+                    //canceling redirect when there is no domain in url
+                    return false;
+                }
             }
             if ($redirected_url != $requested_url) {
                 //removing action when redirected

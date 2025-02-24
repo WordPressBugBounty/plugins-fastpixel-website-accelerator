@@ -2,7 +2,7 @@
 namespace FASTPIXEL;
 
 defined('ABSPATH') || exit; ?>
-
+<p class="fastpixel-tab-description">Choose from three presets to optimize your website's speed. The "Fast" option may cause glitches or incompatibilities on antypical website setups, so test your site thoroughly before using it.</p>
 <div class="fastpixel-presets-container">
     <div class="fastpixel-presets-box safe">
         <div class="box-title">Safe<span>(Active)</span></div>
@@ -18,7 +18,7 @@ defined('ABSPATH') || exit; ?>
         <button class="btn apply-preset" data-preset="safe">Apply Preset</button>
     </div>
     <div class="fastpixel-presets-box basic">
-        <div class="box-title">Basic<span>(Active)</span></div>
+        <div class="box-title">Balanced<span>(Active)</span></div>
         <ul class="options-list">
             <li>Optimized HTML & CSS</li>
             <li>CDN delivery</li>

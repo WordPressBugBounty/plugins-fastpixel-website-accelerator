@@ -14,7 +14,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Functions')) {
         protected $wp_cache_status;
         protected $wp_config_path;
         const FASTPIXEL_CACHE_VAR_NAME = 'WP_CACHE';
-        protected $match_regexp = '/^\s*?define\(\s*?[\'|"]' . self::FASTPIXEL_CACHE_VAR_NAME . '[\'|"]\s*?,\s*?(true|false)[^\)]*?\)\s*?;/im';
+        protected $match_regexp = '/\s*?define\(\s*?[\'|"]' . self::FASTPIXEL_CACHE_VAR_NAME . '[\'|"]\s*?,\s*?(true|false)[^\)]*?\)\s*?;/im';
 
         public function __construct()
         {

@@ -31,10 +31,11 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Excluded_Url_Params')) {
             'wyp_mode'            => '', // Yellowpencil plugin
             'wyp_page_type'       => '', // Yellowpencil plugin
             'zionbuilder-preview' => '', // Zion Builder plugin
-            '_wp-find-template'   => '', //default wp/gutenberg function
-            'add-to-cart'         => '', //shopping
-            'add_to_cart'         => '', //shopping
-            'tagverify'           => '', //site kit by google
+            '_wp-find-template'   => '', // default wp/gutenberg function
+            'add-to-cart'         => '', // shopping
+            'add_to_cart'         => '', // shopping
+            'tagverify'           => '', // site kit by google
+            'wc-ajax'             => '', // WooCommerce
         ];
 
         public function __construct()

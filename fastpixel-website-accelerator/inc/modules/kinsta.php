@@ -22,8 +22,8 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Module_Kinsta')) {
             //early init and api init only if module is enabled        
             if ($this->enabled) {
                 add_filter('fastpixel_cache_url_before_request', [$this, 'add_nocache_to_url'], 10, 1);
-                add_filter('fastpixel_request_purge_all', function ($request) { return false; }, 10, 1);
-                add_action('fastpixel/purge/all', [$this, 'purge_all'], 10);
+                add_filter('fastpixel/purge_all/do_request', function ($request) { return false; }, 10, 1);
+                add_action('fastpixel/purge_all', [$this, 'purge_all'], 10);
                 add_action('admin_bar_menu', [$this, 'update_admin_bar_menu'], 101);
 
                 add_action('fastpixel/init/early', [$this, 'early_init'], 10);

@@ -6,18 +6,29 @@ defined('ABSPATH') || exit;
 if (!class_exists('FASTPIXEL\FASTPIXEL_WooCommerce_Compatibility')) {
     class FASTPIXEL_WooCommerce_Compatibility {
         protected $functions;
-        protected $exclude_all_posts = false;
+        protected $exclude_all_products = false;
         protected $exclude_all_categories = false;
         protected $exclude_all_tags = false;
         protected $purge_all = false;
         protected $be_functions;
 
+        protected $cart_page_id;
+        protected $checkout_page_id;
+        protected $account_page_id;
+        protected $is_thanks_page = false;
+
         public function __construct() {
             $this->functions              = FASTPIXEL_Functions::get_instance();
             $this->be_functions           = FASTPIXEL_Backend_Functions::get_instance();
-            $this->exclude_all_posts      = (bool) $this->functions->get_option('fastpixel_woocommerce_exclude_products', false);
+            $this->exclude_all_products   = (bool) $this->functions->get_option('fastpixel_woocommerce_exclude_products', false);
             $this->exclude_all_categories = (bool) $this->functions->get_option('fastpixel_woocommerce_exclude_categories', false);
             $this->exclude_all_tags       = (bool) $this->functions->get_option('fastpixel_woocommerce_exclude_tags', false);
+            $this->cart_page_id           = get_option('woocommerce_cart_page_id');
+            $this->checkout_page_id       = get_option('woocommerce_checkout_page_id');
+            $this->account_page_id        = get_option('woocommerce_myaccount_page_id');
+            add_action('woocommerce_thankyou', function () {
+                $this->is_thanks_page = true;
+            }, 0, 1);
             if (is_admin()) {
                 add_action('woocommerce_new_product', [$this, 'purge_cache'], 10, 2); //resetting cache on product creation
                 add_action('woocommerce_update_product', [$this, 'purge_cache'], 10, 2);
@@ -25,7 +36,8 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_WooCommerce_Compatibility')) {
                 add_action('woocommerce_delete_product', [$this, 'purge_cache_on_delete'], 10, 1); //resetting cache on product deletion
                 add_action('fastpixel/post/trashed', [$this, 'purge_cache_on_trash'], 10, 1); //resetting cache on product trash
 
-                add_filter('fastpixel/backend/statuses/excluded', [$this, 'admin_check_is_excluded'], 10, 2);
+                add_filter('fastpixel/backend_functions/cache_status_display/excluded', [$this, 'status_page_check_products_excluded'], 10, 2);
+                add_filter('fastpixel/backend_functions/cache_status_display/excluded', [$this, 'status_page_check_taxonomies_excluded'], 11, 2);
                 add_action('fastpixel/settings_tab/save_options', [$this, 'save_options']);
                 add_action('fastpixel/settings_tab/init_settings', function () {
                     $this->register_settings();
@@ -34,8 +46,12 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_WooCommerce_Compatibility')) {
                 add_filter('fastpixel/settings_tab/disabled_post_types', [$this, 'backend_remove_from_post_types_selector'], 10, 1);
             }
             add_filter('fastpixel/admin_bar/purge_this_button_exclude', [$this, 'admin_bar_purge_this_button_exclude'], 15, 2);
+            add_filter('fastpixel/backend/purge/single/post/is_excluded', [$this, 'backend_purge_post_check_is_excluded'], 10, 2);
+            add_filter('fastpixel/backend/purge/single/term/is_excluded', [$this, 'backend_purge_term_check_is_excluded'], 10, 2);
+            add_action('fastpixel/backend/posts_statuses/init/excluded_post_types', [$this, 'check_product_type_is_excluded'], 10, 1);
+            //frontend request
             add_filter('fastpixel/is_cache_request_allowed/excluded', [$this, 'check_is_excluded'], 10, 2);
-            add_action('fastpixel/is_cache_request_allowed/excludes/post_types', [$this, 'product_type_is_excluded'], 10, 2);
+            add_action('fastpixel/is_cache_request_allowed/excluded/post_types', [$this, 'check_product_type_is_excluded'], 10, 1);
         }
 
         public function purge_cache($id, $product): void
@@ -201,6 +217,9 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_WooCommerce_Compatibility')) {
             if ($this->check_product_tag_is_excluded($status, $url)) {
                 return true;
             }
+            if ($this->is_thanks_page) {
+                return true;
+            }
             $home_url = home_url();
             $current_url = preg_replace('/\?.*/i', '', $url->get_url());
             //checking for woocommerce
@@ -216,6 +235,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_WooCommerce_Compatibility')) {
                     return true;
                 }
             }
+            //extra check for order confirmation page
             if (function_exists('wc_get_endpoint_url')) {
                 //comparing with new order url
                 $order_received_url = wc_get_endpoint_url('order-received', null, wc_get_checkout_url());
@@ -239,20 +259,46 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_WooCommerce_Compatibility')) {
             return false;
         }
 
-        public function admin_check_is_excluded($status, $args) {
+        public function status_page_check_products_excluded($status, $args) {
             if ($status) {
                 return $status;
             }
             if (((!empty($args['selected_of_type']) && $args['selected_of_type'] == 'product') || //for cache status page
                  (!empty($args['post_type']) && $args['post_type'] == 'product'))  //for top admin bar
-                && $this->exclude_all_posts) {
+                && $this->exclude_all_products) {
                 $status = true;
             }
+            if (((!empty($args['selected_of_type']) && $args['selected_of_type'] == 'page') || //for cache status page
+                 (!empty($args['post_type']) && $args['post_type'] == 'page')) ) { //for top admin bar
+                if (!empty($args['id']) &&
+                    ($args['id'] == $this->cart_page_id ||
+                    $args['id'] == $this->checkout_page_id ||
+                    $args['id'] == $this->account_page_id)) {
+                    $status = true;
+                }
+            }
+
             return $status;
         }
 
-        public function product_type_is_excluded($post_types) {
-            if ($this->exclude_all_posts) {
+        public function status_page_check_taxonomies_excluded($status, $args)
+        {
+            if ($status) {
+                return $status;
+            }
+            if (!empty($args['taxonomy'])) {
+                if ($args['taxonomy'] == 'product_cat' && $this->exclude_all_categories) { //for cache status page and categories
+                    $status = true;
+                } else if ($args['taxonomy'] == 'product_tag' && $this->exclude_all_tags) { //for cache status page and tags
+                    $status = true;
+                }
+            }
+
+            return $status;
+        }
+
+        public function check_product_type_is_excluded($post_types) {
+            if ($this->exclude_all_products) {
                 $post_types[] = 'product';
             }
             return $post_types;
@@ -288,7 +334,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_WooCommerce_Compatibility')) {
                 return false;
             }
             if ($args['post_type'] == 'product') {
-                return $this->admin_check_is_excluded($status, $args);
+                return $this->status_page_check_products_excluded($status, $args);
             } else if ($args['post_type'] == 'taxonomy') {
                 $term = get_term($args['id']);
                 if ($term->taxonomy == 'product_cat' && $this->exclude_all_categories) {
@@ -336,6 +382,40 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_WooCommerce_Compatibility')) {
         public function backend_remove_from_post_types_selector($post_types) {
             $post_types[] = 'product';
             return $post_types;
+        }
+
+        public function backend_purge_post_check_is_excluded($status, $args) {
+            if ($status) {
+                return $status;
+            }
+            if (!empty($args['id'])) {
+                if ($this->exclude_all_products && $args['selected_of_type'] == 'product') {
+                    $status = true;
+                } else if ($args['selected_of_type'] == 'page') {
+                    if ($args['id'] == $this->cart_page_id ||
+                        $args['id'] == $this->checkout_page_id ||
+                        $args['id'] == $this->account_page_id) {
+                        $status = true;
+                    }
+                }
+            }
+            return $status;
+        }
+
+        public function backend_purge_term_check_is_excluded($status, $args)
+        {
+            if ($status) {
+                return $status;
+            }
+            if (!empty($args['type']) && $args['type'] == 'taxonomies') {
+                if (!empty($args['selected_of_type']) && $args['selected_of_type'] == 'product_cat' && $this->exclude_all_categories) {
+                    $status = true;
+                }
+                if (!empty($args['selected_of_type']) && $args['selected_of_type'] == 'product_tag' && $this->exclude_all_tags) {
+                    $status = true;
+                }
+            }
+            return $status;
         }
     }
 

@@ -25,13 +25,18 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Taxonomies_Statuses')) {
             add_action('fastpixel/status_page/selected_post_type', [$this, 'selected'], 11, 1);
             //handling posts statuses on status page
             add_filter('fastpixel/status_page/get_statuses', [$this, 'status_page_get_statuses'], 11, 2);
+            //handling admin bar purge button
+            add_filter('fastpixel/admin_bar/purge_this_button_exclude', [$this, 'check_taxonomy_is_excluded'], 11, 2);
             //handling purge
-            add_filter('fastpixel/backend/purge/single/permalink', [$this, 'backend_single_permalink'], 10, 2);
-            add_filter('fastpixel/backend/purge/single/title', [$this, 'backend_purge_single_taxonomy_title'], 10, 2);
-            add_filter('fastpixel/backend/purge/reset_type', [$this, 'backend_cache_reset_type'], 10, 2);
-            add_filter('fastpixel/backend/purge/post_type_name', [$this, 'backend_post_type_name'], 10, 2);
+            add_filter('fastpixel/backend/purge/single/object', [$this, 'backend_purge_single_object'], 10, 2);
+            add_filter('fastpixel/backend/purge/single/permalink', [$this, 'backend_single_permalink'], 11, 2);
+            add_filter('fastpixel/backend/purge/single/title', [$this, 'backend_purge_single_taxonomy_title'], 11, 2);
+            add_filter('fastpixel/backend/purge/single/reset_type', [$this, 'backend_cache_reset_type'], 11, 2);
+            add_filter('fastpixel/backend/purge/post_type_name', [$this, 'backend_post_type_name'], 11, 2);
+            //nadling bulk actions
+            add_filter('fastpixel/backend/bulk/type', [$this, 'backend_bulk_statuses_type'], 11, 2);
             //handling cached files deletion
-            add_filter('fastpixel/backend/delete/single/permalink', [$this, 'backend_single_permalink'], 10, 2);
+            add_filter('fastpixel/backend/delete/single/permalink', [$this, 'backend_single_permalink'], 11, 2);
         }
 
         public function selected($post_type) {
@@ -40,7 +45,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Taxonomies_Statuses')) {
             }
             $this->selected_taxonomy = $post_type;
             add_filter('fastpixel/status_page/posts_per_page', [$this, 'posts_per_page'], 10, 1);
-            add_filter('fastpixel/status_page/posts_list', [$this, 'get_tags_list'], 10, 2);
+            add_filter('fastpixel/status_page/posts_list', [$this, 'get_list'], 10, 2);
             add_filter('fastpixel/status_page/total_items', [$this, 'total_items'], 10, 1);
             add_filter('fastpixel/status_page/total_pages', [$this, 'total_pages'], 10, 1);
             add_filter('fastpixel/status_page/column_url', [$this, 'column_url'], 10, 2);
@@ -70,7 +75,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Taxonomies_Statuses')) {
             return $options . $opts;
         }
 
-        public function get_tags_list($tags_list, $args) {
+        public function get_list($list, $args) {
             if ($args['post_type'] != $this->selected_taxonomy) {
                 return [];
             }
@@ -83,7 +88,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Taxonomies_Statuses')) {
             $this->total_items = $count_query->get_terms();
             $this->total_pages = ceil($this->total_items / $args['posts_per_page']);
 
-            $tags = get_terms([
+            $terms = get_terms([
                 'taxonomy'   => $this->selected_taxonomy,
                 'hide_empty' => false,
                 'orderby'    => 'name',
@@ -91,12 +96,12 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Taxonomies_Statuses')) {
                 'offset'     => $args['offset'],
                 'number'     => $args['posts_per_page']
             ]);
-            foreach($tags as $tag) {
-                $url = get_term_link($tag);
-                $cache_status = $this->be_functions->cache_status_display($url);
-                $tags_list[] = [
-                    'ID'                =>  $tag->term_id,
-                    'post_title'        => $tag->name,
+            foreach($terms as $term) {
+                $url = get_term_link($term);
+                $cache_status = $this->be_functions->cache_status_display($url, ['id' => $term->term_id, 'taxonomy' => $this->selected_taxonomy]);
+                $list[] = [
+                    'ID'                => $term->term_id,
+                    'post_title'        => $term->name,
                     'url'               => urldecode($url),
                     'cache_status'      => $cache_status['status_display'],
                     'cachestatus'       => $cache_status['status'],
@@ -104,7 +109,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Taxonomies_Statuses')) {
                     'html_created_time' => isset($cache_status['html_created_time']) ? $cache_status['html_created_time'] : '',
                 ];
             }
-            return $tags_list;
+            return $list;
         }
 
         public function total_items($total_items)
@@ -158,19 +163,25 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Taxonomies_Statuses')) {
             return $actions;
         }
 
-        public function admin_ajax_cache_statuses($permalink, $args) {
-            if (in_array($args['selected_of_type'], array_keys($this->taxonomies))) {
-                $term = get_term($args['id'], $args['selected_of_type']);
-                $permalink = get_term_link($term, $args['selected_of_type']);
+        //purge action for terms
+        public function backend_purge_single_object($object = false, $args = [])
+        {
+            //if object is already set, return it
+            if ($object) {
+                return $object;
             }
-            return $permalink;
+            //check if id and type is present
+            if (empty($args['id']) || empty($args['type']) || $args['type'] != $this->type) {
+                return false;
+            }
+            return get_term($args['id']);
         }
 
         public function backend_single_permalink($permalink, $args) {
             if (!empty($args['type']) && $args['type'] == $this->type) {
                 if (in_array($args['selected_of_type'], array_keys($this->taxonomies))) {
-                    $term = get_term($args['id'], $args['selected_of_type']);
-                    $permalink = get_term_link($term, $args['selected_of_type']);
+                    $term = get_term($args['id']);
+                    $permalink = get_term_link($term);
                 }
             }
             return $permalink;
@@ -189,7 +200,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Taxonomies_Statuses')) {
         {
             if (!empty($args['type']) && $args['type'] == $this->type) {
                 if (in_array($args['selected_of_type'], array_keys($this->taxonomies))) {
-                    $type = 'url';
+                    $type = 'id';
                 }
             }
             return $type;
@@ -200,6 +211,17 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Taxonomies_Statuses')) {
             if (!empty($args['selected_of_type']) && in_array($args['selected_of_type'], array_keys($this->taxonomies))) {
                 $args['type'] = $this->type;
                 $type = $this->backend_cache_reset_type($type, $args);
+            }
+            return $type;
+        }
+
+        public function backend_bulk_statuses_type($type, $args)
+        {
+            if (!empty($type)) {
+                return $type;
+            }
+            if (!empty($args['selected_of_type']) && in_array($args['selected_of_type'], array_keys($this->taxonomies))) {
+                $type = $this->type;
             }
             return $type;
         }

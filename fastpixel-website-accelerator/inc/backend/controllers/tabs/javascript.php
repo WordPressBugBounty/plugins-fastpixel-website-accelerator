@@ -92,17 +92,17 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Javascript')) {
             $this->be_functions->print_horizontal_selector([
                 'field_name'   => 'fastpixel_javascript_optimization',
                 'field_values' => [
+                    3 => esc_html__('Do not optimize JavaScript', 'fastpixel-website-accelerator'),
                     1 => esc_html__('Optimize JavaScript', 'fastpixel-website-accelerator'),
-                    2 => esc_html__('Delay non-critical JavaScript', 'fastpixel-website-accelerator'),
-                    3 => esc_html__('Do not optimize JavaScript', 'fastpixel-website-accelerator')
+                    2 => esc_html__('Delay non-critical JavaScript', 'fastpixel-website-accelerator')
                 ],
                 'selected'     => $option,
                 'label'        => $args['label'],
                 // 'description'  => esc_html__('Optimization', 'fastpixel-website-accelerator'),
                 'value_descriptions' => [
+                    3 => esc_html__('No JavaScript optimization is performed; the scripts run exactly as on the original page.', 'fastpixel-website-accelerator'),
                     1 => esc_html__('All scripts are optimized and run as on the original page.', 'fastpixel-website-accelerator'),
                     2 => esc_html__('All scripts are optimized and delayed, except for necessary scripts like GDPR.', 'fastpixel-website-accelerator'),
-                    3 => esc_html__('No JavaScript optimization is performed; the scripts run exactly as on the original page.', 'fastpixel-website-accelerator')
                 ]
             ], true);
         }
@@ -141,7 +141,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Javascript')) {
                 'field_name'  => 'fastpixel_javascript_exclude_gdpr',
                 'checked'     => $exclude,
                 'label'       => $args['label'],
-                'description' => esc_html__('Exclude GDPR/Cookie pop-ups.', 'fastpixel-website-accelerator')
+                'description' => esc_html__('Exclude GDPR/Cookie pop-ups from being cached.', 'fastpixel-website-accelerator')
             ], true);
         }
 

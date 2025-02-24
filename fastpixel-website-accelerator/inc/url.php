@@ -138,7 +138,15 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Url')) {
             "gbraid",
             "gclid",
             "guid",
-            "gad_source"
+            "gad_source",
+            "_gl",
+            "epik",
+            "vgo_ee",
+            "zenid",
+            "rltest",
+            "rlrand",
+            "dclid",
+            "gclsrc"
         ];
         private $original_url;
         private $url;
@@ -210,7 +218,11 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Url')) {
             return strtolower($this->url_path);
         }
         private function generate_path() {
-            $this->url_path = $this->host.(!empty($this->port) ? $this->port : '').(!empty($this->path) ? rtrim($this->path, '/') : '').'/'.(!empty($this->query) ? '_' : '').(!empty($this->query) ? preg_replace('/[^a-zA-Z0-9]/', '_', $this->query) . '/' : '');
+            $this->url_path = $this->host . 
+            (!empty($this->port) ? $this->port : '') . 
+            (!empty($this->path) ? rtrim($this->path, '/') : '') . '/' . 
+            (!empty($this->query) ? '_' : '') . 
+            (!empty($this->query) ? preg_replace('/[^a-zA-Z0-9]/', '_', $this->query) . '/' : '');
         }
         public function get_url() {
             //temporary done dynamic url generation
@@ -257,31 +269,10 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Url')) {
         }
 
         public function http_build_query($input_array) {
-            //making pairs
-            $pairs = [];
-            foreach ($input_array as $key => $value) {
-                if (is_null($value) || empty($value)) {
-                    $pairs[] = $key;
-                } else if (is_array($value)) {
-                    $pairs[] = $key . $this->recursive_param_array($value);
-                } else {
-                    $pairs[] = $key . '=' . urlencode($value);
-                }
+            if (function_exists('http_build_query')) {
+                return urldecode(http_build_query($input_array));
             }
-            return implode('&', $pairs);
-        }
-
-        protected function recursive_param_array($arr)
-        {
-            $string = '';
-            foreach ($arr as $key => $val) {
-                if (is_array($val)) {
-                    $string .= '[' . $key . ']' . $this->recursive_param_array($val);
-                } else {
-                    $string .= '[' . $key . '] = ' . urlencode($val);
-                }
-            }
-            return $string;
+            return '';
         }
 
         public function params_stripped() {

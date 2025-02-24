@@ -227,7 +227,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_UI')) {
             if (!$this->check_capabilities()) {
                 return;
             }
-            $page_tabs = array('settings', 'javascript', 'images', 'fonts', 'diagnostics', 'presets', 'compatibility', 'help_center');
+            $page_tabs = array('settings', 'javascript', 'images', 'fonts', 'diagnostics', 'presets', 'compatibility', 'integrations', 'help_center');
             echo '<hr class="wp-header-end"><hr class="fastpixel-header-hr"><div class="wrap fastpixel-website-accelerator-wrap">';
             echo wp_kses($this->header('settings'), $this->allowed_tags);
             echo '<article class="fastpixel-settings" id="fastpixel-tabs"><menu><ul>';

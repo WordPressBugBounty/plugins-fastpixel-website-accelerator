@@ -3,7 +3,7 @@
         'name' => 'aleksandr-guidrevitch/fastpixel',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => '04db0b0525744aab2c79c00d004f6811f4de12bc',
+        'reference' => 'f674dcbcf1e0322c5b1ca792141c7e527f3f0e50',
         'type' => 'wordpress-plugin',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -13,7 +13,7 @@
         'aleksandr-guidrevitch/fastpixel' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => '04db0b0525744aab2c79c00d004f6811f4de12bc',
+            'reference' => 'f674dcbcf1e0322c5b1ca792141c7e527f3f0e50',
             'type' => 'wordpress-plugin',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
