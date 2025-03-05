@@ -14,7 +14,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Functions')) {
         protected $wp_cache_status;
         protected $wp_config_path;
         const FASTPIXEL_CACHE_VAR_NAME = 'WP_CACHE';
-        protected $match_regexp = '/\s*?define\(\s*?[\'|"]' . self::FASTPIXEL_CACHE_VAR_NAME . '[\'|"]\s*?,\s*?(true|false)[^\)]*?\)\s*?;/im';
+        protected $match_regexp = '/(\s*?)define\(\s*?[\'|"]' . self::FASTPIXEL_CACHE_VAR_NAME . '[\'|"]\s*?,\s*?(true|false)[^\)]*?\)\s*?;/im';
 
         public function __construct()
         {
@@ -385,7 +385,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Functions')) {
                 //entry exists, checking status
                 if (filter_var($matches[1][0], FILTER_VALIDATE_BOOLEAN) != $var_value) {
                     //need to update status
-                    $wp_config_content_replaced = preg_replace($this->match_regexp, "define(\"" . self::FASTPIXEL_CACHE_VAR_NAME . "\", " . $var_value_str . ");", $wp_config_content);
+                    $wp_config_content_replaced = preg_replace($this->match_regexp, "$1define(\"" . self::FASTPIXEL_CACHE_VAR_NAME . "\", " . $var_value_str . ");", $wp_config_content);
                     $need_save = true;
                 }
             } else {

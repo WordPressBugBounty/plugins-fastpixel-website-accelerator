@@ -58,7 +58,8 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Taxonomies_Statuses')) {
                 wp_localize_script('fastpixel-backend', 'fastpixel_backend_status', [
                     'type'               => $this->type, 
                     'selected_of_type'   => $this->selected_taxonomy,
-                    'delete_cached_link' => sprintf('admin-post.php?action=%1$s&nonce=%2$s&selected_of_type=%3$s&type=%4$s&id=', 'fastpixel_admin_delete_cached', $this->nonce, $this->selected_taxonomy, $this->type)
+                    'delete_cached_link' => sprintf('admin-post.php?action=%1$s&nonce=%2$s&selected_of_type=%3$s&type=%4$s&id=', 'fastpixel_admin_delete_cached', $this->nonce, $this->selected_taxonomy, $this->type),
+                    'extra_params'       => apply_filters('fastpixel/status_page/extra_params', [])
                 ]);
             });
         }
@@ -98,7 +99,9 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Taxonomies_Statuses')) {
             ]);
             foreach($terms as $term) {
                 $url = get_term_link($term);
-                $cache_status = $this->be_functions->cache_status_display($url, ['id' => $term->term_id, 'taxonomy' => $this->selected_taxonomy]);
+                $status_data = ['id' => $term->term_id, 'taxonomy' => $this->selected_taxonomy];
+                $url = apply_filters('fastpixel/status_page/permalink', $url, $status_data);
+                $cache_status = $this->be_functions->cache_status_display($url, $status_data);
                 $list[] = [
                     'ID'                => $term->term_id,
                     'post_title'        => $term->name,
@@ -233,7 +236,10 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Taxonomies_Statuses')) {
                     foreach ($args['ids'] as $id) {
                         $term = get_term($id, $args['selected_of_type']);
                         $permalink = get_term_link($term);
-                        $status = $this->be_functions->cache_status_display($permalink, ['id' => $id, 'taxonomy' => $args['selected_of_type'], 'url' => $permalink]);
+                        $status_data = ['id' => $id, 'taxonomy' => $args['selected_of_type'], 'url' => $permalink, 'extra_params' => $args['extra_params']];
+                        $permalink = apply_filters('fastpixel/status_page/ajax/permalink', $permalink, $status_data);
+                        $status_data['url'] = $permalink;
+                        $status = $this->be_functions->cache_status_display($permalink, $status_data);
                         if ($status) {
                             $items[$id] = $status;
                         }

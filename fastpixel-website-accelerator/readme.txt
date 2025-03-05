@@ -4,7 +4,7 @@ Tags: speed, cache, caching, performance, web vitals
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 5.6
-Stable tag: 1.0.42
+Stable tag: 1.0.43
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -199,6 +199,22 @@ For more detailed information on how to use the plugin or the API, troubleshooti
 
 
 == Changelog ==
+
+= 1.0.43 =
+
+🌍 The Multilingual Performance Update
+
+Release Date: March 3, 2025
+
+🚀 New Features
+
+* TranslatePress Compatibility: FastPixel now fully supports websites using TranslatePress, ensuring seamless optimization for multilingual sites. Your translated pages will now be superfast!
+
+🛠️ Fixes
+
+* BugFixes: Various optimizations and refinements to enhance stability and performance.
+
+Update now to keep your multilingual website running at peak speed! 🚀
 
 = 1.0.42 =
 

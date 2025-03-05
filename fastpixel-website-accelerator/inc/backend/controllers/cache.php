@@ -268,9 +268,9 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Cache')) {
             /*
              * reset cache status when plugins are activated, deactivated, upgraded, theme is changed or upgraded
              */
-            add_action('activated_plugin', [$this, 'purge_all_without_request']);
-            add_action('deactivated_plugin', [$this, 'purge_all_without_request']);
-            add_action('after_switch_theme', [$this, 'purge_all_without_request']);
+            add_action('activated_plugin', [$this, 'purge_all_on_plugin_activation_deactivation']);
+            add_action('deactivated_plugin', [$this, 'purge_all_on_plugin_activation_deactivation']);
+            add_action('after_switch_theme', [$this, 'purge_all_on_theme_switch']);
             add_action('upgrader_process_complete', [$this, 'check_upgraded'], 10, 2);
         }
 
@@ -382,6 +382,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Cache')) {
                 return false;
             }
             $url = new FASTPIXEL_Url( (int)$post->ID);
+            $url = new FASTPIXEL_Url(apply_filters('fastpixel/purge_post_object/url', $url->get_url(), $args)); //creating new url after filters applied
             $path = untrailingslashit($url->get_url_path());
             $args['url'] = $url->get_url();
             //Do not purge post if post is excluded
@@ -415,7 +416,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Cache')) {
                         FASTPIXEL_DEBUG::log('Class FASTPIXEL_Backend_Cache: Action purge_post_object, Success: cache request ended successfully', $url->get_url());
                     }
                     //purging categories/tags/taxonomies pages
-                    $this->admin_purge_taxonomies($args['id']);
+                    $this->admin_purge_taxonomies($post->ID);
                     return true;
                 } else {
                     if ($this->debug) {
@@ -439,6 +440,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Cache')) {
             $term_link = get_term_link($term);
             if (!empty($term_link)) {
                 $url = new FASTPIXEL_Url($term_link);
+                $url = new FASTPIXEL_Url(apply_filters('fastpixel/purge_term_object/url', $url->get_url(), $args)); //creating new url after filters applied
                 $path = untrailingslashit($url->get_url_path());
                 $args['url'] = $url->get_url();
                 // Do not purge term if it is excluded
@@ -524,10 +526,11 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Cache')) {
             do_action('fastpixel/purge_all');
             //remove cache folder if serve_stale is disabled
             $clear_folder = apply_filters('fastpixel/purge_all/clear_cache_folder', true);
+            $serve_stale = $this->functions->get_option('fastpixel_serve_stale');
             if ($this->debug) {
                 FASTPIXEL_DEBUG::log('Class FASTPIXEL_Backend_Cache: ACTION purge_all, clear cache directory', $clear_folder);
+                FASTPIXEL_DEBUG::log('Class FASTPIXEL_Backend_Cache: ACTION purge_all, serve stale', $serve_stale);
             }
-            $serve_stale = $this->functions->get_option('fastpixel_serve_stale');
             if (($clear_folder && !$serve_stale)) {
                 add_action('fastpixel/shutdown', function () {
                     if ($this->debug) {
@@ -542,13 +545,13 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Cache')) {
                     $cache_dir = $this->functions->get_cache_dir() . DIRECTORY_SEPARATOR . $home_url->get_url_path();
                     if (file_exists($cache_dir)) {
                         $wp_filesystem->rmdir($cache_dir, true);
+                    } else {
+                        if ($this->debug) {
+                            FASTPIXEL_DEBUG::log('Class FASTPIXEL_Backend_Cache: ACTION purge_all, Error: Directory not exists', $cache_dir);
+                        }
+                        return false;
                     }
                 });
-            } else {
-                if ($this->debug) {
-                    FASTPIXEL_DEBUG::log('Class FASTPIXEL_Backend_Cache: ACTION purge_all, Error: Can\'t clear cache directory');
-                }
-                return false;
             }
             return true;
         }
@@ -574,7 +577,13 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Cache')) {
                     wp_redirect(wp_get_referer());
                 }
             }
-            $args = ['id' => $id, 'type' => $type, 'selected_of_type' => $selected_of_type];
+            $extra_params = [];
+            if (!empty($_REQUEST['extra_params']) && is_array($_REQUEST['extra_params'])) {
+                foreach ($_REQUEST['extra_params'] as $key => $value) {
+                    $extra_params[$key] = sanitize_text_field($value);
+                }
+            }
+            $args = ['id' => $id, 'type' => $type, 'selected_of_type' => $selected_of_type, 'extra_params' => $extra_params];
             //handling purge without ajax           
             $cache_reset_type = apply_filters('fastpixel/backend/purge/single/reset_type', 'url', $args);
             $permalink_to_reset = apply_filters('fastpixel/backend/purge/single/permalink', '', $args);
@@ -648,6 +657,12 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Cache')) {
                 echo wp_json_encode(['status' => 'error', 'statusText' => esc_html__('Post Type is wrong or empty', 'fastpixel-website-accelerator')]);
                 wp_die();
             }
+            $extra_params = [];
+            if (!empty($_REQUEST['extra_params']) && is_array($_REQUEST['extra_params'])) {
+                foreach ($_REQUEST['extra_params'] as $key => $value) {
+                    $extra_params[$key] = sanitize_text_field($value);
+                }
+            }
             $type = sanitize_text_field($_POST['type']);
             $selected_of_type = sanitize_text_field($_POST['selected_of_type']);
             $post_ids = [];
@@ -655,7 +670,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Cache')) {
                 $post_ids[] = sanitize_key($id);
             }
             $statuses = ['status' => 'success', 'items' => []];
-            $items = apply_filters('fastpixel/status_page/get_statuses', [], ['type' => $type, 'selected_of_type' => $selected_of_type, 'ids' => $post_ids]);
+            $items = apply_filters('fastpixel/status_page/get_statuses', [], ['type' => $type, 'selected_of_type' => $selected_of_type, 'ids' => $post_ids, 'extra_params' => $extra_params]);
             if (!empty($items)) {
                 $statuses['items'] = $items;
             }
@@ -824,6 +839,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Cache')) {
                 return;
             $run_purge = false;
             $skin = $upgrader->skin;
+            $purge_message = __('Cache has been cleared!', 'fastpixel-website-accelerator');
             if ($extra['type'] === 'plugin') {
                 if (property_exists($skin, 'plugin_active') && $skin->plugin_active) {
                     $run_purge = true;
@@ -842,7 +858,27 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Cache')) {
                 }
             }
             if ($run_purge) {
-                $this->purge_all_without_request();
+                if ($this->purge_all_without_request()) {
+                    $notices = FASTPIXEL_Notices::get_instance();
+                    $notices->add_flash_notice($purge_message, 'success', false, 'plugin-theme-change-notice');
+                }
+            }
+        }
+
+        public function purge_all_on_plugin_activation_deactivation() {
+            if ($this->purge_all_without_request()) {
+                $purge_message = __('Cache has been cleared!', 'fastpixel-website-accelerator');
+                $notices = FASTPIXEL_Notices::get_instance();
+                $notices->add_flash_notice($purge_message, 'success', false, 'plugin-theme-change-notice');
+            }
+        }
+
+        public function purge_all_theme_switch()
+        {
+            if ($this->purge_all_without_request()) {
+                $purge_message = __('Cache has been cleared!', 'fastpixel-website-accelerator');
+                $notices = FASTPIXEL_Notices::get_instance();
+                $notices->add_flash_notice($purge_message, 'success', false, 'plugin-theme-change-notice');
             }
         }
 
@@ -857,7 +893,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Cache')) {
             //preventing folder removal if serve_stale is disabled, becuase it can take much time to remove it
             add_filter('fastpixel/purge_all/clear_cache_folder', function () {
                 return false; });
-            $this->purge_all();
+            return $this->purge_all();
         }
     }
     new FASTPIXEL_Backend_Cache();

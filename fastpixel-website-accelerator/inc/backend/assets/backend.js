@@ -100,8 +100,9 @@ document.addEventListener("DOMContentLoaded", function() {
             nonce: fastpixel_backend.nonce,
             id: id,
             type: type,
-            selected_of_type: selected_of_type
-        }
+            selected_of_type: selected_of_type,
+            extra_params: fastpixel_backend_status.extra_params
+        };
         let original;
 
         jQuery.ajax({
@@ -141,8 +142,9 @@ document.addEventListener("DOMContentLoaded", function() {
             nonce: fastpixel_backend.nonce,
             id: id,
             type: type,
-            selected_of_type: selected_of_type
-        }
+            selected_of_type: selected_of_type,
+            extra_params: fastpixel_backend_status.extra_params
+        };
         let original;
 
         jQuery.ajax({
@@ -182,8 +184,10 @@ document.addEventListener("DOMContentLoaded", function() {
             nonce: fastpixel_backend.nonce,
             ids: ids,
             type: type,
-            selected_of_type: selected_of_type
-        }
+            selected_of_type: selected_of_type,
+            extra_params: fastpixel_backend_status.extra_params
+        };
+
         jQuery.ajax({
             url: fastpixel_backend.ajax_url,
             method: 'POST',
@@ -558,8 +562,5 @@ document.addEventListener("DOMContentLoaded", function() {
             jQuery(this).removeClass('closed').addClass('opened'); //top menu
             jQuery('article.fastpixel-settings menu').removeClass('closed').addClass('opened'); //menu
         }
-    });
-    jQuery('.fastpixel-mobile-header-menu').on('classChange', function (e) {
-        console.log('class change');
     });
 });

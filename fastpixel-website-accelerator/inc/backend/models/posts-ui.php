@@ -154,39 +154,43 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Posts_Table')) {
 
         protected function display_tablenav($which)
         {
+            $output = '';
             if ($which == 'top') {
                 // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- wordpress page is accessed without any nonces, no data is posted.
                 $order = isset($_GET['order']) ? sanitize_key($_GET['order']) : false; //phpcs:ignore
                 // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- wordpress page is accessed without any nonces, no data is posted.
                 $orderby = isset($_GET['orderby']) ? sanitize_key($_GET['orderby']) : false; //phpcs:ignore
-                echo '<form method="get" action="' . esc_url(admin_url('admin.php?page=' . FASTPIXEL_TEXTDOMAIN)) . '">'; } ?>
-                <?php $this->display_search($which); ?>
-                <div class="tablenav <?php echo esc_attr($which); ?>">
-                    <input type="hidden" name="page" value="<?php echo esc_html(FASTPIXEL_TEXTDOMAIN); ?>" />
-                    <?php echo (isset($orderby) && $orderby ? '<input type="hidden" name="orderby" value="' . esc_html($orderby) . '" />' : '')
-                    . (isset($order) && $order ? '<input type="hidden" name="order" value="' . esc_html($order) . '" />' : ''); 
-
-                    if ($this->has_items()): ?>
-                        <div class="alignleft actions bulkactions">
-                        <?php $this->bulk_actions($which); ?>
-                        </div>
-                    <?php endif;
-                    $this->extra_tablenav($which);
-                    $this->pagination($which);
-                    ?>
-                    <br class="clear" />
-                </div>
-            <?php
-            if ($which == 'bottom') { 
-                echo '</form>'; 
+                $output .= '<form method="get" action="' . esc_url(admin_url('admin.php?page=' . FASTPIXEL_TEXTDOMAIN)) . '">'; 
             } 
+            $output .= $this->display_search($which); 
+            $output .=  '<div class="tablenav ' . esc_attr($which) . '">
+            <input type="hidden" name="page" value="' . esc_html(FASTPIXEL_TEXTDOMAIN) . '" />
+            ' . (isset($orderby) && $orderby ? '<input type="hidden" name="orderby" value="' . esc_html($orderby) . '" />' : '')
+            . (isset($order) && $order ? '<input type="hidden" name="order" value="' . esc_html($order) . '" />' : ''); 
+            if ($this->has_items()) {
+                $output .= '<div class="alignleft actions bulkactions">';
+                ob_start();
+                $this->bulk_actions($which); 
+                $output .= ob_get_clean();
+                $output .= '</div>';
+            }
+            $output .= $this->extra_tablenav($which);
+            ob_start();
+            $this->pagination($which);
+            $output .= ob_get_clean();
+            $output .= '<br class="clear" /></div>';
+            if ($which == 'bottom') {
+                $output .= '</form>'; 
+            }
+            $output = apply_filters('fastpixel/status_page/tablenav', $output, $which);
+            echo $output; // phpcs:ignore
         }
 
         protected function extra_tablenav($which)
         {
             switch ($which) {
                 case 'top':
-                    $this->display_posts_filter('posts_filter');
+                    return $this->display_posts_filter('posts_filter');
                     break;
                 case 'bottom':
                     break;
@@ -200,10 +204,14 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Posts_Table')) {
                 return;
             }
             $options = apply_filters('fastpixel/status_page/options', '', $this->selected_post_type);
-            echo wp_kses('<div class="alignleft actions">
-                <select name="ptype">'.$options.'</select>
-                <input type="submit" value="' .esc_html__('Filter', 'fastpixel-website-accelerator') . '" class="button action"/>
-                </div>', ['div' => ['class' => []], 'select' => ['name' =>[]], 'option' => ['value' => [], 'selected' => []], 'optgroup' => ['label' => []], 'input' => ['type' => [], 'value' => [], 'class' => []]]);
+            $output = '<div class="fastpixel-post-types-selector-container alignleft actions">';
+            $output .= '<select name="ptype">'.$options.'</select>';
+            $output .= apply_filters('fastpixel/status_page/extra_filters', '');
+            $output .= '<input type="submit" value="' .esc_html__('Filter', 'fastpixel-website-accelerator') . '" class="fastpixel-post-types-submit-button button action"/>';
+            $output .= '</div>';
+            wp_kses($output, ['div' => ['class' => []], 'select' => ['name' =>[]], 'option' => ['value' => [], 'selected' => []], 'optgroup' => ['label' => []], 'input' => ['type' => [], 'value' => [], 'class' => []]]);
+            $output = apply_filters('fastpixel/status_page/display_posts_filter', $output, ['id' => $id, 'selected_post_type' => $this->selected_post_type]);
+            return $output;
         }
 
         public function column_cb($item)
@@ -218,7 +226,8 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Posts_Table')) {
         public function get_bulk_actions()
         {
             $action = array(
-                'reset' => esc_html__('Purge Cache', 'fastpixel-website-accelerator')
+                'purge' => esc_html__('Purge Cache', 'fastpixel-website-accelerator'),
+                'request' => esc_html__('Cache Pages', 'fastpixel-website-accelerator')
             );
             return $action;
         }
@@ -234,7 +243,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Posts_Table')) {
                     $rids[] = sanitize_key($rid);
                 }
             }
-            if ('reset' === $action && !empty($rids)) {
+            if (in_array($action, ['purge', 'request']) && !empty($rids)) {
                 $statuses_type = apply_filters('fastpixel/backend/bulk/type', false, ['selected_of_type' => $this->selected_post_type]);
                 $notices = FASTPIXEL_Notices::get_instance();
                 $k = 20;
@@ -284,28 +293,27 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Posts_Table')) {
         }
 
         protected function display_search($which = 'top') {
+            $output = '';
             //preventing search field display for non-post types lists
             $display_search = apply_filters('fastpixel/status_page/display_search', false);
             if ($display_search) {
                 $post_type_name = apply_filters('fastpixel/status_page/search/post_type_name', __('Posts', 'fastpixel-website-accelerator'), $this->selected_post_type);
                 switch ($which) {
-                    case 'top': 
-                        ?>
-                        <p class="search-box">
-                        <label class="-reader-text" for="post-search-input"><?php 
+                    case 'top':
                         /* translators: %s is used to display Post type */
-                        printf(esc_html__('Search %s', 'fastpixel-website-accelerator'), esc_html($post_type_name)); ?>:</label>
-                        <input type="search" id="post-search-input" name="s" value="<?php echo !empty($this->search) ? esc_attr($this->search) : ''; ?>">
-                        <input type="submit" id="search-submit" class="button" value="<?php
-                        /* translators: %s is used to display Post type */
-                        printf(esc_html__('Search %s', 'fastpixel-website-accelerator'), esc_html($post_type_name)); ?>"></p>
-                    <?php break;
+                        $search_text = sprintf(esc_html__('Search %s', 'fastpixel-website-accelerator'), esc_html($post_type_name));
+                        $output .= '<p class="search-box"><label class="-reader-text" for="post-search-input">' . $search_text . ':</label>';
+                        $output .= '<input type="search" id="post-search-input" name="s" value="' . (!empty($this->search) ? esc_attr($this->search) : '') .'"/>
+                            <input type="submit" id="search-submit" class="button" value="' . $search_text . '"></p>';
+                        break;
                     case 'bottom':
                         break;
                     default:
                         break;
                 }
             }
+            $output = apply_filters('fastpixel/status_page/display_search_html', $output, $which);
+            return $output;
         }
     }
 }

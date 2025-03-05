@@ -76,7 +76,8 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Post_Types_Statuses')) {
                 wp_localize_script('fastpixel-backend', 'fastpixel_backend_status', [
                     'type'               => $this->type, 
                     'selected_of_type'   => $this->selected_post_type,
-                    'delete_cached_link' => sprintf('admin-post.php?action=%1$s&nonce=%2$s&selected_of_type=%3$s&id=', 'fastpixel_admin_delete_cached', $this->nonce, $this->selected_post_type)
+                    'delete_cached_link' => sprintf('admin-post.php?action=%1$s&nonce=%2$s&selected_of_type=%3$s&id=', 'fastpixel_admin_delete_cached', $this->nonce, $this->selected_post_type),
+                    'extra_params'       => apply_filters('fastpixel/status_page/extra_params', [])
                 ]);
             });
         }
@@ -107,7 +108,9 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Post_Types_Statuses')) {
             $this->total_pages = $wp_query->max_num_pages;
             foreach($posts as $post) {
                 $url = get_permalink($post);
-                $cache_status = $this->be_functions->cache_status_display($url, ['id' => $post->ID, 'selected_of_type' => $this->selected_post_type]);
+                $status_data = ['id' => $post->ID, 'selected_of_type' => $this->selected_post_type, 'type' => $this->type];
+                $url = apply_filters('fastpixel/status_page/permalink', $url, $status_data);
+                $cache_status = $this->be_functions->cache_status_display($url, $status_data);
                 $posts_list[] = [
                     'ID'                => $post->ID,
                     'post_title'        => $post->post_title,
@@ -125,11 +128,14 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Post_Types_Statuses')) {
                 $page_on_front  = get_option('page_on_front');
                 //if static page is not set, adding homepage to list
                 if (($show_on_front == 'posts' || $page_on_front == 0) && $args['current_page'] == 1 && empty($args['s'])) {
-                    $cache_status = $this->be_functions->cache_status_display(get_home_url(), ['id' => 'homepage', 'post_type' => $this->selected_post_type]);
+                    $url = get_home_url();
+                    $status_data = ['id' => 'homepage', 'selected_of_type' => $this->selected_post_type, 'type' => $this->type];
+                    $url = apply_filters('fastpixel/status_page/permalink', $url, $status_data);
+                    $cache_status = $this->be_functions->cache_status_display($url, $status_data);
                     $extra_pages[] = [
                         'ID'             => 'homepage',
                         'post_title'     => esc_html__('Homepage', 'fastpixel-website-accelerator'),
-                        'url'            => get_home_url(),
+                        'url'            => $url,
                         'cache_status'   => $cache_status['status_display'],
                         'cachestatus'    => $cache_status['status'],
                         'display_status' => '<b>published</b>',
@@ -349,7 +355,10 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Post_Types_Statuses')) {
                         } else {
                             $permalink = get_permalink($id);
                         }
-                        $status = $this->be_functions->cache_status_display($permalink, ['id' => $id, 'selected_of_type' => $args['selected_of_type'], 'url' => $permalink]);
+                        $status_data = ['id' => $id, 'selected_of_type' => $args['selected_of_type'], 'url' => $permalink, 'extra_params' => $args['extra_params']];
+                        $permalink = apply_filters('fastpixel/status_page/ajax/permalink', $permalink, $status_data);
+                        $status_data['url'] = $permalink;
+                        $status = $this->be_functions->cache_status_display($permalink, $status_data);
                         if ($status) {
                             $items[$id] = $status;
                         }
