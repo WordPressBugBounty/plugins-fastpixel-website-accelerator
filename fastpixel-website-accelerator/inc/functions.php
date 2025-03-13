@@ -183,6 +183,12 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Functions')) {
                 //can't use native WP functions because file is included early in advanced-cache.php
                 // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- none available before WordPress is loaded.
                 $meta = json_decode(file_get_contents($meta_file), true); //phpcs:ignore
+                if (empty($meta)) { //duplicate initialization in case file was broken or json_decode returned null
+                    $meta = [
+                        'invalidated_time'   => 0,
+                        'cache_request_time' => 0
+                    ];
+                }
                 $data['local_invalidation_time'] = $meta['invalidated_time'];
                 $data['last_cache_request_time'] = $meta['cache_request_time'];
             } else {
@@ -231,9 +237,13 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Functions')) {
             $cache_dir = $this->get_cache_dir();
             $meta = ['invalidated_time' => false, 'cache_request_time' => false];
             if (file_exists($cache_dir . DIRECTORY_SEPARATOR . $path . DIRECTORY_SEPARATOR . 'meta')) {
+                $loaded_meta = json_decode(file_get_contents($cache_dir . DIRECTORY_SEPARATOR . $path . DIRECTORY_SEPARATOR . 'meta'), true);
+                if (empty($loaded_meta)) {
+                    $loaded_meta = [];
+                }
                 //can't use native WP functions because file is included early in advanced-cache.php
                 // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- none available before WordPress is loaded.
-                $meta = array_merge($meta, json_decode(file_get_contents($cache_dir . DIRECTORY_SEPARATOR . $path . DIRECTORY_SEPARATOR . 'meta'), true)); //phpcs:ignore
+                $meta = array_merge($meta, $loaded_meta); //phpcs:ignore
             }
             if ($invalidated) {
                 $meta['invalidated_time'] = time();
@@ -381,9 +391,9 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Functions')) {
             $need_save = false;
             $var_value_str = $var_value == true ? 'true' : 'false';
             //checking if entry already exists
-            if (!empty($matches[0][0]) && !empty($matches[1][0])) {
+            if (!empty($matches[0][0]) && !empty($matches[2][0])) {
                 //entry exists, checking status
-                if (filter_var($matches[1][0], FILTER_VALIDATE_BOOLEAN) != $var_value) {
+                if (filter_var($matches[2][0], FILTER_VALIDATE_BOOLEAN) != $var_value) {
                     //need to update status
                     $wp_config_content_replaced = preg_replace($this->match_regexp, "$1define(\"" . self::FASTPIXEL_CACHE_VAR_NAME . "\", " . $var_value_str . ");", $wp_config_content);
                     $need_save = true;
@@ -424,7 +434,9 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Functions')) {
                     return false;
                 }
             }
-            $url = new FASTPIXEL_Url($url);
+            if (!is_a($url, 'FASTPIXEL\FASTPIXEL_Url')) {
+                $url = new FASTPIXEL_Url($url);
+            }
             $dirs = explode(DIRECTORY_SEPARATOR, $url->get_url_path());
             $path = $cache_dir;
             foreach ($dirs as $dir) {

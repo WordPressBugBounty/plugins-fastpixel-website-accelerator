@@ -18,17 +18,19 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Local_Cache')) {
             //initializing functions and config
             $this->functions = FASTPIXEL_Functions::get_instance();
             $this->config    = FASTPIXEL_Config_Model::get_instance();
-            //starting output beffering on fastpixel/init
-            add_action('fastpixel/cachefiles/exists', function($exists = false) {
-                if (!$exists) {
-                    if ($this->debug) {
-                        FASTPIXEL_Debug::log('Class FASTPIXEL_Local_Cache: Starting output buffering', $_SERVER['REQUEST_URI']);
+            //starting output beffering on fastpixel/init, also checking if user is not logged in
+            if (!$this->functions->user_is_logged_in()) {
+                add_action('fastpixel/cachefiles/exists', function($exists = false) {
+                    if (!$exists) {
+                        if ($this->debug) {
+                            FASTPIXEL_Debug::log('Class FASTPIXEL_Local_Cache: Starting output buffering', $_SERVER['REQUEST_URI']);
+                        }
+                        ob_start(); //starting buffering output
+                        add_action('fastpixel/shutdown', [$this, 'get_buffer'], 10); //getting buffer into variable
+                        add_action('fastpixel/shutdown/request/before', [$this, 'save'], 10, 1); //saving buffer to file, if page passed validation
                     }
-                    ob_start(); //starting buffering output
-                    add_action('fastpixel/shutdown', [$this, 'get_buffer'], 10); //getting buffer into variable
-                    add_action('fastpixel/shutdown/request/before', [$this, 'save'], 10, 1); //saving buffer to file, if page passed validation
-                }
-            });
+                });
+            }
             add_action('fastpixel/cachefiles/saved', [$this, 'delete_file_on_api_request'], 10, 1);
             add_action('fastpixel/post/trashed', [$this, 'delete_file_on_trashed'], 10, 1);
             add_action('fastpixel/admin/purge_cache_by_url', [$this, 'delete_file_on_purge'], 10, 1);

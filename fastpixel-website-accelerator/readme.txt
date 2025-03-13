@@ -4,7 +4,7 @@ Tags: speed, cache, caching, performance, web vitals
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 5.6
-Stable tag: 1.0.43
+Stable tag: 1.0.44
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -199,6 +199,20 @@ For more detailed information on how to use the plugin or the API, troubleshooti
 
 
 == Changelog ==
+
+🔄 The Smarter Cache Update
+
+= 1.0.44 =
+
+ 🚀 Enhancements
+
+* Improved Automatic Cache Purging: Introduced new hooks to ensure fresh content is always served after changes, making your site even more responsive and up-to-date.
+
+ 🛠️ Fixes & Improvements
+
+* Bug Fixes: Resolved various issues for better stability and performance.
+
+Update now to keep your site lightning-fast with smarter cache management! 🚀
 
 = 1.0.43 =
 

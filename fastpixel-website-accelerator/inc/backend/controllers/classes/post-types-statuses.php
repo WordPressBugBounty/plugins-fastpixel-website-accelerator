@@ -133,13 +133,14 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Post_Types_Statuses')) {
                     $url = apply_filters('fastpixel/status_page/permalink', $url, $status_data);
                     $cache_status = $this->be_functions->cache_status_display($url, $status_data);
                     $extra_pages[] = [
-                        'ID'             => 'homepage',
-                        'post_title'     => esc_html__('Homepage', 'fastpixel-website-accelerator'),
-                        'url'            => $url,
-                        'cache_status'   => $cache_status['status_display'],
-                        'cachestatus'    => $cache_status['status'],
-                        'display_status' => '<b>published</b>',
-                        'post_status'    => 'publish'
+                        'ID'                => 'homepage',
+                        'post_title'        => esc_html__('Homepage', 'fastpixel-website-accelerator'),
+                        'url'               => $url,
+                        'cache_status'      => $cache_status['status_display'],
+                        'cachestatus'       => $cache_status['status'],
+                        'display_status'    => '<b>published</b>',
+                        'html_created_time' => $cache_status['html_created_time'],
+                        'post_status'       => 'publish'
                     ];
                 }
             }
@@ -169,11 +170,15 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Post_Types_Statuses')) {
             $link = get_permalink($item['ID']);
             $purge_id = $item['ID'];
             //setting links for homepage
-            if ($item['ID'] == null && $item['post_title'] == 'Homepage') {
+            if (($item['ID'] == null || $item['ID'] == 'homepage') && $item['post_title'] == 'Homepage') {
                 $purge_id = 'homepage';
                 $link = get_home_url();
             }
-            $edit_link = get_edit_post_link($item['ID']);
+            if (is_numeric($item['ID'])) {
+                $edit_link = get_edit_post_link($item['ID']);
+            } else {
+                $edit_link = '';
+            }
             $purge_link = sprintf('admin-post.php?action=%1$s&nonce=%2$s&id=%3$s&type=%4$s&selected_of_type=%5$s', 'fastpixel_admin_purge_cache', $this->nonce, $purge_id, $this->type, $this->selected_post_type);
             //actions
             if ($item['cachestatus'] != 'cached') {

@@ -208,7 +208,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Url')) {
             return $functions->esc_url(
                 (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] ? $functions->sanitize_text_field($_SERVER['HTTP_X_FORWARDED_PROTO']) : 
                 (isset($_SERVER['REQUEST_SCHEME']) && $_SERVER['REQUEST_SCHEME'] ? $functions->sanitize_text_field($_SERVER['REQUEST_SCHEME']) : 
-                (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] ? 'https' : 'http'))) . '://' . $functions->sanitize_text_field($this->get_request_host_name()) . '/' . $functions->sanitize_text_field(ltrim($_SERVER['REQUEST_URI'], '/')));
+                (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] ? 'https' : 'http'))) . '://' . $functions->sanitize_text_field($this->get_request_host_name()) . '/' . $functions->sanitize_text_field(ltrim(!empty($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '', '/')));
         }
         public function get_path()
         {

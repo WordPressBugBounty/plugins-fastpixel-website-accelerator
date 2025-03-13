@@ -268,10 +268,44 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Cache')) {
             /*
              * reset cache status when plugins are activated, deactivated, upgraded, theme is changed or upgraded
              */
-            add_action('activated_plugin', [$this, 'purge_all_on_plugin_activation_deactivation']);
-            add_action('deactivated_plugin', [$this, 'purge_all_on_plugin_activation_deactivation']);
-            add_action('after_switch_theme', [$this, 'purge_all_on_theme_switch']);
+            add_action('activated_plugin', function(string $plugin, bool $network_wide) {
+                $this->purge_all_with_message_no_request();
+            }, 10, 2);
+            add_action('deactivated_plugin', function (string $plugin, bool $network_wide) {
+                $this->purge_all_with_message_no_request();
+            }, 10, 2);
+            add_action('after_switch_theme', function(string $old_name, \WP_Theme $old_theme)
+            {
+                $this->purge_all_with_message_no_request();
+            }, 10, 2);
             add_action('upgrader_process_complete', [$this, 'check_upgraded'], 10, 2);
+            /*
+             * Different update hooks
+             */
+            add_action('wp_update_nav_menu', function(int $menu_id, array $menu_data) {
+                $this->purge_all_with_message_no_request();
+            }, 10, 2);  // When a custom menu is update.
+            add_action('update_option_sidebars_widgets', function($old_value, $value, string $option) {
+                $this->purge_all_with_message_no_request();
+            }, 10, 3);  // When you change the order of widgets.
+            add_action('update_option_category_base', function ($old_value, $value, string $option) {
+                $this->purge_all_with_message_no_request();
+            }, 10, 3);  // When category permalink is updated.
+            add_action('update_option_tag_base', function ($old_value, $value, string $option) {
+                $this->purge_all_with_message_no_request();
+            }, 10, 3);  // When tag permalink is updated.
+            add_action('add_link', function (int $link_id) {
+                $this->purge_all_with_message_no_request();
+            }, 10, 1);  // When a link is added.
+            add_action('edit_link', function (int $link_id) {
+                $this->purge_all_with_message_no_request();
+            }, 10, 1);  // When a link is updated.
+            add_action('delete_link', function (int $link_id) {
+                $this->purge_all_with_message_no_request();
+            }, 10, 1);  // When a link is deleted.
+            add_action('customize_save', function (\WP_Customize_Manager $manager) {
+                $this->purge_all_with_message_no_request();
+            }, 10, 1);  // When customizer is saved.
         }
 
         public static function get_instance()
@@ -756,6 +790,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Cache')) {
             //checking same activation test like on plugin activation
             if ($diag->run_activation_tests()) {
                 $this->functions->update_ac_file();
+                $this->purge_all_with_message_no_request();
             }
             return $new;
         }
@@ -830,7 +865,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Cache')) {
             }
         }
 
-        public function check_upgraded($upgrader, $extra)
+        public function check_upgraded(\WP_Upgrader $upgrader, array $extra)
         {
             if ($this->debug) {
                 FASTPIXEL_DEBUG::log('Class FASTPIXEL_Backend_Cache: Cheking on upgrade', ['extra' => $extra]);
@@ -839,10 +874,11 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Cache')) {
                 return;
             $run_purge = false;
             $skin = $upgrader->skin;
-            $purge_message = __('Cache has been cleared!', 'fastpixel-website-accelerator');
             if ($extra['type'] === 'plugin') {
                 if (property_exists($skin, 'plugin_active') && $skin->plugin_active) {
-                    $run_purge = true;
+                    if (property_exists($skin, 'result') && !empty($skin->result['destination_name']) && $skin->result['destination_name'] != FASTPIXEL_TEXTDOMAIN) {
+                        $run_purge = true;
+                    }
                 }
             }
             if ($extra['type'] === 'theme') {
@@ -858,31 +894,11 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Cache')) {
                 }
             }
             if ($run_purge) {
-                if ($this->purge_all_without_request()) {
-                    $notices = FASTPIXEL_Notices::get_instance();
-                    $notices->add_flash_notice($purge_message, 'success', false, 'plugin-theme-change-notice');
-                }
+                $this->purge_all_with_message_no_request();
             }
         }
 
-        public function purge_all_on_plugin_activation_deactivation() {
-            if ($this->purge_all_without_request()) {
-                $purge_message = __('Cache has been cleared!', 'fastpixel-website-accelerator');
-                $notices = FASTPIXEL_Notices::get_instance();
-                $notices->add_flash_notice($purge_message, 'success', false, 'plugin-theme-change-notice');
-            }
-        }
-
-        public function purge_all_theme_switch()
-        {
-            if ($this->purge_all_without_request()) {
-                $purge_message = __('Cache has been cleared!', 'fastpixel-website-accelerator');
-                $notices = FASTPIXEL_Notices::get_instance();
-                $notices->add_flash_notice($purge_message, 'success', false, 'plugin-theme-change-notice');
-            }
-        }
-
-        public function purge_all_without_request()
+        public function purge_all_with_message_no_request(bool $display_message = true, string $message = '')
         {
             if ($this->debug) {
                 FASTPIXEL_DEBUG::log('Class FASTPIXEL_Backend_Cache: Purging All Cache on Hook', current_filter());
@@ -893,7 +909,19 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Cache')) {
             //preventing folder removal if serve_stale is disabled, becuase it can take much time to remove it
             add_filter('fastpixel/purge_all/clear_cache_folder', function () {
                 return false; });
-            return $this->purge_all();
+            if ($this->purge_all()) {
+                if ($display_message) {
+                    if (empty($message)) {
+                        $purge_message = __('Cache has been cleared!', 'fastpixel-website-accelerator');
+                    } else {
+                        $purge_message = $message;
+                    }
+                    $notices = FASTPIXEL_Notices::get_instance();
+                    $notices->add_flash_notice($purge_message, 'success', false, 'purge-all-notice');
+                }
+                return true;
+            }
+            return false;
         }
     }
     new FASTPIXEL_Backend_Cache();
