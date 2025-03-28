@@ -43,6 +43,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Settings')) {
             register_setting(FASTPIXEL_TEXTDOMAIN, 'fastpixel_exclude_all_params', ['type' => 'array']);
             register_setting(FASTPIXEL_TEXTDOMAIN, 'fastpixel_params_exclusions', ['type' => 'array']);
             register_setting(FASTPIXEL_TEXTDOMAIN, 'fastpixel_excluded_post_types', ['type' => 'array', 'sanitize_callback' => [$this, 'sanitize_fastpixel_post_types_exclusion_cb']]);
+            register_setting(FASTPIXEL_TEXTDOMAIN, 'fastpixel_always_purge_urls', ['type' => 'array']);
             // Register a new section in the "settings" page.
             add_settings_section(
                 'fastpixel_settings_section',
@@ -153,6 +154,19 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Settings')) {
                 'fastpixel_excluded_post_types',
                 $field_title,
                 [$this, 'field_exclude_post_types_cb'],
+                FASTPIXEL_TEXTDOMAIN,
+                'fastpixel_settings_section',
+                [
+                    'class' => 'fastpixel-settings-form-row',
+                    'label' => $field_title
+                ]
+            );
+
+            $field_title = esc_html__('Always Purge URL(s)', 'fastpixel-website-accelerator');
+            add_settings_field(
+                'fastpixel_always_purge_urls',
+                $field_title,
+                [$this, 'field_always_purge_urls_cb'],
                 FASTPIXEL_TEXTDOMAIN,
                 'fastpixel_settings_section',
                 [
@@ -323,6 +337,22 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Settings')) {
             <?php
         }
 
+        public function field_always_purge_urls_cb($args)
+        {
+            // Get the value of the setting we've registered with register_setting()
+            $urls = $this->functions->get_option('fastpixel_always_purge_urls');
+            $description = esc_html__('Page URLs that should always be purged from the cache whenever posts or plugins are added, edited, or deleted. Each URL should be added on a new line.', 'fastpixel-website-accelerator');
+            $description .= '<br/>';
+            $description .= esc_html__('Example: /blog/', 'fastpixel-website-accelerator');
+            $this->be_functions->print_textarea([
+                'field_name'  => 'fastpixel_always_purge_urls',
+                'field_value' => $urls,
+                'label'       => $args['label'],
+                'description' => $description,
+                'data'        => []
+            ], true);
+        }
+
         public function save_options() {
             if (sanitize_text_field($_SERVER['REQUEST_METHOD']) !== 'POST' || (defined('DOING_AJAX') && DOING_AJAX) || 
                 check_admin_referer('fastpixel-settings', 'fastpixel-nonce') == false ||
@@ -342,6 +372,8 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Settings')) {
             $this->functions->update_option('fastpixel_speculation_eagerness', $sp_eagerness);
             //saving excludes and removing existing files if they exist
             $this->save_excludes();
+            //saving purge urls
+            $this->save_purge_urls();
             $exclude_all_params = isset($_POST['fastpixel_exclude_all_params']) && 1 == sanitize_text_field($_POST['fastpixel_exclude_all_params']) ? 1 : 0;
             $this->functions->update_option('fastpixel_exclude_all_params', $exclude_all_params);
             $this->functions->update_option('fastpixel_params_exclusions', sanitize_textarea_field($_POST['fastpixel_params_exclusions']));
@@ -366,7 +398,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Settings')) {
             $notices->add_flash_notice(sprintf(esc_html__('Settings saved successfully. %1$s', 'fastpixel-website-accelerator'), $text_cleared), 'success', false);
         }
 
-        public function save_excludes() {
+        protected function save_excludes() {
             //added extra check to avoid pcp validation notice
             if (check_admin_referer('fastpixel-settings', 'fastpixel-nonce') == false) {
                 return;
@@ -393,6 +425,23 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Settings')) {
                         }
                     }
                 }
+            }
+        }
+
+        protected function save_purge_urls()
+        {
+            //added extra check to avoid pcp validation notice
+            if (check_admin_referer('fastpixel-settings', 'fastpixel-nonce') == false) {
+                return;
+            }
+            //getting old value
+            $old_values = $this->functions->get_option('fastpixel_always_purge_urls');
+            //getting new(submitted) value
+            $new_values = sanitize_textarea_field($_POST['fastpixel_always_purge_urls']);
+            //comparing values and saving only when differs
+            if ($old_values != $new_values) {
+                //updating value
+                $this->functions->update_option('fastpixel_always_purge_urls', sanitize_textarea_field($_POST['fastpixel_always_purge_urls']));
             }
         }
 

@@ -36,6 +36,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Excluded_Url_Params')) {
             'add_to_cart'         => '', // shopping
             'tagverify'           => '', // site kit by google
             'wc-ajax'             => '', // WooCommerce
+            'bfwkey'              => ''
         ];
 
         public function __construct()

@@ -208,16 +208,17 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_UI')) {
 
         public function status_page()
         {
-            if (!$this->check_capabilities()) {
-                return;
-            }
             echo '<hr class="wp-header-end"><hr class="fastpixel-header-hr"><div class="wrap fastpixel-website-accelerator-wrap">';
-            echo wp_kses($this->header(), $this->allowed_tags);
-            foreach ($this->tabs as $tab) {
-                if (!in_array($tab->get_slug(), array('cache-status')) || !$tab->is_enabled()) {
-                    continue;
+            if ($this->check_capabilities()) {
+                echo wp_kses($this->header(), $this->allowed_tags);
+                foreach ($this->tabs as $tab) {
+                    if (!in_array($tab->get_slug(), array('cache-status')) || !$tab->is_enabled()) {
+                        continue;
+                    }
+                    $tab->view();
                 }
-                $tab->view();
+            } else {
+                echo '<h1>' . esc_html__('You do not have sufficient permissions to access this page.', 'fastpixel-website-accelerator') . '</h1>';
             }
             echo '</div>';
         }

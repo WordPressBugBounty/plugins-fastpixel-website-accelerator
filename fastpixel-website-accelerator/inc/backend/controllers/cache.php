@@ -12,9 +12,10 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Cache')) {
         protected $cache_dir;
         protected $config;
         protected $time_to_wait = 5; //need this option to avoid multiple page cache requests
-        protected $serve_stale;
+        protected $serve_stale = false;
         protected $be_functions;
         protected $purged_objects_cache = false;
+        protected $run_purge_for_custom_urls = false;
 
         public function __construct()
         {
@@ -26,7 +27,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Cache')) {
             $this->be_functions = FASTPIXEL_Backend_Functions::get_instance();
 
 
-            $this->serve_stale = function_exists('get_option') ? $this->functions->get_option('fastpixel_serve_stale') : $this->config->get_option('serve_stale');
+            $this->serve_stale = function_exists('get_option') ? (bool) $this->functions->get_option('fastpixel_serve_stale') : (bool) $this->config->get_option('serve_stale');
 
             //cache functions only for backend
             add_action('save_post', function ($post_id, $post, $update) {
@@ -153,6 +154,9 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Cache')) {
             add_action('admin_post_fastpixel_admin_purge_cache', [$this, 'admin_purge_cache']);
             add_action('admin_post_fastpixel_admin_delete_cached', [$this, 'admin_delete_cached_files']);
             //taxonomy functions
+            add_action('created_term', function ($term, $taxonomy, $args) {
+                do_action('fastpixel/term/created', $term, $taxonomy, $args); //own hook
+            }, 10, 3);
             add_action('edit_terms', function ($term_id, $taxonomy, $args) {
                 if ($this->debug) {
                     FASTPIXEL_DEBUG::log('Class FASTPIXEL_Backend_Cache: ACTION edit_terms');
@@ -282,7 +286,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Cache')) {
             /*
              * Different update hooks
              */
-            add_action('wp_update_nav_menu', function(int $menu_id, array $menu_data) {
+            add_action('wp_update_nav_menu', function(int $menu_id, array $menu_data = []) {
                 $this->purge_all_with_message_no_request();
             }, 10, 2);  // When a custom menu is update.
             add_action('update_option_sidebars_widgets', function($old_value, $value, string $option) {
@@ -306,6 +310,20 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Cache')) {
             add_action('customize_save', function (\WP_Customize_Manager $manager) {
                 $this->purge_all_with_message_no_request();
             }, 10, 1);  // When customizer is saved.
+
+            //run purge for custom urls on shutdown callback
+            add_action('fastpixel/shutdown', [$this, 'always_purge_urls'], 10);
+            //enabling purge for custom urls on post actions
+            add_action('fastpixel/post/published', [$this, 'run_purge_for_custom_urls'], 10);
+            add_action('fastpixel/post/inserted', [$this, 'run_purge_for_custom_urls'], 10);
+            add_action('fastpixel/post/draft_to_publish', [$this, 'run_purge_for_custom_urls'], 10);
+            add_action('fastpixel/post/pending_to_publish', [$this, 'run_purge_for_custom_urls'], 10);
+            add_action('fastpixel/post/trashed', [$this, 'run_purge_for_custom_urls'], 10);
+            //TOOD: check if we need always purge on terms actions
+            //enabling purge for custom urls on term actions
+            add_action('fastpixel/term/created', [$this, 'run_purge_for_custom_urls'], 10);
+            add_action('fastpixel/terms/edited', [$this, 'run_purge_for_custom_urls'], 10);
+            add_action('fastpixel/term/deleted', [$this, 'run_purge_for_custom_urls'], 10);
         }
 
         public static function get_instance()
@@ -560,12 +578,11 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Cache')) {
             do_action('fastpixel/purge_all');
             //remove cache folder if serve_stale is disabled
             $clear_folder = apply_filters('fastpixel/purge_all/clear_cache_folder', true);
-            $serve_stale = $this->functions->get_option('fastpixel_serve_stale');
             if ($this->debug) {
                 FASTPIXEL_DEBUG::log('Class FASTPIXEL_Backend_Cache: ACTION purge_all, clear cache directory', $clear_folder);
-                FASTPIXEL_DEBUG::log('Class FASTPIXEL_Backend_Cache: ACTION purge_all, serve stale', $serve_stale);
+                FASTPIXEL_DEBUG::log('Class FASTPIXEL_Backend_Cache: ACTION purge_all, serve stale', $this->serve_stale);
             }
-            if (($clear_folder && !$serve_stale)) {
+            if (($clear_folder && !$this->serve_stale)) {
                 add_action('fastpixel/shutdown', function () {
                     if ($this->debug) {
                         FASTPIXEL_DEBUG::log('Class FASTPIXEL_Backend_Cache: ACTION purge_all, removing cache folder on fastpixel/shutdown');
@@ -922,6 +939,34 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Cache')) {
                 return true;
             }
             return false;
+        }
+
+        public function run_purge_for_custom_urls() {
+            $this->run_purge_for_custom_urls = true;
+        }
+
+        public function always_purge_urls() {
+            //getting urls to purge
+            if ($this->run_purge_for_custom_urls) {
+                $urls_setting = $this->functions->get_option('fastpixel_always_purge_urls', []);
+                $urls = explode("\r\n", $urls_setting);
+                if (!empty($urls) && is_array($urls)) {
+                    foreach($urls as $url) {
+                        if (substr($url, 0, 1) != '/') {
+                            continue;
+                        }
+                        $options = [
+                            'original_url' => $url
+                        ];
+                        $full_url = new FASTPIXEL_Url(apply_filters('fastpixel/backend/always_purge_url', get_home_url(null, $url), $options));
+                        //delete cached files if serve stale is disabled(adding this to keep more free space and avoid serving cached pages)
+                        if (!$this->serve_stale) {
+                            $this->functions->delete_cached_files($full_url->get_url_path());
+                        }
+                        $this->functions->update_post_cache($full_url->get_url_path(), true);
+                    }
+                }
+            }
         }
     }
     new FASTPIXEL_Backend_Cache();

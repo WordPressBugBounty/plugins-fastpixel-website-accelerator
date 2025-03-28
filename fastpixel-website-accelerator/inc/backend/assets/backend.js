@@ -25,17 +25,22 @@ document.addEventListener("DOMContentLoaded", function() {
 
     function fastpixelOnOptimizationChange(disable = true) {
         if (disable) {
-            jQuery('[data-depends-on="fastpixel-javascript-optimization"]').attr('disabled', 'disabled');
+            jQuery('[data-depends-on="fastpixel-javascript-optimization"]').attr('readonly', 'readonly');
         } else {
-            jQuery('[data-depends-on="fastpixel-javascript-optimization"]').removeAttr('disabled');
+            jQuery('[data-depends-on="fastpixel-javascript-optimization"]').removeAttr('readonly');
         }
     }
 
     //adding custom event to have ability to trigger it programmatically and avoid loop triggering
-    jQuery('#fastpixel_javascript_optimization').on('fastpixelChange', function () {
-        const value = jQuery(this).val(); const disable = value == 3 ? true : false; fastpixelOnOptimizationChange(disable);
+    jQuery('input[name="fastpixel_javascript_optimization"]').on('fastpixelChange', function () {
+        const checked = jQuery(this).prop('checked');
+        if (checked) {
+            const value = jQuery(this).val();
+            const disable = (parseInt(value) == 2 ? false : true);
+            fastpixelOnOptimizationChange(disable);
+        }
     });
-    jQuery('#fastpixel_javascript_optimization').on('change', function () {
+    jQuery('input[name="fastpixel_javascript_optimization"]').on('change', function () {
         jQuery(this).trigger('fastpixelChange');
     });
     jQuery('.fastpixel-horizontal-selector input').on('change', function($) {

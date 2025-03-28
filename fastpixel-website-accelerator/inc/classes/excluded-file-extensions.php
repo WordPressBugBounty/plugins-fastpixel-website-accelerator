@@ -25,6 +25,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Excluded_File_Extensions')) {
             'doc',
             'xml',
             'xsl',
+            'pdf',
             //fonts
             'woff',
             'woff2',
@@ -34,7 +35,38 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Excluded_File_Extensions')) {
             //styles
             'css',
             //javascript
-            'js'
+            'js',
+            //archives
+            'zip',
+            'rar',
+            'tar',
+            'gz',
+            '7z',
+            //audio video
+            'mp3',
+            'mp4',
+            'avi',
+            'mov',
+            'wmv',
+            'flv',
+            'swf',
+            'webm',
+            'm4v',
+            'mkv',
+            'm4a',
+            'wav',
+            'ogg',
+            'flac',
+            'aac',
+            'wma',
+            'aiff',
+            'mpg',
+            'mpeg',
+            //other
+            'json',
+            'csv',
+            'xls',
+            'map'
         ];
 
         public function __construct()

@@ -49,7 +49,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_UI_Multi')) {
                 'meta'  => ['title' => esc_html__('FastPixel Cache', 'fastpixel-website-accelerator')]
             ]);
             //we can add status link when not in network admin
-            if (!is_network_admin()) {
+            if (!is_network_admin() && $this->check_network_capabilities()) {
                 $wp_admin_bar->add_node([
                     'id'     => 'fastpixel-top-' . FASTPIXEL_TEXTDOMAIN . '-status',
                     'parent' => 'fastpixel-top-' . FASTPIXEL_TEXTDOMAIN . '-menu',
@@ -57,12 +57,14 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_UI_Multi')) {
                     'title'  => esc_html__('Cache Status', 'fastpixel-website-accelerator'),
                 ]);
             }
-            $wp_admin_bar->add_node([
-                'id'     => 'fastpixel-top-' . FASTPIXEL_TEXTDOMAIN . '-settings',
-                'parent' => 'fastpixel-top-' . FASTPIXEL_TEXTDOMAIN . '-menu',
-                'href'   => esc_url(network_admin_url('admin.php?page=' . FASTPIXEL_TEXTDOMAIN . '-settings')),
-                'title'  => esc_html__('Settings', 'fastpixel-website-accelerator'),
-            ]);
+            if ($this->check_network_capabilities()) {
+                $wp_admin_bar->add_node([
+                    'id'     => 'fastpixel-top-' . FASTPIXEL_TEXTDOMAIN . '-settings',
+                    'parent' => 'fastpixel-top-' . FASTPIXEL_TEXTDOMAIN . '-menu',
+                    'href'   => esc_url(network_admin_url('admin.php?page=' . FASTPIXEL_TEXTDOMAIN . '-settings')),
+                    'title'  => esc_html__('Settings', 'fastpixel-website-accelerator'),
+                ]);
+            }
             $this->admin_bar_purge_button($wp_admin_bar); //there can be button for purge single post/page/taxonomy/author/archive
             $wp_admin_bar->add_node([
                 'id'     => 'fastpixel-top-' . FASTPIXEL_TEXTDOMAIN . '-purge-cache',
@@ -72,7 +74,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_UI_Multi')) {
             ]);
         }
 
-        public function check_capabilities()
+        protected function check_network_capabilities()
         {
             // check user capabilities
             if (!current_user_can('manage_network')) {

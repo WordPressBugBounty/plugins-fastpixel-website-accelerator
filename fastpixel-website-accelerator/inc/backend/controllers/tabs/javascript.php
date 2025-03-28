@@ -116,7 +116,8 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Javascript')) {
                 'field_name'  => 'fastpixel_javascript_excludes',
                 'field_value' => $excludes,
                 'label'       => $args['label'],
-                'description' => $description
+                'description' => $description,
+                'data'        => ['data-depends-on="fastpixel-javascript-optimization"']
             ], true);
         }
         public function field_fastpixel_javascript_excludes_regexp_cb($args) {
@@ -130,7 +131,8 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Javascript')) {
                 'field_name'  => 'fastpixel_javascript_excludes_regexp',
                 'field_value' => $excludes,
                 'label'       => $args['label'],
-                'description' => $description
+                'description' => $description,
+                'data'        => ['data-depends-on="fastpixel-javascript-optimization"']
             ], true);
         }
 

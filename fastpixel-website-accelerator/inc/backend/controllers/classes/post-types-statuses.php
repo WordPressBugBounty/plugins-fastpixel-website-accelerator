@@ -20,7 +20,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Post_Types_Statuses')) {
             $this->functions = FASTPIXEL_Functions::get_instance();
             $this->be_functions = FASTPIXEL_Backend_Functions::get_instance();
             //loading post types later, when all plugins and themes loaded
-            add_action('init', function () {
+            add_action('admin_init', function () {
                 $this->post_types = get_post_types(['public' => true], 'objects');
                 $this->nonce = wp_create_nonce('cache_status_nonce');
                 $this->excluded_post_types = apply_filters('fastpixel/backend/posts_statuses/init/excluded_post_types', $this->functions->get_option('fastpixel_excluded_post_types', []));

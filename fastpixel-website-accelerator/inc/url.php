@@ -226,7 +226,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Url')) {
         }
         public function get_url() {
             //temporary done dynamic url generation
-            return $this->scheme . '://' . $this->host . (!empty($this->port) ? $this->port : '') . (!empty($this->path) ? rtrim($this->path, '/') : '') . '/' . (!empty($this->query) ? '?' . $this->query : '');
+            return $this->scheme . '://' . $this->host . (!empty($this->port) ? $this->port : '') . $this->path . (!empty($this->query) ? '?' . $this->query : '');
         }
         public function get_host() {
             return $this->host;

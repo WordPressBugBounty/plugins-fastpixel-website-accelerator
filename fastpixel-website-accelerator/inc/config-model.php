@@ -8,14 +8,16 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Config_Model')) {
 
         public static $instance;
         protected $options = [
-            'fastpixel_serve_stale'               => false,
-            'fastpixel_display_cached_for_logged' => false,
-            'fastpixel_javascript_optimization'   => 1, //1 => 'optimize', 2 => 'delaycritical', 3 => 'donotoptimize'
-            'fastpixel_cache_lifetime'            => 1, //1 => unlimited, 2 => 24H, 3 => 12H
-            'fastpixel_enabled_modules'           => [],
-            'fastpixel_exclusions'                => false,
-            'fastpixel_exclude_all_params'        => false,
-            'fastpixel_params_exclusions'         => false
+            'fastpixel_serve_stale'                             => false,
+            'fastpixel_display_cached_for_logged'               => false,
+            'fastpixel_javascript_optimization'                 => 1, //1 => 'optimize', 2 => 'delaycritical', 3 => 'donotoptimize'
+            'fastpixel_cache_lifetime'                          => 1, //1 => unlimited, 2 => 24H, 3 => 12H
+            'fastpixel_enabled_modules'                         => [],
+            'fastpixel_exclusions'                              => false,
+            'fastpixel_exclude_all_params'                      => false,
+            'fastpixel_params_exclusions'                       => false,
+            'fastpixel_force_trailing_slash'                    => true, //used in single site install, usually is set to true
+            'fastpixel_wpml_use_directory_for_default_language' => false
         ];
         protected $config_dir;
         protected $config_file;
@@ -107,8 +109,8 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Config_Model')) {
                                 $this->set_option($option_name, sanitize_text_field($_POST[$option_name]));
                             }
                         }
-                        
                     }
+                    $this->check_permalinks();
                 }
                 $this->save_file();
             }
@@ -128,6 +130,19 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Config_Model')) {
                 return true;
             }
             return false;
+        }
+
+        protected function check_permalinks() {
+            //check permalinks
+            if (function_exists('is_multisite') && is_multisite()) {
+                return false;
+            }
+            $permalink_stucture = $this->functions->get_option('permalink_structure');
+            if (preg_match('/\/$/', $permalink_stucture)) {
+                $this->set_option('fastpixel_force_trailing_slash', true);
+            } else {
+                $this->set_option('fastpixel_force_trailing_slash', false);
+            }
         }
     }
 }

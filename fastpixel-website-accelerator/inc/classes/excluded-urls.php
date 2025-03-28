@@ -23,6 +23,8 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Excluded_Urls')) {
             $this->functions = FASTPIXEL_Functions::get_instance();
             $this->config = FASTPIXEL_Config_Model::get_instance();
             add_filter('fastpixel/init/excluded', [$this, 'is_excluded'], 13, 2);
+            add_filter('fastpixel/init/excluded', [$this, 'is_excluded_by_trailing_slash'], 8, 2);
+            add_filter('fastpixel/init/excluded', [$this, 'is_excluded_by_wpml'], 14, 2);
             if (is_admin()) {
                 add_filter('fastpixel/backend_functions/cache_status_display/excluded', [$this, 'admin_check_is_excluded'], 13, 2);
                 add_filter('fastpixel/backend/purge/single/post/is_excluded', [$this, 'admin_check_is_excluded'], 13, 2);
@@ -114,6 +116,50 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Excluded_Urls')) {
             $url = new FASTPIXEL_Url($args['url']);
             $status = $this->is_excluded($status, $url);
             return $status;
+        }
+
+        public function is_excluded_by_trailing_slash($excluded, $url) {
+            if ($excluded == true) {
+                return $excluded;
+            }
+            if (!$this->is_home()) {
+                //temporary solution, if multisite then skip check
+                if (is_multisite()) {
+                    return $excluded;
+                }
+                $force = $this->config->get_option('fastpixel_force_trailing_slash');
+                if ($force && !preg_match('/\/$/', $url->get_path())) { //case when we need to force trailing slash and url does not have it
+                    return true;
+                }
+                if (!$force && preg_match('/\/$/', $url->get_path())) { //case when we need to force no trailing slash and url has it
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public function is_excluded_by_wpml($excluded, $url)
+        {
+            if ($excluded == true) {
+                return $excluded;
+            }
+            /**
+             * checking excluded urls
+             */
+
+            $use_directory = $this->config->get_option('fastpixel_wpml_use_directory_for_default_language');
+            if ($use_directory && $this->is_home()) {
+                return true; //we need to redirect homepage to directory, example / -> /en/
+            }
+            return false;
+        }
+
+        protected function is_home()
+        {
+            if (!empty($_SERVER['REQUEST_URI']) && $_SERVER['REQUEST_URI'] == '/') {
+                return true;
+            }
+            return false;
         }
     }
     new FASTPIXEL_Excluded_Urls();

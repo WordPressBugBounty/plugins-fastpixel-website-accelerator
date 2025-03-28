@@ -221,7 +221,9 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Request')) {
 
             //checking if wpml is installed and url format is different domain
             if ($this->functions->get_option('fastpixel_skip_url_match', false) || (function_exists('is_multisite') && is_multisite())) {
-                FASTPIXEL_DEBUG::log('REQUEST Class: fastpixel_skip_url_match is set, skipping url match');
+                if ($this->debug_request) {
+                    FASTPIXEL_DEBUG::log('REQUEST Class: fastpixel_skip_url_match is set, skipping url match');
+                }
                 return true; 
             }
 

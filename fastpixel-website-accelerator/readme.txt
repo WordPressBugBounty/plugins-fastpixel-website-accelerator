@@ -4,7 +4,7 @@ Tags: speed, cache, caching, performance, web vitals
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 5.6
-Stable tag: 1.0.44
+Stable tag: 1.0.45
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -75,8 +75,8 @@ Yes, our plugin works with all hosting providers, but if you encounter any issue
 Yes, as long as you install it on a website that doesn't generate more than 5,000 page views/month, you don't have to pay for it :-)
 If you exceed this threshold no worries, affordable monthly or yearly plans are available for you.
 
-= How much is 5,000 page views/month? = 
-That's probably enough for over 90% of the websites on the Internet! If your website is visited by less than 100 visitors per day, it will most likely not exceed 5,000 page views/month.
+= How much is 1,000 page views/month? = 
+That’s probably enough for most small websites! If your website is visited by less than 50 visitors per day, it will most likely not exceed 1,000 pageviews/month.
 
 = Does FastPixel work with WooCommerce? =
 Yes, FastPixel definitely works with WooCommerce stores and should boost your speed significantly!
@@ -200,9 +200,28 @@ For more detailed information on how to use the plugin or the API, troubleshooti
 
 == Changelog ==
 
-🔄 The Smarter Cache Update
+= 1.0.45 =
+
+🌐 The Smart Purge Update
+
+Release Date: March 28, 2025
+
+✨ New Features
+
+* Always Purge URL(s): You can now define specific page URLs that should always be purged from the cache whenever posts, pages, or plugins are added, edited, or removed. Perfect for keeping key landing pages and dynamic content fresh!
+
+🤝 Compatibility Improvements
+
+* WPML Support Enhanced: Added redirect patches to improve compatibility with multilingual setups using WPML.
+* Affiliate Parameter Handling: Improved support for affiliate tracking parameters to ensure they don’t interfere with caching or optimization.
+
+🛠️ Bug Fixes
+
+* Various under-the-hood bugfixes to improve stability and performance.
 
 = 1.0.44 =
+
+🔄 The Smarter Cache Update
 
  🚀 Enhancements
 
