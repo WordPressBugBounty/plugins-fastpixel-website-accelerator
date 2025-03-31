@@ -948,7 +948,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Cache')) {
         public function always_purge_urls() {
             //getting urls to purge
             if ($this->run_purge_for_custom_urls) {
-                $urls_setting = $this->functions->get_option('fastpixel_always_purge_urls', []);
+                $urls_setting = $this->functions->get_option('fastpixel_always_purge_urls', '');
                 $urls = explode("\r\n", $urls_setting);
                 if (!empty($urls) && is_array($urls)) {
                     foreach($urls as $url) {

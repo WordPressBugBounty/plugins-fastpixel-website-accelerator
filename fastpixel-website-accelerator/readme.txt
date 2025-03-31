@@ -4,7 +4,7 @@ Tags: speed, cache, caching, performance, web vitals
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 5.6
-Stable tag: 1.0.45
+Stable tag: 1.0.46
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -12,19 +12,19 @@ Optimize Core Web Vitals and PageSpeed with advanced caching, image compression,
 
 == Description ==
 
-###The Ultimate Caching and Speed Improvement Plugin for WordPress###
+###🚀 The Ultimate Caching and Speed Improvement Plugin for WordPress###
 
 Have you ever wished your website scored 90+ on Google PageSpeed Insights, GTMetrix and other website performance analysis tools?
 And achieve that without the need to pay expensive fees to consultants or learn a lot of advanced technical stuff? 
 
-**[FastPixel](https://fastpixel.io/?utm_source=wp-repository&utm_medium=link) automatically integrates** all the latest technical enhancements, such as Page Caching, HTML/CSS/JS minification, DNS prefetching and preloading, Critical CSS, ShortPixel's [Smart Image Optimization](https://shortpixel.com/blog/introducing-smartcompress/?/?utm_source=wp-repository&utm_medium=link), adaptive images, background image scaling and optimization, HTTP/2 support, fonts loading optimization, caching, a global CDN, and Core Web Vitals, within an **easy-to-use, 1-minute-setup interface**.
+**⚡ [FastPixel](https://fastpixel.io/?utm_source=wp-repository&utm_medium=link) automatically integrates** all the latest technical enhancements, such as Page Caching, HTML/CSS/JS minification, DNS prefetching and preloading, Critical CSS, ShortPixel's [Smart Image Optimization](https://shortpixel.com/blog/introducing-smartcompress/?/?utm_source=wp-repository&utm_medium=link), adaptive images, background image scaling and optimization, HTTP/2 support, fonts loading optimization, caching, a global CDN, and Core Web Vitals, within an **easy-to-use, 1-minute-setup interface**.
 
-== Ready for a Quick TEST of our Speed Optimization Tool? ==
+== 🎬 Ready for a Quick TEST of our Speed Optimization Tool? ==
 There is **no need to install our plugin to run a test**.
 You can test FastPixel live on a [sandbox website@TasteWP](https://tastewp.com/template/FastPixel) or you can quickly assess how [FastPixel](https://fastpixel.io/) can optimize your website by conducting a test. Simply use [this test page](https://test.fastpixel.io/), and we will apply all optimizations to a copy of your website.
 This way, you can easily evaluate the substantial speed improvements it can achieve using the most widely recognized website performance analysis tools.
 
-== Why choose FastPixel Caching plugin? ==
+== 💡 Why choose FastPixel Caching plugin? ==
 - **Website Performance Boost**: Just activate the plugin and within seconds the optimized webpages will start to be served.
 - **Lower the CPU/RAM Impact**: Using the plugin will reduce the impact on the resources used by your website. All the CPU intensive processing is done in the cloud and resulting pages will generally be served from a cached version and the optimized images from the CDN.
 - **Automated Core Web Vitals Optimization**: FastPixel takes care of all technical aspects automatically.
@@ -37,7 +37,7 @@ This way, you can easily evaluate the substantial speed improvements it can achi
 - **Image Resizing & Optimization**: Images are automatically resized to fit their placeholders, optimized, and delivered through the ShortPixel CDN.
 - **Automatic Next-Gen Images Delivery**: Based on the visitor's browser capabilities, original JPG, PNG, or GIF images are converted to and served as WebP or AVIF when supported. For browsers without support, the original format is provided.
 
-== Happy users that use our plugin ==
+== 🌟 Happy users that use our plugin ==
 If you're satisfied with the test, just search for "FastPixel" in your WordPress Dashboard > Plugins, install the plugin and see for yourself how much faster your site becomes.
 
 > **Testimonials:**
@@ -49,7 +49,7 @@ If you're satisfied with the test, just search for "FastPixel" in your WordPress
 > ★★★★★ **Super easy to install and worked out of the box** [diffler](https://wordpress.org/support/topic/well-this-was-easy-moving-from-wp-rocket/)
 > [more testimonials](https://wordpress.org/support/plugin/fastpixel-website-accelerator/reviews/?filter=5)
 
-== Additional questions ==
+== 📩 Additional questions ==
 If you have more questions, technical or otherwise, please refer to our FAQ section below, our [docs](https://fastpixel.io/docs/) or [contact us](https://fastpixel.io/#contact). 
 We typically respond within 15 minutes.
 
@@ -199,6 +199,19 @@ For more detailed information on how to use the plugin or the API, troubleshooti
 
 
 == Changelog ==
+
+= 1.0.46 =
+
+🛒 The Woo Fix Update 
+
+Release Date: March 31, 2025
+
+🛠️ Fixes & Improvements
+
+* WooCommerce Compatibility Fixes: Resolved various issues to ensure smoother optimization across WooCommerce pages.
+
+Update now to keep your WooCommerce store running fast and flawlessly! 🚀
+
 
 = 1.0.45 =
 
