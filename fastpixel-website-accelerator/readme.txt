@@ -2,9 +2,9 @@
 Contributors: shortpixel
 Tags: speed, cache, caching, performance, web vitals
 Requires at least: 6.0
-Tested up to: 6.7
+Tested up to: 6.8
 Requires PHP: 5.6
-Stable tag: 1.0.46
+Stable tag: 1.0.47
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -200,6 +200,19 @@ For more detailed information on how to use the plugin or the API, troubleshooti
 
 == Changelog ==
 
+= 1.0.47 =
+
+🧹 The Clean Logs Update 
+
+Release Date: April 16, 2025
+
+🛠️ Fixes & Improvements
+
+* Error Log Cleanup: Fixed several notices that were cluttering error logs in some cases, helping keep your server logs clean and easy to read.
+* Bugfixes: Addressed various minor issues to improve stability and performance.
+
+Update now for a smoother, quieter backend experience! 🚀
+
 = 1.0.46 =
 
 🛒 The Woo Fix Update 
@@ -211,7 +224,6 @@ Release Date: March 31, 2025
 * WooCommerce Compatibility Fixes: Resolved various issues to ensure smoother optimization across WooCommerce pages.
 
 Update now to keep your WooCommerce store running fast and flawlessly! 🚀
-
 
 = 1.0.45 =
 

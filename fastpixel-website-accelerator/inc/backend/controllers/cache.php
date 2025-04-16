@@ -114,7 +114,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Cache')) {
                 }
             }, 10, 1);
 
-            add_action('wp_trash_post', function ($post_id, $old_status) {
+            add_action('wp_trash_post', function ($post_id, $old_status = '') {
                 if ($this->debug) {
                     FASTPIXEL_DEBUG::log('Class FASTPIXEL_Backend_Cache: ACTION wp_trash_post');
                 }

@@ -20,7 +20,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Diag_Test')) {
             }
             $diag_controller = FASTPIXEL_Diag::get_instance();
             $diag_controller->add_test_model($this);
-            add_action('plugins_loaded', [$this, 'l10n_name'], 10);
+            add_action('init', [$this, 'l10n_name'], 10);
         }
 
         public function get_order_id() {
