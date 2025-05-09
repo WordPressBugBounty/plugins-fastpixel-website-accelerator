@@ -163,6 +163,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Cache')) {
             */
             $is_excluded = apply_filters('fastpixel/init/excluded', false, $requested_url);
             if ($is_excluded) {
+                header('X-FastPixel-Cache: BYPASS'); //return bypass header if page is excluded
                 if ($this->debug) {
                     FASTPIXEL_Debug::log('Class FASTPIXEL_Cache: excluded on init', $requested_url->get_url());
                 }
@@ -279,12 +280,18 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Cache')) {
         public function request_page_cache()
         {
             if (!$this->is_cache_request_allowed()) {
-                if ($this->debug) {
-                    FASTPIXEL_DEBUG::log('Class FASTPIXEL_Cache: request not allowed, trying to delete cached if exists for path', $this->url->get_url_path());
-                }
                 //trying to delete only on outside requests, when users not logged in, no need to delete if we can't determine user is logged in
                 if (function_exists('is_user_logged_in') && !is_user_logged_in()) {
-                    $this->functions->delete_cached_files($this->url->get_url_path());
+                    if ($this->url->params_stripped()) {
+                        $original_url = new FASTPIXEL_Url($this->url->get_original_url());
+                        $url_for_deletion = $original_url->get_url_path();
+                    } else {
+                        $url_for_deletion = $this->url->get_url_path();
+                    }
+                    if ($this->debug) {
+                        FASTPIXEL_DEBUG::log('Class FASTPIXEL_Cache: request not allowed, trying to delete cached if exists for path', $url_for_deletion);
+                    }
+                    $this->functions->delete_cached_files($url_for_deletion);
                 }
                 return false;
             }
@@ -410,18 +417,6 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Cache')) {
         }
 
         public function check_redirect_canonical($redirected_url, $requested_url) {
-            if ($this->debug) {
-                FASTPIXEL_Debug::log('Class FASTPIXEL_Cache: Checking canonical redirect $redirected_url', $redirected_url);
-                FASTPIXEL_Debug::log('Class FASTPIXEL_Cache: Checking canonical redirect $requested_url', $requested_url);
-            }
-            if (function_exists('get_home_url')) {
-                $domain = preg_replace('/https?:\/\//i', '', get_home_url());
-                if (!preg_match('/' . $domain . '/i', $redirected_url)
-                    || !preg_match('/' . $domain . '/i', $requested_url)) {
-                    //canceling redirect when there is no domain in url
-                    return false;
-                }
-            }
             if ($redirected_url != $requested_url) {
                 //removing action when redirected
                 remove_action('fastpixel/shutdown', [$this, 'request_page_cache'], 20);

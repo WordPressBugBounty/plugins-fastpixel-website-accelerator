@@ -29,9 +29,10 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Help_Center')) {
                 ],
                 [
                     'icon' => FASTPIXEL_PLUGIN_URL . 'icons/envelope.svg',
-                    'title' => __('Contact Us', 'fastpixel-website-accelerator'),
+                    'title' => __('Get Support', 'fastpixel-website-accelerator'),
                     'description' => __('Contact us with any issues, bug reports, or questions.', 'fastpixel-website-accelerator'),
                     'link' => 'https://fastpixel.io/#contact',
+                    'button_title' => __('Contact Us', 'fastpixel-website-accelerator')
                 ],
                 [
                     'icon' => FASTPIXEL_PLUGIN_URL . 'icons/processing.svg',

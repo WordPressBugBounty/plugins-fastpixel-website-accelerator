@@ -84,16 +84,16 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Images')) {
             $this->be_functions->print_horizontal_selector([
                 'field_name'         => 'fastpixel_images_optimization',
                 'field_values'       => [
-                    1 => esc_html__('Lossy', 'fastpixel-website-accelerator'),
+                    3 => esc_html__('Lossless', 'fastpixel-website-accelerator'),
                     2 => esc_html__('Glossy', 'fastpixel-website-accelerator'),
-                    3 => esc_html__('Lossless', 'fastpixel-website-accelerator')
+                    1 => esc_html__('Lossy', 'fastpixel-website-accelerator')
                 ],
                 'selected'           => $option,
                 'label'              => $args['label'],
                 'value_descriptions' => [
-                    1 => esc_html__('This is the recommended option for most users, producing results that appear identical to the original to the human eye.', 'fastpixel-website-accelerator'),
-                    2 => esc_html__('Best option for photographers and other professionals who use very high-quality images on their sites and want the best compression while keeping the quality untouched.', 'fastpixel-website-accelerator'),
-                    3 => esc_html__('Make sure not a single pixel looks different in the optimized image compared with the original. In some rare cases, you will need to use this type of compression. Technical drawings or images from vector graphics are possible situations.', 'fastpixel-website-accelerator')
+                    1 => esc_html__('This is the recommended option for most users, producing results that appear identical to the original to the human eye.', 'fastpixel-website-accelerator') . '<br/>' . esc_html__('FastPixel automatically serves images in WebP format. If a visitor\'s browser doesn\'t support WebP, the original format (e.g. JPEG, PNG) is used instead.', 'fastpixel-website-accelerator'),
+                    2 => esc_html__('Best option for photographers and other professionals who use very high-quality images on their sites and want the best compression while keeping the quality untouched.', 'fastpixel-website-accelerator') . '<br/>' . esc_html__('FastPixel automatically serves images in WebP format. If a visitor\'s browser doesn\'t support WebP, the original format (e.g. JPEG, PNG) is used instead.', 'fastpixel-website-accelerator'),
+                    3 => esc_html__('Make sure not a single pixel looks different in the optimized image compared with the original. In some rare cases, you will need to use this type of compression. Technical drawings or images from vector graphics are possible situations.', 'fastpixel-website-accelerator') . '<br/>' . esc_html__('FastPixel automatically serves images in WebP format. If a visitor\'s browser doesn\'t support WebP, the original format (e.g. JPEG, PNG) is used instead.', 'fastpixel-website-accelerator')
                 ]
             ], true);
         }

@@ -24,6 +24,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Cache_Files')) {
         protected $serve_stale;
         protected $cache_exists = false;
         protected $display_for_logged = false;
+        protected $nonce_life_time = (3600 * 24 * 30); // 30 days
 
         public function __construct() {
             self::$instance = $this;
@@ -100,7 +101,8 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Cache_Files')) {
             }
 
             //checking for index.html and return if present
-            if (!$this->return_optimized()) { 
+            if (!$this->return_optimized()) {
+                header('X-FastPixel-Cache: MISS'); //return miss header if no cached page exists
                 //checking for index_local.html and return if present
                 $this->return_local();
             }
@@ -194,6 +196,18 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Cache_Files')) {
                 return false;
             }
             $modified_time = (int) @filemtime($path);
+            //extra check if file is older than 29 days, resetting it because of nonce life
+            if ($local == false) {
+                if (($modified_time + ($this->nonce_life_time - 3600 * 24)) < time()) { //requesting new cache when 29 days passed
+                    //if during 24 hours we didn't get new cache then we invalidate it, we need it to refresh pages with nonces
+                    if (($modified_time + $this->nonce_life_time) < time()) {
+                        //invalidating cache
+                        $this->functions->update_post_cache($this->url->get_url_path(), true);
+                    }
+                    $this->page_cache_status['need_cache'] = true; //setting need_cache to true to request new cache
+                    return false;
+                }
+            }
             if (!empty($modified_time) && !empty($_SERVER['HTTP_IF_MODIFIED_SINCE']) && strtotime($this->functions->sanitize_text_field($_SERVER['HTTP_IF_MODIFIED_SINCE'])) === $modified_time) {
                 $valid_protocols = ['HTTP/1.0', 'HTTP/1.1', 'HTTP/2.0', 'HTTP/3'];
                 $protocol = strtoupper($this->functions->sanitize_text_field($_SERVER['SERVER_PROTOCOL'])) ?? false;
@@ -216,11 +230,15 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Cache_Files')) {
             if ($local) {
                 $headers = ['X-FastPixel-Local-Cache: HIT'];
             } else {
-                $headers = ['X-FastPixel-Cache: HIT'];
+                //if serve_stale is enabled and page is stale then return EXPIRED header
+                if ($this->serve_stale == true && $this->page_cache_status['need_cache']) {
+                    $headers = ['X-FastPixel-Cache: EXPIRED'];
+                } else {
+                    $headers = ['X-FastPixel-Cache: HIT'];
+                }
             }
-            $mtime = filemtime($path);
-            $headers[] = 'Age: ' . (time() - $mtime);
-            $headers[] = 'X-Fastpixel-Age: ' . (time() - $mtime);
+            $headers[] = 'Age: ' . (time() - $modified_time);
+            $headers[] = 'X-Fastpixel-Age: ' . (time() - $modified_time);
             $headers = apply_filters('fastpixel_return_cached_page_headers', $headers);
             foreach ($headers as $header) {
                 header($header);
@@ -288,10 +306,11 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Cache_Files')) {
             $fastpixel_cache = FASTPIXEL_Cache::get_instance();
             if ($this->display_for_logged == false) {
                 if ($this->cache_exists) {
-                    if ($this->page_cache_status['need_cache'] //checking if we need cache request
+                    $run_cron = apply_filters('fastpixel/cache_files/run_cron', false);
+                    if (($this->page_cache_status['need_cache'] //checking if we need cache request
                         && (!$this->page_cache_status['last_cache_request_time'] //when never requested
                         || (time() > ($this->page_cache_status['last_cache_request_time'] + $this->request_wait_time)) //when time spent more than $request_wait_time
-                    )) {
+                    )) || $run_cron) {
                         add_action('wp', function () {
                             if ($this->debug) {
                                 FASTPIXEL_Debug::log('Class FASTPIXEL_Cache_files: stopping wordpress on wp hook');
@@ -299,6 +318,10 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Cache_Files')) {
                             //stopping wordpress, all required functions should be already loaded
                             exit();
                         });
+                        //if it done for cron then we don't need to do request
+                        if ($run_cron) {
+                            remove_action('fastpixel/shutdown', [$fastpixel_cache, 'request_page_cache'], 20);
+                        }
                     } else {
                         if ($this->debug) {
                             FASTPIXEL_Debug::log('Class FASTPIXEL_Cache_files: stopping wordpress and removing request');

@@ -4,7 +4,7 @@ Tags: speed, cache, caching, performance, web vitals
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 5.6
-Stable tag: 1.0.47
+Stable tag: 1.0.48
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -18,6 +18,8 @@ Have you ever wished your website scored 90+ on Google PageSpeed Insights, GTMet
 And achieve that without the need to pay expensive fees to consultants or learn a lot of advanced technical stuff? 
 
 **⚡ [FastPixel](https://fastpixel.io/?utm_source=wp-repository&utm_medium=link) automatically integrates** all the latest technical enhancements, such as Page Caching, HTML/CSS/JS minification, DNS prefetching and preloading, Critical CSS, ShortPixel's [Smart Image Optimization](https://shortpixel.com/blog/introducing-smartcompress/?/?utm_source=wp-repository&utm_medium=link), adaptive images, background image scaling and optimization, HTTP/2 support, fonts loading optimization, caching, a global CDN, and Core Web Vitals, within an **easy-to-use, 1-minute-setup interface**.
+
+https://www.youtube.com/watch?v=6UbWASU8RNw
 
 == 🎬 Ready for a Quick TEST of our Speed Optimization Tool? ==
 There is **no need to install our plugin to run a test**.
@@ -199,6 +201,21 @@ For more detailed information on how to use the plugin or the API, troubleshooti
 
 
 == Changelog ==
+
+= 1.0.48 =
+
+🧭 The Clarity Update
+
+Release Date: May 9, 2025
+
+ ✨ Enhancements
+
+Smarter Notifications: We've fine-tuned our notifications to make them more relevant and easier to understand—especially when changing Settings or Presets.
+Cache Status by ID: You can now sort pages by ID in the Cache Status page, making it easier to track and manage which pages are cached.
+Streamlined Compression Settings: Reorganized the image compression levels for a cleaner look and added clearer explanations about WebP conversion and delivery.
+UI Polishing: Minor interface improvements for a more seamless user experience.
+
+Update now to enjoy a cleaner, clearer, and more intuitive optimization workflow! 🚀
 
 = 1.0.47 =
 

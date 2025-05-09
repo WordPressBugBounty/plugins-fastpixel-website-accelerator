@@ -64,7 +64,8 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Plugin')) {
                 $api_key->init_new_key();
                 //automatically enable "javascript optimization", "exclude gdpr scripts"
                 $default_options = [
-                    'fastpixel_serve_stale' => false,
+                    'fastpixel_serve_stale'             => false,
+                    'fastpixel_exclusions'              => implode("\r\n", ['/checkout', '/cart', '/my-account']),
                     'fastpixel_javascript_optimization' => 1, //for basic preset
                     'fastpixel_javascript_exclude_gdpr' => true, //for basic preset
                     'fastpixel_cache_lifetime'          => 1,
@@ -72,17 +73,10 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Plugin')) {
                     'fastpixel_images_crop'             => true, //for basic preset
                     'fastpixel_fonts_soft'              => true, //for basic preset
                     'fastpixel_exclude_all_params'      => true,
-                    'fastpixel_params_exclusions'       => implode("\r\n", [
-                        'sort',
-                        'order',
-                        'orderby',
-                        'p',
-                        'day',
-                        'm',
-                    ]),
-                    'fastpixel_speculation_rules'     => true,
-                    'fastpixel_speculation_mode'      => 'prerender',
-                    'fastpixel_speculation_eagerness' => 'moderate',
+                    'fastpixel_params_exclusions'       => implode("\r\n", []),
+                    'fastpixel_speculation_rules'       => true,
+                    'fastpixel_speculation_mode'        => 'prerender',
+                    'fastpixel_speculation_eagerness'   => 'moderate',
                 ];
                 foreach($default_options as $option_name => $option_value) {
                     $this->functions->update_option($option_name, $option_value);
@@ -99,10 +93,6 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Plugin')) {
 
         public function deactivate()
         {
-            //checking nonce before any action
-            if (!defined('WP_CLI') && !check_admin_referer('deactivate-plugin_' . plugin_basename(FASTPIXEL_PLUGIN_FILE))) {
-                return false;
-            }
             //checking if user want to delete cached files
             if (isset($_GET['fastpixel-action']) && sanitize_text_field($_GET['fastpixel-action']) == 'delete_cached_files') {
                 //initializing filesystem

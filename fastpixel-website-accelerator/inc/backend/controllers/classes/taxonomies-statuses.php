@@ -92,8 +92,8 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Taxonomies_Statuses')) {
             $terms = get_terms([
                 'taxonomy'   => $this->selected_taxonomy,
                 'hide_empty' => false,
-                'orderby'    => 'name',
-                'order'      => 'asc',
+                'orderby'    => !empty($args['orderby']) ? $args['orderby'] : 'id',
+                'order'      => !empty($args['order']) ? $args['order'] : 'asc',
                 'offset'     => $args['offset'],
                 'number'     => $args['posts_per_page']
             ]);

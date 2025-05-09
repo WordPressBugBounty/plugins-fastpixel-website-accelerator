@@ -104,15 +104,11 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Excluded_Url_Params')) {
                         //if value is present and it matches then set exclusion to true, otherwise set exclusion to true
                         if (!empty($excluded_params[$key])) {
                             if (strtolower($excluded_params[$key]) == strtolower($value)) {
-                                //need to delete if url is excluded
-                                $this->functions->delete_cached_files($url_checked->get_url_path());
                                 return true;
                             } else {
                                 continue;
                             }
                         } else {
-                            //need to delete if url is excluded
-                            $this->functions->delete_cached_files($url_checked->get_url_path());
                             return true;
                         }
                     }

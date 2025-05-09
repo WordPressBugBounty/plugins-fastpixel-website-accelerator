@@ -25,6 +25,9 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Url')) {
             //Google Merchant
             "srsltid",
 
+            //Google
+            "_ga",
+
             // HubSpot (hsa_)
             "hsa_acc",
             "hsa_ad",

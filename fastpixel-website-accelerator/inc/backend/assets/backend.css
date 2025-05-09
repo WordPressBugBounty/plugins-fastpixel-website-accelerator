@@ -634,7 +634,7 @@
     font-weight: bold;
 }
 .fastpixel-presets-container .options-list {
-    margin: 0 0 0 30px;
+    margin: 10px 0 10px 30px;
     list-style-type: disc; 
     padding: 0;
     min-height: 340px;
@@ -650,14 +650,31 @@
 .fastpixel-presets-container .apply-preset {
     background-color: #21bbca;
     color: #ffffff;
-    margin: auto 0 20px 20px;
+    margin: auto auto 20px auto;
     padding: 10px;
     border-radius: 5px;
     border: none;
-    max-width: 150px;
+    width: 150px;
     cursor: pointer;
     font-weight: 600;
 }
+.fastpixel-presets-container .fastpixel-presets-box.active .apply-preset {
+    background-color: #116c7e;
+}
+.fastpixel-presets-container .fastpixel-presets-box .apply-preset .apply {
+    display: block;
+}
+.fastpixel-presets-container .fastpixel-presets-box .apply-preset .active {
+    display: none;
+}
+.fastpixel-presets-container .fastpixel-presets-box.active .apply-preset .active {
+    display: block;
+}
+.fastpixel-presets-container .fastpixel-presets-box.active .apply-preset .apply {
+    display: none;
+}
+
+
 .fastpixel-presets-container .apply-preset:hover {
         background: #32d7e5
 }

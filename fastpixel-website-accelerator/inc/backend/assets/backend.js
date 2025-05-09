@@ -467,8 +467,11 @@ document.addEventListener("DOMContentLoaded", function() {
     if (typeof(fastpixel_preset_settings) != "undefined") {
         jQuery('.fastpixel-presets-box .apply-preset').on('click', function (e) {
             e.preventDefault();
-            jQuery(this).data('preset');
-            if (preset_changed(jQuery(this).data('preset'))) {
+            const selected_preset = jQuery(this).data('preset');
+            if (jQuery('.fastpixel-presets-box.' + selected_preset).hasClass('active')) {
+                return false;
+            }
+            if (preset_changed(selected_preset)) {
                 const form = document.getElementById('fastpixel-settings-form');
                 form.submit();
             }

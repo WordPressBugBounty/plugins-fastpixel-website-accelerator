@@ -15,7 +15,7 @@ defined('ABSPATH') || exit; ?>
             <li>Font Optimization with safe fallback to original fonts</li>
             <li>Speculation Rules Disabled</li>
         </ul>
-        <button class="btn apply-preset" data-preset="safe">Apply Preset</button>
+        <button class="btn apply-preset" data-preset="safe"><span class="apply">Apply Preset</span><span class="active">Active</span></button>
     </div>
     <div class="fastpixel-presets-box basic">
         <div class="box-title">Balanced<span>(Active)</span></div>
@@ -28,7 +28,7 @@ defined('ABSPATH') || exit; ?>
             <li>Font Optimization with safe fallback to original fonts</li>
             <li>Moderate Speculation Rules</li>
         </ul>
-        <button class="btn apply-preset" data-preset="basic">Apply Preset</button>
+        <button class="btn apply-preset" data-preset="basic"><span class="apply">Apply Preset</span><span class="active">Active</span></button>
     </div>
     <div class="fastpixel-presets-box fast">
         <div class="box-title">Fast<span>(Active)</span></div>
@@ -42,6 +42,6 @@ defined('ABSPATH') || exit; ?>
             <li>Strong Font Optimization</li>
             <li>Eager Speculation Rules</li>
         </ul>
-        <button class="btn apply-preset" data-preset="fast">Apply Preset</button>
+        <button class="btn apply-preset" data-preset="fast"><span class="apply">Apply Preset</span><span class="active">Active</span></button>
     </div>
 </div>

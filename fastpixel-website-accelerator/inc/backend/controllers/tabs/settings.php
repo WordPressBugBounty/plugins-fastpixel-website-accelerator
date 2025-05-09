@@ -392,9 +392,10 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Settings')) {
             if ($purge_all) {
                 $backend_cache = FASTPIXEL_Backend_Cache::get_instance();
                 $backend_cache->purge_all();
-                $text_cleared = esc_html__('Cache has been cleared!', 'fastpixel-website-accelerator');
+                /* translators: for %1$s should be link to status page with text "here" which can be translated separately */
+                $text_cleared = sprintf(esc_html__('Cache has been cleared! Pages are now being optimized and cached - this may take a few minutes. Check the status %1$s.', 'fastpixel-website-accelerator'), '<a href="' . admin_url('admin.php?page=' . FASTPIXEL_TEXTDOMAIN) . '">' . esc_html__('here', 'fastpixel-website-accelerator') . '</a>');
             }
-            /* translators: for %1$s text "cache cleared!" should be used */
+            /* translators: for %1$s text is used which tells that cache was cleared and pages are being generated. This text is translated separately. */
             $notices->add_flash_notice(sprintf(esc_html__('Settings saved successfully. %1$s', 'fastpixel-website-accelerator'), $text_cleared), 'success', false);
         }
 

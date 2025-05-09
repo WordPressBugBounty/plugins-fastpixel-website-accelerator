@@ -72,8 +72,6 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Excluded_Urls')) {
                             FASTPIXEL_Debug::log('Excluded Urls regexp: match', preg_match($pattern, $prepared_req_url));
                         }
                         if (!empty($prepared_req_url) && preg_match($pattern, $prepared_req_url)) {
-                            //need to delete cache if url is excluded
-                            $this->functions->delete_cached_files($url->get_url_path());
                             return true;
                         }
                     } else {
@@ -85,8 +83,6 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Excluded_Urls')) {
                             FASTPIXEL_Debug::log('Excluded Urls direct: match', $prepared_req_url == $prepared_exc_url);
                         }
                         if (!empty($prepared_req_url) && $prepared_req_url == $prepared_exc_url) {
-                            //need to delete if url is excluded
-                            $this->functions->delete_cached_files($url->get_url_path());
                             return true;
                         }
                     }

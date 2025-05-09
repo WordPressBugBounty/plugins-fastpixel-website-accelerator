@@ -91,7 +91,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Posts_Table')) {
         public function prepare_items()
         {
             $columns = $this->get_columns();
-            $hidden = array('ID');
+            $hidden = array();
             $sortable = $this->get_sortable_columns();
             $primary = $this->get_default_primary_column_name();
             $this->_column_headers = array($columns, $hidden, $sortable, $primary);
@@ -135,6 +135,11 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Posts_Table')) {
         public function column_default($item, $column_name)
         {
             switch ($column_name) {
+                case 'ID':
+                    if ($item['ID'] == 'homepage') {
+                        return '';
+                    }
+                    return $item['ID'];
                 case 'post_title':
                 case 'url':
                 case 'display_status':
@@ -146,10 +151,9 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Posts_Table')) {
 
         protected function get_sortable_columns()
         {
-            $sortable_columns = array(
-                'ID'   => array('ID', false)
-            );
-            return $sortable_columns;
+            return [
+                'ID' => ['id', false, 'id', esc_html__('asc'), 'asc'],
+            ];
         }
 
         protected function display_tablenav($which)

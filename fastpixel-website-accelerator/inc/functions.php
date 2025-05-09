@@ -15,6 +15,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Functions')) {
         protected $wp_config_path;
         const FASTPIXEL_CACHE_VAR_NAME = 'WP_CACHE';
         protected $match_regexp = '/(\s*?)define\(\s*?[\'|"]' . self::FASTPIXEL_CACHE_VAR_NAME . '[\'|"]\s*?,\s*?(true|false)[^\)]*?\)\s*?;/im';
+        protected $cache_dir;
 
         public function __construct()
         {
@@ -33,6 +34,16 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Functions')) {
             $this->wp_cache_status = defined(self::FASTPIXEL_CACHE_VAR_NAME) ? constant(self::FASTPIXEL_CACHE_VAR_NAME) : false;
             $this->ac_sample       = FASTPIXEL_PLUGIN_DIR . DIRECTORY_SEPARATOR . 'advanced-cache.php';
             $this->ac_file         = WP_CONTENT_DIR . DIRECTORY_SEPARATOR . 'advanced-cache.php';
+            $this->cache_dir       = rtrim(WP_CONTENT_DIR, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'cache' . DIRECTORY_SEPARATOR . FASTPIXEL_TEXTDOMAIN;
+            //automatically create cache dir
+            if (!file_exists(rtrim(WP_CONTENT_DIR, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'cache')) {
+                // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir -- none available before WordPress is loaded.
+                @mkdir(rtrim(WP_CONTENT_DIR, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'cache'); //phpcs:ignore
+            }
+            if (!file_exists($this->cache_dir) && file_exists(rtrim(WP_CONTENT_DIR, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'cache')) {
+                // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir -- none available before WordPress is loaded.
+                @mkdir($this->cache_dir); //phpcs:ignore
+            }
         }
 
         public static function get_instance() 
@@ -45,7 +56,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Functions')) {
 
         public function get_cache_dir() 
         {
-            return rtrim(WP_CONTENT_DIR, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'cache' . DIRECTORY_SEPARATOR . FASTPIXEL_TEXTDOMAIN;
+            return $this->cache_dir;
         }
 
         public function get_wp_config_path() {
@@ -268,8 +279,13 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Functions')) {
                     }
                 }
             }
+            if (function_exists('wp_json_encode')) {
+                $encoded_meta = wp_json_encode($meta);
+            } else {
+                $encoded_meta = json_encode($meta);
+            }
             // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- none available before WordPress is loaded.
-            file_put_contents($cache_dir . DIRECTORY_SEPARATOR . $path . DIRECTORY_SEPARATOR . 'meta', wp_json_encode($meta)); //phpcs:ignore
+            file_put_contents($cache_dir . DIRECTORY_SEPARATOR . $path . DIRECTORY_SEPARATOR . 'meta', $encoded_meta); //phpcs:ignore
         }
 
         public function disable_emojis_tinymce($plugins)
@@ -312,7 +328,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Functions')) {
         {
             //initializing filesystem
             global $wp_filesystem;
-            if (empty($wp_filesystem)) {
+            if (empty($wp_filesystem) && file_exists(ABSPATH . '/wp-admin/includes/file.php')) {
                 require_once ABSPATH . '/wp-admin/includes/file.php';
                 WP_Filesystem();
             }
@@ -379,7 +395,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Functions')) {
             }
             //initializing filesystem
             global $wp_filesystem;
-            if (empty($wp_filesystem)) {
+            if (empty($wp_filesystem) && file_exists(ABSPATH . '/wp-admin/includes/file.php')) {
                 require_once ABSPATH . '/wp-admin/includes/file.php';
                 WP_Filesystem();
             }
@@ -415,7 +431,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Functions')) {
         public function check_path($url) {
             //initializing filesystem
             global $wp_filesystem;
-            if (empty($wp_filesystem)) {
+            if (empty($wp_filesystem) && file_exists(ABSPATH . '/wp-admin/includes/file.php')) {
                 require_once ABSPATH . '/wp-admin/includes/file.php';
                 WP_Filesystem();
             }
@@ -455,7 +471,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Functions')) {
         public function error_file($url, $action = 'add', $data = []) {
             //initializing filesystem
             global $wp_filesystem;
-            if (empty($wp_filesystem)) {
+            if (empty($wp_filesystem) && file_exists(ABSPATH . '/wp-admin/includes/file.php')) {
                 require_once ABSPATH . '/wp-admin/includes/file.php';
                 WP_Filesystem();
             }
@@ -550,6 +566,9 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Functions')) {
 
         public function user_is_logged_in()
         {
+            if (function_exists('is_user_logged_in')) {
+                return is_user_logged_in();
+            }
             $login_cookies = array(defined('FASTPIXEL_LOGGED_IN_COOKIE') ? FASTPIXEL_LOGGED_IN_COOKIE : (defined('LOGGED_IN_COOKIE') ? LOGGED_IN_COOKIE : ''));
             foreach ($login_cookies as $l_cookie) {
                 if (!empty($_COOKIE[$l_cookie])) {

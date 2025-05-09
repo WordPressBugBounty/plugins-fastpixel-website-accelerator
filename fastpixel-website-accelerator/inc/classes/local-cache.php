@@ -12,12 +12,16 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Local_Cache')) {
         protected $config;
         protected $page_content = '';
         protected $is_html_content = true;
+        protected $response_code = 200;
 
         public function __construct() {
             self::$instance = $this;
             //initializing functions and config
             $this->functions = FASTPIXEL_Functions::get_instance();
             $this->config    = FASTPIXEL_Config_Model::get_instance();
+            if (!defined('FASTPIXEL_ADVANCED_CACHE') || !FASTPIXEL_ADVANCED_CACHE) {
+                return;
+            }
             //starting output beffering on fastpixel/init, also checking if user is not logged in
             if (!$this->functions->user_is_logged_in()) {
                 add_action('fastpixel/cachefiles/exists', function($exists = false) {
@@ -35,6 +39,10 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Local_Cache')) {
             add_action('fastpixel/post/trashed', [$this, 'delete_file_on_trashed'], 10, 1);
             add_action('fastpixel/admin/purge_cache_by_url', [$this, 'delete_file_on_purge'], 10, 1);
             add_action('fastpixel/admin/purge_cache_by_id', [$this, 'delete_file_on_purge'], 10, 1);
+            //getting response code for extra check
+            add_action('fastpixel/shutdown', function () {
+                $this->response_code = http_response_code();
+            });
         }
 
         public static function get_instance()
@@ -68,15 +76,19 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Local_Cache')) {
                 }
                 return false;
             }
+            //checking response code, no need to save buffer if there was redirect
+            if (in_array($this->response_code, [300, 301, 302, 303, 307, 308])) {
+                return false;
+            }
             //if content is not empty, save it to file
             if (strlen($this->page_content) > 0 && $this->is_html_content) {
                 $this->file($url, 'add', $this->page_content);
+                ob_end_flush();
             } else {
                 if ($this->debug) {
                     FASTPIXEL_Debug::log('Class FASTPIXEL_Local_Cache: Buffer is empty');
                 }
             }
-            ob_end_flush();
         }
 
         protected function file($url, $action = 'add', $data = '')
@@ -89,7 +101,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Local_Cache')) {
 
             //initializing filesystem
             global $wp_filesystem;
-            if (empty($wp_filesystem)) {
+            if (empty($wp_filesystem) && file_exists(ABSPATH . '/wp-admin/includes/file.php')) {
                 require_once ABSPATH . '/wp-admin/includes/file.php';
                 WP_Filesystem();
             }
