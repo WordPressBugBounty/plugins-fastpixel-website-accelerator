@@ -49,6 +49,10 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_UI')) {
                 'class' => []
             ]
         ];
+        protected $pages = [
+            FASTPIXEL_TEXTDOMAIN,
+            FASTPIXEL_TEXTDOMAIN . '-settings'
+        ];
 
         public function __construct()
         {
@@ -73,10 +77,13 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_UI')) {
             //initializing tabs only when page is opened
             // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- wordpress page is accessed without any nonces, no data is posted.
             $page = isset($_GET['page']) ? sanitize_key($_GET['page']) : false;
-            if ($pagenow == 'admin.php' && $page && in_array($page, [FASTPIXEL_TEXTDOMAIN, FASTPIXEL_TEXTDOMAIN . '-settings'])) {
+            if ($pagenow == 'admin.php' && $page && in_array($page, $this->pages)) {
                 wp_enqueue_style('fastpixel_admin_css', FASTPIXEL_PLUGIN_URL . 'inc/backend/assets/backend.css?' . time(), [], FASTPIXEL_VERSION);
-                add_action('admin_init', [$this, 'init_tabs']);
+                if ($page == FASTPIXEL_TEXTDOMAIN . '-settings') {
+                    add_action('admin_init', [$this, 'init_tabs']);
+                }
                 add_action('load-toplevel_page_' . FASTPIXEL_TEXTDOMAIN, [$this, 'screen_options']);
+                add_action('load-toplevel_page_' . FASTPIXEL_TEXTDOMAIN . '-settings', [$this, 'screen_options']);
                 add_filter('set-screen-option', [$this, 'save_screen_options'], 10, 3);
             }
             //adding scripts only when page is opened
@@ -91,12 +98,28 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_UI')) {
                     'cache_now_text'           => esc_html__('Cache Now', 'fastpixel-website-accelerator'),
                     'purge_cache_text'         => esc_html__('Purge Cache', 'fastpixel-website-accelerator'),
                     'purge_post_link'          => sprintf('admin-post.php?action=%1$s&nonce=%2$s&post_id=', 'fastpixel_admin_purge_post_cache', wp_create_nonce('cache_status_nonce')),
-                    'deactivate_plugin_text'   => esc_html__('DEACTIVATED', 'fastpixel-website-accelerator')
+                    'deactivate_plugin_text'   => esc_html__('DEACTIVATED', 'fastpixel-website-accelerator'),
+                    'stats_url'                => rest_url(FASTPIXEL_TEXTDOMAIN . '/v1/stats'),
+                    'stats_reset_url'          => rest_url(FASTPIXEL_TEXTDOMAIN . '/v1/stats/reset'),
+                    'stats_nonce'              => wp_create_nonce('wp_rest'),
+
                 ]);
                 global $pagenow;
                 // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- wordpress page is accessed without any nonces, no data is posted.
                 $page = isset($_GET['page']) ? sanitize_key($_GET['page']) : false;
-                if ($pagenow == 'admin.php' && $page && in_array($page, [FASTPIXEL_TEXTDOMAIN, FASTPIXEL_TEXTDOMAIN . '-settings'])) {
+                if ($pagenow == 'admin.php' && $page && in_array($page, $this->pages)) {
+                    //scripts for statistics page
+                    if ($page == FASTPIXEL_TEXTDOMAIN . '-settings') {
+                        wp_enqueue_script('chart-js', 'https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js', [], '3.7.1', true);
+                        $stats_instance = FASTPIXEL_Stats::get_instance();
+                        $stats = $stats_instance->get_stats();
+                        wp_localize_script('fastpixel-backend', 'fastpixel_backend_stats', [
+                            'cache_hits_text'       => __('Cache Hits', 'fastpixel-website-accelerator'),
+                            'cache_misses_text'     => __('Cache Misses', 'fastpixel-website-accelerator'),
+                            'data' => $stats
+                        ]);
+                    }
+                    wp_enqueue_script('fastpixel-chatbase', FASTPIXEL_PLUGIN_URL . 'inc/backend/assets/chatbase.js', [], FASTPIXEL_VERSION, false);
                     wp_enqueue_script('fastpixel-backend');
                 }
             });
@@ -186,7 +209,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_UI')) {
         {
             $screen = get_current_screen();
             // get out of here if we are not on our settings page
-            if (!is_object($screen) || $screen->id != 'toplevel_page_' . FASTPIXEL_TEXTDOMAIN) {
+            if (!is_object($screen) || !in_array($screen->id, ['toplevel_page_' . FASTPIXEL_TEXTDOMAIN, 'toplevel_page_' . FASTPIXEL_TEXTDOMAIN . '-settings'])) {
                 return;
             }
             $args = array(
@@ -228,31 +251,110 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_UI')) {
             if (!$this->check_capabilities()) {
                 return;
             }
-            $page_tabs = array('settings', 'javascript', 'images', 'fonts', 'diagnostics', 'presets', 'compatibility', 'integrations', 'help_center');
+            FASTPIXEL_Debug::log('Rendering FastPixel settings page');
+            $page_tabs = [
+                'cache-status',
+                'presets',
+                [
+                    'group'    => 'settings',
+                    'label'    => esc_html__('Settings', 'fastpixel-website-accelerator'),
+                    'icon'     => 'settings',
+                    'children' => [
+                        ['slug' => 'pages', 'icon' => 'page'],
+                        ['slug' => 'css', 'icon' => 'css'],
+                        'javascript',
+                        'images',
+                        'fonts',
+                        'compatibility',
+                        'integrations'
+                    ]
+                ],
+                'diagnostics',
+                //Disabled for now, TODO enable later 'statistics',
+                'help_center'
+            ];
             echo '<hr class="wp-header-end"><hr class="fastpixel-header-hr"><div class="wrap fastpixel-website-accelerator-wrap">';
             echo wp_kses($this->header('settings'), $this->allowed_tags);
             echo '<article class="fastpixel-settings" id="fastpixel-tabs"><menu><ul>';
+            $tab_map = [];
             foreach ($this->tabs as $tab) {
-                if (!in_array($tab->get_slug(), $page_tabs) || !$tab->is_enabled()) {
+                if ($tab->is_enabled()) {
+                    $tab_map[$tab->get_slug()] = $tab;
+                }
+            }
+            $menu_items = [];
+            $allowed_slugs = [];
+            foreach ($page_tabs as $tab_entry) {
+                if (is_array($tab_entry) && isset($tab_entry['children'])) {
+                    $children = [];
+                    foreach ($tab_entry['children'] as $child_entry) {
+                        $child_slug = is_array($child_entry) ? ($child_entry['slug'] ?? null) : $child_entry;
+                        if (!$child_slug || !isset($tab_map[$child_slug])) {
+                            continue;
+                        }
+                        $child_tab = $tab_map[$child_slug];
+                        $children[] = [
+                            'tab'  => $child_tab,
+                            'icon' => is_array($child_entry) && isset($child_entry['icon']) ? $child_entry['icon'] : strtolower($child_tab->get_slug())
+                        ];
+                        $allowed_slugs[] = $child_slug;
+                    }
+                    if ($children) {
+                        $menu_items[] = [
+                            'type'     => 'group',
+                            'label'    => $tab_entry['label'] ?? '',
+                            'icon'     => $tab_entry['icon'] ?? 'settings',
+                            'children' => $children,
+                        ];
+                    }
                     continue;
                 }
-                echo '<li data-slug="' . esc_attr($tab->get_slug()) . '"><a class="fastpixel-tab" href="#' . esc_attr($tab->get_slug()) . '"><i class="fastpixel-icon '. esc_attr(strtolower($tab->get_slug())) .'"></i>' . wp_kses_post($tab->get_name()) . '</a></li>';
+                if (is_string($tab_entry) && isset($tab_map[$tab_entry])) {
+                    $menu_items[] = [
+                        'type' => 'tab',
+                        'tab'  => $tab_map[$tab_entry],
+                    ];
+                    $allowed_slugs[] = $tab_entry;
+                }
+            }
+            foreach ($menu_items as $menu_item) {
+                if ($menu_item['type'] === 'group') {
+                    echo '<li class="fastpixel-settings-parent"><button type="button" class="fastpixel-settings-toggle" aria-expanded="true"><i class="fastpixel-icon ' . esc_attr($menu_item['icon']) . '"></i>' . wp_kses_post($menu_item['label']) . '<span class="fastpixel-settings-caret" aria-hidden="true"></span></button></li>';
+                    foreach ($menu_item['children'] as $settings_tab) {
+                        $child_tab = $settings_tab['tab'];
+                        $child_slug = $child_tab->get_slug();
+                        $icon_slug = $settings_tab['icon'];
+                        echo '<li class="fastpixel-settings-child" data-slug="' . esc_attr($child_slug) . '"><a class="fastpixel-tab" href="#' . esc_attr($child_slug) . '"><i class="fastpixel-icon ' . esc_attr($icon_slug) . '"></i>' . wp_kses_post($child_tab->get_name()) . '</a></li>';
+                    }
+                    continue;
+                }
+                $tab = $menu_item['tab'];
+                $slug = $tab->get_slug();
+                echo '<li data-slug="' . esc_attr($slug) . '"><a class="fastpixel-tab" href="#' . esc_attr($slug) . '"><i class="fastpixel-icon '. esc_attr(strtolower($slug)) .'"></i>' . wp_kses_post($tab->get_name()) . '</a></li>';
             }
             echo '</ul>';
             echo '</menu><section class="wrapper">';
-            echo '<form id="fastpixel-settings-form" name="fastpixel-settings-form" method="post">';
-            wp_nonce_field('fastpixel-settings', 'fastpixel-nonce', false);
-            echo '<input type="hidden" name="fastpixel-action" value="save_settings" />';
+            $form_open = false;
             foreach ($this->tabs as $tab) {
-                if (!in_array($tab->get_slug(), $page_tabs) || !$tab->is_enabled()) {
+                if (!in_array($tab->get_slug(), $allowed_slugs, true) || !$tab->is_enabled()) {
                     continue;
+                }
+                if ($tab->get_slug() !== 'cache-status' && !$form_open) {
+                    echo '<form id="fastpixel-settings-form" name="fastpixel-settings-form" method="post">';
+                    wp_nonce_field('fastpixel-settings', 'fastpixel-nonce', false);
+                    echo '<input type="hidden" name="fastpixel-action" value="save_settings" />';
+                    $form_open = true;
                 }
                 echo '<section id="' . esc_attr($tab->get_slug()) . '" class="fastpixel-options-tab"><settinglist><h2>' . $tab->get_name() . '</h2>'; //phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
                 $tab->view();
                 echo '</settinglist></section>';
             }
-            echo '</form></div>';
+            if ($form_open) {
+                echo '</form>';
+            }
+            echo '</section></article></div>';
         }
+
         public function deactivation_popup()
         {
             global $pagenow;
@@ -355,35 +457,36 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_UI')) {
                 $page_on_front = get_option('page_on_front');
                 $args = [];
                 if (!$page_on_front && is_home()) {
-                    $link = admin_url('admin.php?page=' . FASTPIXEL_TEXTDOMAIN . '&fastpixel-action=fastpixel_purge_single_cache&purge_id=homepage');
+                    $args = ['id' => 'homepage', 'post_type' => 'homepage', 'url' => home_url('/')];
+                    $link = admin_url('admin.php?page=' . FASTPIXEL_TEXTDOMAIN . '-settings&fastpixel-action=fastpixel_purge_single_cache&purge_id=homepage');
                 } else if (is_tag() || is_tax() || is_category()) {
                     $tax = get_term(get_queried_object());
                     if (isset($tax->term_id) && !empty($tax->term_id)) {
                         $args = ['id' => $tax->term_id, 'post_type' => 'taxonomy', 'url' => get_term_link($tax->term_id)];
-                        $link = admin_url('admin.php?page=' . FASTPIXEL_TEXTDOMAIN . '&fastpixel-action=fastpixel_purge_single_cache&purge_id=' . $tax->term_id . '&purge_type=taxonomy');
+                        $link = admin_url('admin.php?page=' . FASTPIXEL_TEXTDOMAIN . '-settings&fastpixel-action=fastpixel_purge_single_cache&purge_id=' . $tax->term_id . '&purge_type=taxonomy');
                     }
                 } else if (is_author()) {
                     $author = get_queried_object();
                     if (isset($author->ID) && !empty($author->ID)) {
                         $args = ['id' => $author->ID, 'post_type' => 'author', 'url' => get_author_posts_url($author->ID)];
-                        $link = admin_url('admin.php?page=' . FASTPIXEL_TEXTDOMAIN . '&fastpixel-action=fastpixel_purge_single_cache&purge_id=' . $author->ID . '&purge_type=author');
+                        $link = admin_url('admin.php?page=' . FASTPIXEL_TEXTDOMAIN . '-settings&fastpixel-action=fastpixel_purge_single_cache&purge_id=' . $author->ID . '&purge_type=author');
                     }
                 } else if (is_archive()) {
                     $archive = get_queried_object();
                     if (isset($archive->name) && !empty($archive->name)) {
                         $args = ['id' => $archive->name, 'post_type' => 'archive', 'url' => get_post_type_archive_link($archive->name)];
-                        $link = admin_url('admin.php?page=' . FASTPIXEL_TEXTDOMAIN . '&fastpixel-action=fastpixel_purge_single_cache&purge_id=' . $archive->name . '&purge_type=archive');
+                        $link = admin_url('admin.php?page=' . FASTPIXEL_TEXTDOMAIN . '-settings&fastpixel-action=fastpixel_purge_single_cache&purge_id=' . $archive->name . '&purge_type=archive');
                     }
                 } else if (is_single() || is_page()) {
                     global $post;
                     if (isset($post->ID) && !empty($post->ID) && is_numeric($post->ID)) {
                         $args = ['id' => $post->ID, 'post_type' => $post->post_type, 'url' => get_permalink($post->ID)];
-                        $link = admin_url('admin.php?page=' . FASTPIXEL_TEXTDOMAIN . '&fastpixel-action=fastpixel_purge_single_cache&purge_id=' . $post->ID . '&purge_type=' . $post->post_type);
+                        $link = admin_url('admin.php?page=' . FASTPIXEL_TEXTDOMAIN . '-settings&fastpixel-action=fastpixel_purge_single_cache&purge_id=' . $post->ID . '&purge_type=' . $post->post_type);
                     }
                 }
                 $excluded = apply_filters('fastpixel/admin_bar/purge_this_button_exclude', false, $args);
                 if (isset($link) && !empty($link)) {
-                    $href = esc_url(wp_nonce_url($link, 'fastpixel_purge_cache', 'fastpixel_cache_nonce'));
+                    $href = esc_url(wp_nonce_url($link, 'fastpixel_purge_cache', 'fastpixel_cache_nonce')) . '#cache-status';
                     $title = esc_html__('Purge This Page Cache', 'fastpixel-website-accelerator');
                     if ($excluded) {
                         $href = '#';
@@ -398,6 +501,26 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_UI')) {
                             'class'  => $excluded ? 'fastpixel-excluded' : ''
                         ]
                     ]);
+                    if (!empty($args['url'])) {
+                        $toggle = $excluded ? 'include' : 'exclude';
+                        $toggle_title = $excluded ? esc_html__('Remove Exclusion', 'fastpixel-website-accelerator') : esc_html__('Exclude This Page', 'fastpixel-website-accelerator');
+                        $toggle_link = add_query_arg([
+                            'action'      => 'fastpixel_admin_toggle_exclusion',
+                            'current_url' => $args['url'],
+                            'toggle'      => $toggle,
+                            'redirect_to' => $args['url']
+                        ], admin_url('admin-post.php'));
+                        $toggle_link = wp_nonce_url($toggle_link, 'cache_status_nonce', 'nonce');
+                        $wp_admin_bar->add_node([
+                            'id'     => 'fastpixel-top-' . FASTPIXEL_TEXTDOMAIN . '-toggle-exclusion',
+                            'parent' => 'fastpixel-top-' . FASTPIXEL_TEXTDOMAIN . '-menu',
+                            'href'   => esc_url($toggle_link),
+                            'title'  => $toggle_title,
+                            'meta'   => [
+                                'class' => $excluded ? 'fastpixel-excluded' : ''
+                            ]
+                        ]);
+                    }
                 }
             }
         }

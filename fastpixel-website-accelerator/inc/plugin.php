@@ -17,6 +17,9 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Plugin')) {
             if (is_admin() || defined('WP_CLI')) {
                 $this->admin_init();
             }
+            //if the plugin version has changed, delete as soon as possible the advanced-cache.php file and regenerate it on init.
+            add_action('plugins_loaded', [$this, 'maybe_cleanup_ac_file']);
+            add_action('init', [$this, 'maybe_regenerate_ac_file']);
             add_action('wp_ajax_fastpixel_deactivate_plugin_feedback', [$this, 'feedback']);
         }
 
@@ -89,6 +92,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Plugin')) {
             //running purge_all on init
             $be_cache = FASTPIXEL_Backend_Cache::get_instance();
             $be_cache->purge_all();
+            $this->functions->update_option('fastpixel_plugin_version', FASTPIXEL_VERSION);
         }
 
         public function deactivate()
@@ -126,6 +130,36 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Plugin')) {
             }
             echo json_encode(['status' => true]);
             wp_die();
+        }
+
+        public function maybe_cleanup_ac_file()
+        {
+            $stored_version = $this->functions->get_option('fastpixel_plugin_version');
+            if ($stored_version !== FASTPIXEL_VERSION) {
+                $ac_path = $this->functions->get_ac_file_path();
+                if ($ac_path && file_exists($ac_path)) {
+                    wp_delete_file($ac_path);
+                }
+            }
+        }
+
+        public function maybe_regenerate_ac_file()
+        {
+            $stored_version = $this->functions->get_option('fastpixel_plugin_version');
+            if ($stored_version === FASTPIXEL_VERSION) {
+                return;
+            }
+            $diag = FASTPIXEL_Diag::get_instance();
+            if ($diag->run_activation_tests()) {
+                $file_updated = $this->functions->update_ac_file();
+                if ($file_updated) {
+                    $this->functions->update_option('fastpixel_plugin_version', FASTPIXEL_VERSION);
+                    return;
+                }
+                FASTPIXEL_Debug::log('Advanced cache file could not be regenerated during init');
+            } else {
+                FASTPIXEL_Debug::log('Activation tests failed; advanced cache file not regenerated during init');
+            }
         }
     }
     new FASTPIXEL_Plugin();

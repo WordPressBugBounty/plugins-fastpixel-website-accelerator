@@ -99,11 +99,10 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Posts_Table')) {
             $fastpixel_per_page = $this->get_items_per_page('fastpixel_per_page', 20);
             $per_page = apply_filters('fastpixel/status_page/posts_per_page', $fastpixel_per_page);
             $current_page = $this->get_pagenum();
-            $offset = ($current_page - 1) * $per_page;
             $args = array(
                 'post_type'      => $this->selected_post_type,
                 'posts_per_page' => $per_page,
-                'offset'         => $offset,
+                'paged'          => $current_page,
                 'current_page'   => $current_page
             );
             if ($this->posts_order && in_array(strtolower($this->posts_order), array('asc', 'desc'))) {
@@ -164,11 +163,12 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Posts_Table')) {
                 $order = isset($_GET['order']) ? sanitize_key($_GET['order']) : false; //phpcs:ignore
                 // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- wordpress page is accessed without any nonces, no data is posted.
                 $orderby = isset($_GET['orderby']) ? sanitize_key($_GET['orderby']) : false; //phpcs:ignore
-                $output .= '<form method="get" action="' . esc_url(admin_url('admin.php?page=' . FASTPIXEL_TEXTDOMAIN)) . '">'; 
+                $output .= '<form method="get" action="' . esc_url(admin_url('admin.php')) . '">';
             } 
             $output .= $this->display_search($which); 
             $output .=  '<div class="tablenav ' . esc_attr($which) . '">
-            <input type="hidden" name="page" value="' . esc_html(FASTPIXEL_TEXTDOMAIN) . '" />
+            <input type="hidden" name="page" value="' . esc_html(FASTPIXEL_TEXTDOMAIN . '-settings') . '" />
+            <input type="hidden" name="tab" value="cache-status" />
             ' . (isset($orderby) && $orderby ? '<input type="hidden" name="orderby" value="' . esc_html($orderby) . '" />' : '')
             . (isset($order) && $order ? '<input type="hidden" name="order" value="' . esc_html($order) . '" />' : ''); 
             if ($this->has_items()) {
@@ -279,7 +279,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Posts_Table')) {
                     }
                 }
                 $args = array(
-                    'page'    => FASTPIXEL_TEXTDOMAIN, 
+                    'page'    => FASTPIXEL_TEXTDOMAIN . '-settings',
                     'paged'   => $this->get_pagenum(), 
                     'ptype'   => $this->selected_post_type,
                     'order'   => $this->posts_order,
@@ -291,7 +291,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Posts_Table')) {
                 
                 /* translators: %1 should be a posts count, %2 post type name */
                 $notices->add_flash_notice(sprintf(esc_html__('Cache has been purged for %1$d %2$s', 'fastpixel-website-accelerator'), esc_html($r_count), esc_html($post_type_name)), 'success', false);
-                wp_redirect(esc_url_raw(add_query_arg($args, admin_url('admin.php'))));
+                wp_redirect(esc_url_raw(add_query_arg($args, admin_url('admin.php'))) . '#cache-status');
                 exit;
             }
         }

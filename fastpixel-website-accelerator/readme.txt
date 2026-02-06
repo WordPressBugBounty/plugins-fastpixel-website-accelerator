@@ -2,9 +2,9 @@
 Contributors: shortpixel
 Tags: speed, cache, caching, performance, web vitals
 Requires at least: 6.0
-Tested up to: 6.8
+Tested up to: 6.9
 Requires PHP: 5.6
-Stable tag: 1.0.48
+Stable tag: 1.2.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -202,6 +202,60 @@ For more detailed information on how to use the plugin or the API, troubleshooti
 
 == Changelog ==
 
+= 1.2.2 =
+
+🧵 Hotfix update
+
+Release Date: January 28, 2026
+
+* Fix two phase loading option
+
+= 1.2.1 =
+
+🧵 Hotfix update
+
+Release Date: January 27, 2026
+
+* Fix issue on some installs where notices are displayed if the server doesn't provide HTTP_ACCEPT_ENCODING
+
+= 1.2.0 =
+
+🧵 The CSS Update
+
+Release Date: January 21, 2026
+
+🚀 Enhancements
+
+* Custom CSS Tab: A brand-new CSS settings tab lets you easily add custom styles, perfect for critical CSS tweaks and advanced control.
+* Improved Settings Navigation: Settings are now grouped into a clean, collapsible menu — complete with new icons for Pages and CSS sections.
+* AI Chatbot Assistant: Need help fast? A new AI-powered chatbot is now available in the Dashboard for real-time guidance and support.
+
+🛠️ Fixes & Improvements
+
+* Smarter Cache Purge: Single-item cache purging is now more reliable for posts, taxonomies, archives, authors, and even the homepage.
+* Advanced-Cache Handling: The advanced-cache.php file now auto-regenerates on updates and supports overrides for the API host, debug mode, and cache directory.
+* Proxy Protocol Fix: Improved support for HTTP_X_FORWARDED_PROTO headers with comma-separated values for better compatibility in proxy setups.
+
+Update now to take control of your CSS, enjoy a cleaner UI, and benefit from smarter cache and proxy handling! 🚀
+
+= 1.1.0 =
+
+🎄 The Christmas Update
+
+Release Date: December 8th, 2025
+
+🎁 What's New
+
+* Unified Interface: The Cache Status page is now integrated into the Settings pages for a cleaner, more intuitive experience.
+* Smarter Exclusions: You can now exclude pages directly from the Cache Status/Dashboard and the top toolbar — easier access, faster workflows.
+* Scheduled Posts Support: Cache is now automatically purged when scheduled posts are published, so your visitors always see the latest content.
+* Search Function Fix: Resolved a bug affecting the search functionality to ensure reliable and more accurate results in multiple cases.
+* Improved Tooltips: Tooltips on the Cache Status page now appear on click instead of hover, making them easier to read and more mobile-friendly.
+* Minor Bug Fixes: Polished up a few small issues to keep everything running smoothly.
+
+Update now and enjoy a smoother, more festive FastPixel experience! 🎅🚀
+
+
 = 1.0.48 =
 
 🧭 The Clarity Update
@@ -210,10 +264,10 @@ Release Date: May 9, 2025
 
  ✨ Enhancements
 
-Smarter Notifications: We've fine-tuned our notifications to make them more relevant and easier to understand—especially when changing Settings or Presets.
-Cache Status by ID: You can now sort pages by ID in the Cache Status page, making it easier to track and manage which pages are cached.
-Streamlined Compression Settings: Reorganized the image compression levels for a cleaner look and added clearer explanations about WebP conversion and delivery.
-UI Polishing: Minor interface improvements for a more seamless user experience.
+* Smarter Notifications: We've fine-tuned our notifications to make them more relevant and easier to understand—especially when changing Settings or Presets.
+* Cache Status by ID: You can now sort pages by ID in the Cache Status page, making it easier to track and manage which pages are cached.
+* Streamlined Compression Settings: Reorganized the image compression levels for a cleaner look and added clearer explanations about WebP conversion and delivery.
+* UI Polishing: Minor interface improvements for a more seamless user experience.
 
 Update now to enjoy a cleaner, clearer, and more intuitive optimization workflow! 🚀
 

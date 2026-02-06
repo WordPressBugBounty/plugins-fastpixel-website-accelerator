@@ -11,9 +11,12 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Cron_Jobs')) {
         protected $functions;
         protected $config;
         protected $cron_path;
-        protected $cron_wait_time = 60 * 60; // 1 hour
+        protected $cron_wait_time = 60 * 10; // 10 mins
         public function __construct() {
             self::$instance = $this;
+            if (defined('DISABLE_WP_CRON') && DISABLE_WP_CRON) {
+                return; // If WP Cron is disabled, do not proceed
+            }
             //initializing functions and config
             $this->functions = FASTPIXEL_Functions::get_instance();
             $this->config    = FASTPIXEL_Config_Model::get_instance();
@@ -42,13 +45,11 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Cron_Jobs')) {
         }
 
         protected function check_timestamp() {
-            if (file_exists($this->cron_path)) {
-                $filemtime = filemtime($this->cron_path);
-                if (time() > ($filemtime + $this->cron_wait_time)) {
-                    add_filter('fastpixel/cache_files/run_cron', function () {
-                        return true;
-                    });
-                }
+            $filemtime = file_exists($this->cron_path) ? filemtime($this->cron_path) : 0;
+            if (time() > ($filemtime + $this->cron_wait_time)) {
+                add_filter('fastpixel/cache_files/run_cron', function () {
+                    return true;
+                });
             }
         }
     }

@@ -26,7 +26,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Controller')) {
         protected function do_redirect($redirect = 'self')
         {
             if (empty($redirect) || $redirect == 'self') {
-                $url = admin_url('admin.php?page=' . FASTPIXEL_TEXTDOMAIN);
+                $url = admin_url('admin.php?page=' . FASTPIXEL_TEXTDOMAIN . '-settings#cache-status');
                 $url = remove_query_arg('fastpixel-action', $url); // has url
             } else {
                 $url = $redirect;

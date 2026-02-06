@@ -6,10 +6,11 @@ if(!defined('FASTPIXEL_PLUGIN_DIR')){
     define('FASTPIXEL_PLUGIN_DIR', '%%FASTPIXEL_PLUGIN_DIR%%');
     define('FASTPIXEL_TEXTDOMAIN', '%%FASTPIXEL_TEXTDOMAIN%%');
     define('FASTPIXEL_LOGGED_IN_COOKIE', '%%FASTPIXEL_LOGGED_IN_COOKIE%%');
-    define('FASTPIXEL_API_HOST', '%%FASTPIXEL_API_HOST%%');
+    if (!defined('FASTPIXEL_API_HOST')) define('FASTPIXEL_API_HOST', '%%FASTPIXEL_API_HOST%%');
     define('FASTPIXEL_REST_URL', '%%FASTPIXEL_REST_URL%%');
-    define('FASTPIXEL_DEBUG', '%%FASTPIXEL_DEBUG%%');
+    if (!defined('FASTPIXEL_DEBUG'))    define('FASTPIXEL_DEBUG', '%%FASTPIXEL_DEBUG%%');
     define('FASTPIXEL_USE_SK', '%%FASTPIXEL_USE_SK%%');
+    define('FASTPIXEL_CACHE_DIR', '%%FASTPIXEL_CACHE_DIR%%');
     if (!is_admin() && file_exists(FASTPIXEL_PLUGIN_DIR)) {
         $includes = [
             'FASTPIXEL\FASTPIXEL_Debug'        => 'debug.php',

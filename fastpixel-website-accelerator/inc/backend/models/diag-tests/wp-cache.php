@@ -27,7 +27,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Diag_Test_Wp_Cache')) {
                 $this->passed = true;
                 return;
             }
-            $update_wp_cache_url = admin_url('admin.php?page=' . FASTPIXEL_TEXTDOMAIN . '&fastpixel-action=fastpixel_update_wp_cache&fastpixel-nonce=' . wp_create_nonce('fastpixel_update_wp_cache'));
+            $update_wp_cache_url = admin_url('admin.php?page=' . FASTPIXEL_TEXTDOMAIN . '-settings&fastpixel-action=fastpixel_update_wp_cache&fastpixel-nonce=' . wp_create_nonce('fastpixel_update_wp_cache'));
             if ($result['writable'] == false) {
                 /* translators: %s should be an url */
                 $message = esc_html__('Plugin is not working because WP_CACHE is not defined or set to FALSE. Due to wp-config.php is not writeable please enable WP_CACHE manually', 'fastpixel-website-accelerator');

@@ -64,6 +64,19 @@ cNYf7UGB8r71kAaNwQ727DRbVY54msbWqVVe/AtjQ8ZiTm7baPsLLzDMM1PQs/9x
 gwIDAQAB
 -----END PUBLIC KEY-----")
             ];
+
+            //Statistics endpoints
+            register_rest_route(FASTPIXEL_TEXTDOMAIN . '/v1', '/stats', [
+                'methods'             => 'GET',
+                'callback'            => [$this, 'get_stats'],
+                'permission_callback' => '__return_true'
+            ]);
+
+            register_rest_route(FASTPIXEL_TEXTDOMAIN . '/v1', '/stats/reset', [
+                'methods'             => 'POST',
+                'callback'            => [$this, 'reset_stats'],
+                'permission_callback' => '__return_true'
+            ]);
         }
 
         public static function get_instance()
@@ -111,6 +124,28 @@ gwIDAQAB
                 require_once ABSPATH . '/wp-admin/includes/file.php';
                 WP_Filesystem();
             }
+
+            if (isset($parameters['encoding']) && !empty($parameters['encoding'])) {
+                if ($parameters['encoding'] === 'gzip' && function_exists('gzdecode')) {
+                    // Decode the base64-encoded gzipped HTML content.
+                    $decoded = base64_decode($parameters['html']);
+                    if ($decoded === false) {
+                        if ($this->debug) {
+                            FASTPIXEL_Debug::log('REST API: error occurred while base64 decoding gzipped HTML content');
+                        }
+                        return false;
+                    }
+                    $decompressed = gzdecode($decoded);
+                    if ($decompressed === false) {
+                        if ($this->debug) {
+                            FASTPIXEL_Debug::log('REST API: error occurred while gzdecode decompressing HTML content');
+                        }
+                        return false;
+                    }
+                    $parameters['html'] = $decompressed;
+                }
+            }
+
             // Save the response body.
             if (!$wp_filesystem->put_contents($path . DIRECTORY_SEPARATOR . 'index.html', $parameters['html'])) {
                 if ($this->debug) {
@@ -163,6 +198,9 @@ gwIDAQAB
                 return new WP_REST_Response(['status' => 415, 'response' => 'Unsupported Media Type', 'body_response' => 'Unsupported Media Type'], 415);
             }
             $parameters = $request->get_json_params();
+            if ($this->debug) {
+                FASTPIXEL_DEBUG::log('WP REST API Params', $parameters);
+            }
             //checking for authorization key
             if ((!isset($parameters['siteKey']) || empty($parameters['siteKey'])) && (empty($request->get_header('authorization')))) {
                 if ($this->debug) {
@@ -345,6 +383,38 @@ gwIDAQAB
             }
             return new WP_REST_Response($data, 200);
         }
+
+        /**
+         * REST API endpoint to get stats
+         */
+        public function get_stats()
+        {
+            $nonce = isset($_SERVER['HTTP_X_WP_NONCE']) ? $_SERVER['HTTP_X_WP_NONCE'] : '';
+            if (!wp_verify_nonce($nonce, 'wp_rest')) {
+                wp_send_json_error([
+                    'message' => __('Invalid nonce', 'fastpixel-website-accelerator')
+                ]);
+            }
+            $statistics = FASTPIXEL_Stats::get_instance();
+            return rest_ensure_response($statistics->get_stats());
+        }
+
+        /**
+         * REST API endpoint to reset stats
+         */
+        public function reset_stats()
+        {
+            $nonce = isset($_SERVER['HTTP_X_WP_NONCE']) ? $_SERVER['HTTP_X_WP_NONCE'] : '';
+            if (!wp_verify_nonce($nonce, 'wp_rest')) {
+                wp_send_json_error([
+                    'message' => __('Invalid nonce', 'fastpixel-website-accelerator')
+                ]);
+            }
+            $statistics = FASTPIXEL_Stats::get_instance();
+            $result = $statistics->reset_stats();
+            return rest_ensure_response(['success' => $result]);
+        }
+
     }
     new FASTPIXEL_Rest_Api();
 }

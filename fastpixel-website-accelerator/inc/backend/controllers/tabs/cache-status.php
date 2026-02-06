@@ -7,12 +7,12 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Cache_Status')) {
     class FASTPIXEL_Tab_Cache_Status extends FASTPIXEL_UI_Tab {
         
         protected $slug = 'cache-status';
-        protected $order = 2;
+        protected $order = 1;
         private $table;
 
         public function __construct() {
             parent::__construct();
-            $this->name = esc_html__('Cache Status', 'fastpixel-website-accelerator');
+            $this->name = esc_html__('Dashboard', 'fastpixel-website-accelerator');
             $this->table = new FASTPIXEL_Posts_Table();
         }
 
@@ -23,7 +23,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Cache_Status')) {
         }
         public function get_link()
         {
-            return esc_url(admin_url('admin.php?page=' . FASTPIXEL_TEXTDOMAIN));
+            return esc_url(admin_url('admin.php?page=' . FASTPIXEL_TEXTDOMAIN . '-settings#cache-status'));
         }
     }
     new FASTPIXEL_Tab_Cache_Status();

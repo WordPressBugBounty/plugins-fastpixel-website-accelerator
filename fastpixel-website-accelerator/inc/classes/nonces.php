@@ -31,6 +31,10 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Nonces')) {
             }
             return self::$instance;
         }
+
+        public function get_lifetime() {
+            return $this->life_time;
+        }
     }
     new FASTPIXEL_Nonces();
 }

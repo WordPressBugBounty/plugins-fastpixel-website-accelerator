@@ -102,7 +102,33 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Post_Types_Statuses')) {
 
         public function get_posts_list($posts_list, $args) {
             $args['post_status'] = ['publish', 'private'];
+            $search_filter = null;
+            if (!empty($args['s'])) {
+                $original_search = $args['s'];
+                $slug_like = sanitize_title_with_dashes($original_search);
+                // make default search also work when hyphens are used by replacing them with spaces
+                $args['s'] = str_replace('-', ' ', $original_search);
+                $search_filter = function ($search, $query) use ($slug_like) {
+                    global $wpdb;
+                    $slug_like = trim($slug_like);
+                    if (empty($slug_like)) {
+                        return $search;
+                    }
+                    $extra = $wpdb->prepare(" OR {$wpdb->posts}.post_name LIKE %s", '%' . $wpdb->esc_like($slug_like) . '%');
+                    // if search already has a closing parenthesis, inject before it; otherwise append a new condition
+                    if (preg_match('/\)\s*$/', $search)) {
+                        $search = preg_replace('/\)\s*$/', $extra . ')', $search, 1);
+                    } else {
+                        $search .= ' AND (' . $wpdb->posts . '.post_name LIKE ' . $wpdb->prepare('%s', '%' . $wpdb->esc_like($slug_like) . '%') . ')';
+                    }
+                    return $search;
+                };
+                add_filter('posts_search', $search_filter, 10, 2);
+            }
             $wp_query = new \WP_Query($args);
+            if ($search_filter) {
+                remove_filter('posts_search', $search_filter, 10);
+            }
             $posts = $wp_query->get_posts();
             $this->total_items = $wp_query->found_posts;
             $this->total_pages = $wp_query->max_num_pages;
@@ -186,10 +212,28 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Post_Types_Statuses')) {
             } else {
                 $purge_cache_link = sprintf('<a class="fastpixel-purge-single" data-id="%1$s" href="%2$s">' . esc_html__('Purge Cache', 'fastpixel-website-accelerator') . '</a>', $purge_id, esc_url($purge_link));
             }
+            $is_excluded = $this->is_url_excluded_via_option($link);
+            $toggle_action = $is_excluded ? 'include' : 'exclude';
+            $toggle_text = $is_excluded ? esc_html__('Remove exclusion', 'fastpixel-website-accelerator') : esc_html__('Exclude', 'fastpixel-website-accelerator');
+            $toggle_link = wp_nonce_url(
+                admin_url(
+                    sprintf(
+                        'admin-post.php?action=%1$s&id=%2$s&type=%3$s&selected_of_type=%4$s&toggle=%5$s',
+                        'fastpixel_admin_toggle_exclusion',
+                        $purge_id,
+                        $this->type,
+                        $this->selected_post_type,
+                        $toggle_action
+                    )
+                ),
+                'cache_status_nonce',
+                'nonce'
+            );
             $actions = array(
                 'view'        => sprintf('<a href="%s" target="_blank">' . esc_html__('Preview', 'fastpixel-website-accelerator') . '</a>', esc_url($link)),
                 'edit'        => sprintf('<a href="%s">' . esc_html__('Edit', 'fastpixel-website-accelerator') . '</a>', esc_url($edit_link)),
-                'purge_cache' => $purge_cache_link
+                'purge_cache' => $purge_cache_link,
+                'toggle_exclusion' => sprintf('<a class="fastpixel-toggle-exclusion" href="%s">%s</a>', esc_url($toggle_link), $toggle_text)
             );
             //adding delete cached files action for stale items
             if (
@@ -373,6 +417,30 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Post_Types_Statuses')) {
             return $items;
         }
 
+        protected function is_url_excluded_via_option($url)
+        {
+            $path = '';
+            if (!empty($url)) {
+                $url_obj = new FASTPIXEL_Url($url);
+                $path = $url_obj->get_path();
+                if ($path !== '/') {
+                    $path = untrailingslashit($path) . '/';
+                }
+            }
+            if (empty($path)) {
+                return false;
+            }
+            $exclusions = $this->functions->get_option('fastpixel_exclusions');
+            $exclusions = is_string($exclusions) ? preg_split('/\r\n|\r|\n/', $exclusions) : [];
+            $exclusions = array_filter(array_map(function ($item) {
+                $item = trim(strtolower($item));
+                if ($item === '/') {
+                    return '/';
+                }
+                return !empty($item) ? $item : null;
+            }, $exclusions));
+            return in_array($path, $exclusions, true);
+        }
     }
 
     new FASTPIXEL_Post_Types_Statuses();

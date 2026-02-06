@@ -1,11 +1,45 @@
 document.addEventListener("DOMContentLoaded", function() {
     let h;
+    const settingsGroupSlugs = ['pages', 'css', 'javascript', 'images', 'fonts', 'compatibility', 'integrations'];
+    const $settingsParent = jQuery('.fastpixel-settings-parent');
+    const $settingsToggle = jQuery('.fastpixel-settings-toggle');
+    const $settingsChildren = jQuery('.fastpixel-settings-child');
+
+    function fastpixelSetSettingsGroupState(open) {
+        if (!$settingsParent.length) {
+            return;
+        }
+        const collapsed = !open;
+        $settingsParent.toggleClass('collapsed', collapsed);
+        $settingsToggle.attr('aria-expanded', open ? 'true' : 'false');
+        $settingsChildren.toggleClass('collapsed', collapsed);
+    }
+
+    function fastpixelEnsureSettingsGroupOpenFor(slug) {
+        if (!$settingsParent.length || !slug) {
+            return;
+        }
+        if (settingsGroupSlugs.indexOf(slug) !== -1) {
+            fastpixelSetSettingsGroupState(true);
+        }
+    }
+
+    if ($settingsToggle.length) {
+        $settingsToggle.on('click', function(e) {
+            e.preventDefault();
+            const collapsed = $settingsParent.hasClass('collapsed');
+            fastpixelSetSettingsGroupState(collapsed);
+        });
+    }
+
     jQuery("#fastpixel-tabs").tabs({
         create: function (e, ui) {
             h = "#" + ui.panel.attr("id"); 
+            fastpixelEnsureSettingsGroupOpenFor(ui.panel.attr("id"));
         },
         activate: function (e, ui) {
             h = "#" + ui.newPanel.attr("id");
+            fastpixelEnsureSettingsGroupOpenFor(ui.newPanel.attr("id"));
             window.history.pushState(null, null, h);
             const mobile_menu = jQuery('.fastpixel-mobile-header-menu');
             if (mobile_menu.hasClass('opened')) {
@@ -14,6 +48,7 @@ document.addEventListener("DOMContentLoaded", function() {
             }
         }
     });
+    fastpixelSetSettingsGroupState(true);
     function fastpixelOnHashChange() {
         let hash = window.location.hash.replace('#', '');
         let index = jQuery('#fastpixel-tabs').find('li[data-slug="' + hash + '"').index();
@@ -54,24 +89,32 @@ document.addEventListener("DOMContentLoaded", function() {
     
     //status page
     jQuery(function($) {
-        var moveLeft = -400;
-        var moveDown = 0;
-        $('.fastpixel-website-accelerator-wrap').on('mouseenter', 'span.have-popup', function(e) {
-            if (jQuery(this).hasClass('queued') || jQuery(this).hasClass('invalidated')) {
-                jQuery(this).parent().next('.pop-up').show();
-            } else {
-                jQuery(this).next('.pop-up').show();
+        const moveLeft = -400;
+        const moveDown = 0;
+        function getPopup(el) {
+            if (jQuery(el).hasClass('queued') || jQuery(el).hasClass('invalidated')) {
+                return jQuery(el).parent().next('.pop-up');
+            }
+            return jQuery(el).next('.pop-up');
+        }
+        function hideAllPopups() {
+            jQuery('.fastpixel-website-accelerator-wrap .pop-up').hide();
+        }
+        $('.fastpixel-website-accelerator-wrap').on('click', 'span.have-popup', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const popup = getPopup(this);
+            const isVisible = popup.is(':visible');
+            hideAllPopups();
+            if (!isVisible) {
+                popup.css('top', e.pageY + moveDown).css('left', e.pageX + moveLeft).show();
             }
         });
-        $('.fastpixel-website-accelerator-wrap').on('mouseleave', 'span.have-popup', function() {
-            if (jQuery(this).hasClass('queued') || jQuery(this).hasClass('invalidated')) {
-                jQuery(this).parent().next('.pop-up').hide();
-            } else {
-                jQuery(this).next('.pop-up').hide();
+        $(document).on('click', function (e) {
+            const target = jQuery(e.target);
+            if (!target.closest('.pop-up').length && !target.closest('span.have-popup').length) {
+                hideAllPopups();
             }
-        });
-        $('.fastpixel-website-accelerator-wrap').on('mousemove', 'span.have-popup', function (e) {
-            jQuery(this).next('.pop-up').css('top', e.pageY + moveDown).css('left', e.pageX + moveLeft);
         });
     });
 
@@ -252,6 +295,26 @@ document.addEventListener("DOMContentLoaded", function() {
         }, 3000);
     }
 
+    function normalizeRowActions(actions) {
+        if (!actions || actions.length < 1) {
+            return;
+        }
+        const spans = actions.children('span');
+        spans.each(function () {
+            jQuery(this).contents().filter(function () {
+                return this.nodeType === 3 && jQuery.trim(this.nodeValue) === '|';
+            }).remove();
+        });
+        const orderedSpans = spans.toArray();
+        actions.empty();
+        orderedSpans.forEach(function (el, index) {
+            actions.append(el);
+            if (index < orderedSpans.length - 1) {
+                actions.append(document.createTextNode(' | '));
+            }
+        });
+    }
+
     function updatePostRow(data) {
         //checking input data
         if (typeof(data) !== 'object' || jQuery.isEmptyObject(data) || data == null) {
@@ -316,18 +379,17 @@ document.addEventListener("DOMContentLoaded", function() {
                             actions.find('span.purge_cache').children('a').text(cache_btn_text);
                         } else {
                             actions.append(jQuery('<span class="purge_cache"></span>').append(jQuery('<a class="fastpixel-purge-single" href="' + fastpixel_backend_status.purge_link + row.id + '" data-id="' + row.id + '"></a>').append(cache_btn_text)));
-                            actions.find('span.purge_cache').prev().append(" | ");
                         }
                     }
 
                     //then we need to check "delete cached files" link
                     if (row.status == 'stale' && actions.find('span.delete_cached').length < 1) {
-                        actions.find('span.purge_cache').append(" | ");
                         actions.append(jQuery('<span class="delete_cached"></span>').append(jQuery('<a class="fastpixel-delete-cached-files-single" href="' + fastpixel_backend_status.delete_cached_link + row.id + '" data-id="' + row.id + '"></a>').append(fastpixel_backend.delete_cached_files_text)));
                     } else if (row.status !== 'stale') {
                         actions.find('span.purge_cache').html(actions.find('span.purge_cache').children('a'));
                         actions.find('span.delete_cached').remove();
                     }
+                    normalizeRowActions(actions);
                 }
             }
         }
@@ -571,4 +633,223 @@ document.addEventListener("DOMContentLoaded", function() {
             jQuery('article.fastpixel-settings menu').removeClass('closed').addClass('opened'); //menu
         }
     });
+
+    /**
+     * FastPixel Statistics Page
+     */
+    // Initialization
+    if (jQuery('.fastpixel-website-accelerator-statistics').length > 0) {
+        initCharts();
+        setupEventListeners();
+    };
+
+    /**
+    * Initialize the charts
+    */
+    function initCharts() {
+        // Get data from page inline script if exists
+        if (typeof(fastpixel_backend_stats) != 'undefined' && typeof(fastpixel_backend_stats.data) != 'undefined') {
+            renderDailyChart(fastpixel_backend_stats.data.daily);
+            renderHourlyChart(fastpixel_backend_stats.data.hourly);
+        } else {
+            // Fetch data from the REST API
+            jQuery.ajax({
+                url: fastpixel_backend.stats_url,
+                method: 'GET',
+                beforeSend: function (xhr) {
+                    xhr.setRequestHeader('X-WP-Nonce', fastpixel_backend.stats_nonce);
+                },
+                success: function (response) {
+                    renderDailyChart(response.daily);
+                    renderHourlyChart(response.hourly);
+                },
+                error: function (error) {
+                    console.error('Error fetching stats:', error);
+                }
+            });
+        }
+    }
+
+    /**
+    * Set up event listeners
+    */
+    function setupEventListeners() {
+        // Reset stats button
+        jQuery('#fastpixel-reset-stats').on('click', function () {
+            if (confirm('Are you sure you want to reset all cache statistics? This action cannot be undone.')) {
+                resetStats();
+            }
+        });
+    }
+
+    /**
+    * Reset all statistics
+    */
+    function resetStats() {
+        jQuery.ajax({
+            url: fastpixel_backend.stats_reset_url,
+            method: 'POST',
+            beforeSend: function (xhr) {
+                xhr.setRequestHeader('X-WP-Nonce', fastpixel_backend.stats_nonce);
+            },
+            success: function (response) {
+                if (response.success) {
+                    window.location.reload();
+                } else {
+                    alert('Failed to reset stats. Please try again.');
+                }
+            },
+            error: function (error) {
+                console.error('Error resetting stats:', error);
+                alert('Failed to reset stats. Please try again.');
+            }
+        });
+    }
+
+    function getDataSets(hits, misses) {
+        var cache_hits_text, cache_misses_text;
+        if (typeof (fastpixel_backend_stats) == 'undefined' || typeof (fastpixel_backend_stats.cache_hits_text) == 'undefined') {
+            cache_hits_text = 'Cache Hits';
+        } else {
+            cache_hits_text = fastpixel_backend_stats.cache_hits_text;
+        }
+        if (typeof (fastpixel_backend_stats) == 'undefined' || typeof (fastpixel_backend_stats.cache_misses_text) == 'undefined') {
+            cache_misses_text = 'Cache Misses';
+        } else {
+            cache_misses_text = fastpixel_backend_stats.cache_misses_text;
+        }
+        return [
+        {
+            label: cache_hits_text,
+            data: hits,
+            borderColor: 'rgba(54, 162, 235, 1)',
+            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+            tension: 0.4
+        }, {
+            label: cache_misses_text,
+            data: misses,
+            borderColor: 'rgba(255, 99, 132, 1)',
+            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+            tension: 0.4
+        }
+        ];
+    }
+
+    /**
+    * Render the daily stats chart
+    */
+    function renderDailyChart(dailyData) {
+        if (!dailyData || Object.keys(dailyData).length === 0) {
+            return;
+        }
+        if (Object.keys(dailyData).length <= 1) {
+            const first = new Date(Object.keys(dailyData)[0]);
+            const previous = new Date(first);
+            previous.setDate(first.getDate() - 1);
+            const yyyy = previous.getFullYear();
+            const mm = String(previous.getMonth() + 1).padStart(2, '0');
+            const dd = String(previous.getDate()).padStart(2, '0');
+
+            const formatted_previous = `${yyyy}-${mm}-${dd}`;
+            dailyData[formatted_previous] = {
+                hits: 0, misses: 0
+            };
+        }
+
+        const dates = Object.keys(dailyData).sort();
+        const hits = [];
+        const misses = [];
+        
+        dates.forEach(function (date) {
+            hits.push(dailyData[date].hits || 0);
+            misses.push(dailyData[date].misses || 0);
+        });
+
+        const formattedDates = dates.map(function (date) {
+            const d = new Date(date);
+            return d.toLocaleDateString();
+        });
+
+        const ctx = document.getElementById('fastpixel-daily-chart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: formattedDates,
+                datasets: getDataSets(hits, misses)
+            },
+            options: {
+                responsive: true,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+    * Render the hourly stats chart
+    */
+    function renderHourlyChart(hourlyData) {
+        if (!hourlyData || Object.keys(hourlyData).length === 0) {
+            return;
+        }
+
+        if (Object.keys(hourlyData).length <= 1) {
+            const last_hour = new Date(Object.keys(hourlyData)[0]);
+            last_hour.setHours(last_hour.getHours() - 1); 
+
+            const yyyy = last_hour.getFullYear();
+            const mm = String(last_hour.getMonth() + 1).padStart(2, '0');
+            const dd = String(last_hour.getDate()).padStart(2, '0');
+            const hh = String(last_hour.getHours()).padStart(2, '0');
+            const mi = String(last_hour.getMinutes()).padStart(2, '0');
+            const ss = String(last_hour.getSeconds()).padStart(2, '0');
+
+            const formatted_last_hour = `${yyyy}-${mm}-${dd} ${hh}:${mi}:${ss}`;
+
+            hourlyData[formatted_last_hour] = {
+                hits: 0, misses: 0
+            };
+        }
+
+        const hours = Object.keys(hourlyData).sort();
+        const hits = [];
+        const misses = [];
+
+        hours.forEach(function (hour) {
+            hits.push(hourlyData[hour].hits || 0);
+            misses.push(hourlyData[hour].misses || 0);
+        });
+
+        const formattedHours = hours.map(function (hour) {
+            return hour;
+        });
+
+        const ctx = document.getElementById('fastpixel-hourly-chart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: formattedHours,
+                datasets: getDataSets(hits, misses)
+            },
+            options: {
+                responsive: true,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
 });

@@ -24,15 +24,15 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Local_Cache')) {
             }
             //starting output beffering on fastpixel/init, also checking if user is not logged in
             if (!$this->functions->user_is_logged_in()) {
-                add_action('fastpixel/cachefiles/exists', function($exists = false) {
-                    if (!$exists) {
-                        if ($this->debug) {
-                            FASTPIXEL_Debug::log('Class FASTPIXEL_Local_Cache: Starting output buffering', $_SERVER['REQUEST_URI']);
-                        }
-                        ob_start(); //starting buffering output
-                        add_action('fastpixel/shutdown', [$this, 'get_buffer'], 10); //getting buffer into variable
-                        add_action('fastpixel/shutdown/request/before', [$this, 'save'], 10, 1); //saving buffer to file, if page passed validation
+                add_action('fastpixel/cachefiles/exists', function($args = []) {
+                    //no need to buffer output if "cache" or "local_cache" file exists
+                    if ((!empty($args['cache_exists']) && $args['cache_exists'] == true) ||
+                        (!empty($args['local_cache_exists']) && $args['local_cache_exists'] == true) ) {
+                        return false;
                     }
+                    ob_start(); //starting buffering output
+                    add_action('fastpixel/shutdown', [$this, 'get_buffer'], 10); //getting buffer into variable
+                    add_action('fastpixel/shutdown/request/before', [$this, 'save'], 10, 1); //saving buffer to file, if page passed validation
                 });
             }
             add_action('fastpixel/cachefiles/saved', [$this, 'delete_file_on_api_request'], 10, 1);
@@ -59,7 +59,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Local_Cache')) {
             }
             //getting buffered output
             $this->page_content = ob_get_contents();
-            if (!preg_match('/<html/i', $this->page_content)) {
+            if (!preg_match('/<html/i', $this->page_content) || preg_match('/var _wpmeteor\s?=/i', $this->page_content)) {
                 $this->is_html_content = false;
                 //preventing request if there is no html tag in output
                 add_filter('fastpixel/is_cache_request_allowed/excluded', function ($excluded) {

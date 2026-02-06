@@ -6,8 +6,9 @@ defined('ABSPATH') || exit;
 if (!class_exists('FASTPIXEL\FASTPIXEL_Cache_Files')) {
     class FASTPIXEL_Cache_Files
     {
-        protected $debug = false;
         public static $instance;
+
+        protected $debug = false;
         protected $functions;
         protected $config;
         protected $request_wait_time = 300;
@@ -19,19 +20,25 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Cache_Files')) {
         protected $json_path;
         protected $header_path;
         protected $meta_path;
+        protected $stats;
 
         protected $page_cache_status;
         protected $serve_stale;
         protected $cache_exists = false;
+        protected $local_cache_exists = false;
         protected $display_for_logged = false;
-        protected $nonce_life_time = (3600 * 24 * 30); // 30 days
-
+        protected $nonce_life_time; //should be 30 days
+        protected $page_content = '';
+        protected $headers = [];
+        protected $gzip = false;
         public function __construct() {
             self::$instance = $this;
             //initializing functions and config
             $this->functions = FASTPIXEL_Functions::get_instance();
             $this->config    = FASTPIXEL_Config_Model::get_instance();
             $this->serve_stale = $this->config->get_option('fastpixel_serve_stale');
+            $this->debug = defined('FASTPIXEL_DEBUG') && (FASTPIXEL_DEBUG & FASTPIXEL_Debug::FLAG_FRONT);
+            $this->gzip = substr_count($_SERVER['HTTP_ACCEPT_ENCODING']??'', 'gzip') ? true : false;
         }
 
         public static function get_instance()
@@ -52,6 +59,14 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Cache_Files')) {
                 $this->json_path       = $this->cache_dir . DIRECTORY_SEPARATOR . $this->url_path . 'index.json';
                 $this->header_path     = $this->cache_dir . DIRECTORY_SEPARATOR . $this->url_path . 'headers.json';
                 $this->meta_path       = $this->cache_dir . DIRECTORY_SEPARATOR . $this->url_path . 'meta';
+                if (empty($this->nonce_life_time)) {
+                    $this->nonce_life_time = FASTPIXEL_Nonces::get_instance()->get_lifetime();
+                }
+
+                // Initialize stats if class exists
+                if (class_exists('FASTPIXEL\FASTPIXEL_Stats')) {
+                    $this->stats = FASTPIXEL_Stats::get_instance();
+                }
             } else {
                 return false;
             }
@@ -88,6 +103,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Cache_Files')) {
                 $debug_array = [
                     'serve_stale'              => $this->config->get_option('fastpixel_serve_stale'),
                     'have_cache'               => $this->page_cache_status['have_cache'],
+                    'have_local_cache'         => $this->page_cache_status['have_local_cache'],
                     'need_cache'               => $this->page_cache_status['need_cache'],
                     'html_created_time'        => gmdate('Y-m-d H:i:s', $this->page_cache_status['html_created_time']) . ' -> ' . $this->page_cache_status['html_created_time'],
                     'local_html_created_time'  => gmdate('Y-m-d H:i:s', $this->page_cache_status['local_html_created_time']) . ' -> ' . $this->page_cache_status['local_html_created_time'],
@@ -97,17 +113,38 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Cache_Files')) {
                     'error'                    => $this->page_cache_status['error'],
                     'error_time'               => $this->page_cache_status['error_time'],
                 ];
-                FASTPIXEL_DEBUG::log('Class FASTPIXEL_Cache_Files: Page cache status', $debug_array);
+                // FASTPIXEL_DEBUG::log('Class FASTPIXEL_Cache_Files: Page cache status', $debug_array);
             }
-
-            //checking for index.html and return if present
+            //checking for index.html and getting its content for output
             if (!$this->return_optimized()) {
-                header('X-FastPixel-Cache: MISS'); //return miss header if no cached page exists
-                //checking for index_local.html and return if present
+                //checking for index_local.html and getting its content for output
                 $this->return_local();
             }
+            //headers should have format ['header' => 'X-FastPixel-Cache: HIT', 'replace' => true, 'response_code' => 200) )
+            //sending headers
+            if (!$this->cache_exists && !$this->local_cache_exists) {
+                //if no cache exists then we need to set headers to prevent caching
+                $this->headers[] = ['header' => 'Cache-Control: no-cache'];
+            }
+            //getting extra headers which can be set by modules or classes
+            $headers = apply_filters('fastpixel/headers', $this->headers, [
+                'cache_exists' => $this->cache_exists,
+                'local_cache_exists' => $this->local_cache_exists,
+            ]);
+            if (!empty($headers)) {
+                foreach ($headers as $row) {
+                    if (empty($row['header'])) {
+                        continue;
+                    }
+                    header($row['header'], !empty($row['replace']) ? $row['replace'] : true, !empty($row['response_code']) ? $row['response_code'] : 0);
+                }
+            }
+            if (!empty($this->page_content)) {
+                //printing content, no need to escape because html file was read and output directly
+                echo $this->page_content; // phpcs:ignore
+            }
             //running action after cache files checked and returned if exists
-            do_action('fastpixel/cachefiles/exists', $this->cache_exists);
+            do_action('fastpixel/cachefiles/exists', ['cache_exists' => $this->cache_exists, 'local_cache_exists' => $this->local_cache_exists]);
             //handling wordpress shutdown
             $this->handle_wordpress_shutdown();
         }
@@ -117,44 +154,45 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Cache_Files')) {
             //serve_stale is used to return old cached version while new cache was requested
             //if serve_stale is disabled and we have "invalidated" file then return "wordpress" or "local" page
             //else serve cached version if exists
-            if (!$this->page_cache_status['have_cache']) {
+            if (!$this->page_cache_status['have_cache'] ||
+                ($this->serve_stale == false && $this->page_cache_status['need_cache'])) { //no need to return cached page if serve_stale is disabled and page cache is reset
                 if ($this->debug) {
-                    FASTPIXEL_DEBUG::log('Class FASTPIXEL_Cache_Files: No cache files exist, nothing to return, skipping');
+                    FASTPIXEL_DEBUG::log('Class FASTPIXEL_Cache_Files: Can\'t return optimized page', [
+                        'have_cache'  => $this->page_cache_status['have_cache'],
+                        'need_cache'  => $this->page_cache_status['need_cache'],
+                        'serve_stale' => $this->serve_stale
+                    ]);
                 }
+                // this is to prevent caching on a reverse proxy until we have an optimized page
+                $this->headers[] = ['header' => 'X-FastPixel-Cache: MISS']; //return miss header if no cached page exists
+
+                // Record cache miss
+                if ($this->stats) {
+                    $this->stats->record_miss();
+                }
+
                 return false;
             }
-            //no need to return cached page if serve_stale is disabled and page cache is reset
-            if ($this->serve_stale == false && $this->page_cache_status['need_cache']) {
-                if ($this->debug) {
-                    FASTPIXEL_DEBUG::log('Class FASTPIXEL_Cache: Cached page is not generated yet, nothing to return, skipping');
-                }
-                return false;
-            }
-            if ($this->debug) {
-                FASTPIXEL_DEBUG::log('Class FASTPIXEL_Cache_Files: Checking for optimized page', $this->html_path);
-            }
-            if (file_exists($this->html_path) && is_readable($this->html_path)) {
-                return $this->handle_cache_file();
-            }
-            return false;
+            return $this->handle_cache_file();
         }
 
         protected function return_local()
         {
-            if ($this->debug) {
-                FASTPIXEL_DEBUG::log('Class FASTPIXEL_Cache_Files: Checking for local saved page', $this->local_html_path);
-            }
-            if (!file_exists($this->local_html_path) || !is_readable($this->local_html_path)) {
+            if (!$this->page_cache_status['have_local_cache']
+                || $this->page_cache_status['global_invalidation_time'] > $this->page_cache_status['local_html_created_time']
+                || $this->page_cache_status['local_invalidation_time'] > $this->page_cache_status['local_html_created_time']) {
                 if ($this->debug) {
-                    FASTPIXEL_DEBUG::log('Class FASTPIXEL_Cache_Files: Local page not exists or is not readable, skip');
+                    FASTPIXEL_DEBUG::log('Class FASTPIXEL_Cache_Files: Can\'t return local page', [
+                        'have_local_cache'         => $this->page_cache_status['have_cache'],
+                        'global_invalidation_time' => gmdate('Y-m-d H:i:s', $this->page_cache_status['global_invalidation_time']) . ' -> ' . $this->page_cache_status['global_invalidation_time'],
+                        'local_invalidation_time'  => gmdate('Y-m-d H:i:s', $this->page_cache_status['local_invalidation_time']) . ' -> ' . $this->page_cache_status['local_invalidation_time'],
+                        'local_html_created_time'  => gmdate('Y-m-d H:i:s', $this->page_cache_status['local_html_created_time']) . ' -> ' . $this->page_cache_status['local_html_created_time']
+                    ]);
                 }
                 return false;
             }
-            if ($this->page_cache_status['global_invalidation_time'] > $this->page_cache_status['local_html_created_time']
-                || $this->page_cache_status['local_invalidation_time'] > $this->page_cache_status['local_html_created_time']) {
-                if ($this->debug) {
-                    FASTPIXEL_DEBUG::log('Class FASTPIXEL_Cache_Files: Local page expired, skip');
-                }
+            //if display_for_logged is enabled and user is logged in then don't serve local
+            if ($this->config->get_option('fastpixel_display_cached_for_logged') && $this->functions->user_is_logged_in()) {
                 return false;
             }
             return $this->handle_cache_file(true);
@@ -167,37 +205,29 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Cache_Files')) {
                 $path = $this->html_path;
             }
             if ($this->debug) {
-                FASTPIXEL_DEBUG::log('Class FASTPIXEL_Cache_Files: handling ' . ($local ? 'local' : '') . ' cached file(s), $path', $path);
+                FASTPIXEL_DEBUG::log('Class FASTPIXEL_Cache_Files: handling ' . ($local ? 'local ' : '') . 'cached file(s), $path', $path);
             }
+            $rp_path = realpath($path);
+            $rp_cachedir = realpath($this->functions->get_cache_dir());
             //validations with debug
-            if (empty($path)) {
+            if (empty($path) || empty($rp_path) || @!file_exists($path) || @!is_readable($path) || strpos($rp_path, $rp_cachedir) !== 0) {
                 if ($this->debug) {
-                    FASTPIXEL_Debug::log('Class FASTPIXEL_Cache_Files: Can\'t serve html file because $path is empty', $path);
+                    FASTPIXEL_Debug::log('Class FASTPIXEL_Cache_Files: Can\'t serve html file',
+                        [
+                            'path' => $path,
+                            'realpath' => $rp_path,
+                            'file_exists' => @file_exists($path),
+                            'is_readable' => @is_readable($path),
+                            'is_inside_cache_folder' => strpos($rp_path, $rp_cachedir) !== false
+                        ]
+                    );
                 }
                 return false;
             }
-            if (@!file_exists($path)) {
-                if ($this->debug) {
-                    FASTPIXEL_Debug::log('Class FASTPIXEL_Cache_Files: Can\'t serve html file because $path not exists', $path);
-                }
-                return false;
-            }
-            if (@!is_readable($path)) {
-                if ($this->debug) {
-                    FASTPIXEL_Debug::log('Class FASTPIXEL_Cache_Files: Can\'t serve html file because $path is not readable', $path);
-                }
-                return false;
-            }
-            //extra check if file is inside cache folder
-            if (strpos(realpath($path), realpath($this->functions->get_cache_dir())) !== 0) {
-                if ($this->debug) {
-                    FASTPIXEL_Debug::log('Class FASTPIXEL_Cache_Files: Can\'t serve html file because requested $path is not in cache directory');
-                }
-                return false;
-            }
+
             $modified_time = (int) @filemtime($path);
             //extra check if file is older than 29 days, resetting it because of nonce life
-            if ($local == false) {
+            if ($local == false && !empty($this->nonce_life_time)) {
                 if (($modified_time + ($this->nonce_life_time - 3600 * 24)) < time()) { //requesting new cache when 29 days passed
                     //if during 24 hours we didn't get new cache then we invalidate it, we need it to refresh pages with nonces
                     if (($modified_time + $this->nonce_life_time) < time()) {
@@ -217,32 +247,29 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Cache_Files')) {
                 header($protocol . '304 Not Modified', true, 304);
                 exit;
             }
+            //TODO: check if we need to read extra headers from file
             if (@file_exists($this->header_path) && @is_readable($this->header_path)) {
                 /*
                  * can't use here wordpress native functions(WP_Filesystem) because this function fires early in advanced-cache.php
                  */
                 // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- none available before WordPress is loaded..
                 $headers = json_decode(@file_get_contents($this->header_path)) ?: []; //phpcs:ignore
-                foreach ($headers as $header) {
-                    header($header);
-                }
+            }
+            if ($this->gzip && function_exists('gzencode') && ini_get('zlib.output_compression') == 0) {
+                $this->headers[] = ['header' => 'Content-Encoding: gzip'];
             }
             if ($local) {
-                $headers = ['X-FastPixel-Local-Cache: HIT'];
+                $this->headers[] = ['header' => 'X-FastPixel-Local-Cache: HIT'];
             } else {
                 //if serve_stale is enabled and page is stale then return EXPIRED header
                 if ($this->serve_stale == true && $this->page_cache_status['need_cache']) {
-                    $headers = ['X-FastPixel-Cache: EXPIRED'];
+                    $this->headers[] = ['header' => 'X-FastPixel-Cache:EXPIRED'];
                 } else {
-                    $headers = ['X-FastPixel-Cache: HIT'];
+                    $this->headers[] = ['header' => 'X-FastPixel-Cache:HIT'];
                 }
             }
-            $headers[] = 'Age: ' . (time() - $modified_time);
-            $headers[] = 'X-Fastpixel-Age: ' . (time() - $modified_time);
-            $headers = apply_filters('fastpixel_return_cached_page_headers', $headers);
-            foreach ($headers as $header) {
-                header($header);
-            }
+            $this->headers[] = ['header' => 'Age: ' . (time() - $modified_time)];
+            $this->headers[] = ['header' => 'X-Fastpixel-Age: ' . (time() - $modified_time)];
             if ($local == false && $this->config->get_option('fastpixel_display_cached_for_logged') && $this->functions->user_is_logged_in()) {
                 $this->display_for_logged = true;
                 //registering hook that will display cached page before page rendering should begin
@@ -254,17 +281,25 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Cache_Files')) {
                 */
                 ob_start();
                 // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile -- direct file output to the browser.
-                readfile($path); // phpcs:ignore
+                $this->page_content = file_get_contents($path); // phpcs:ignore
+                if ($this->gzip && function_exists('gzencode') && ini_get('zlib.output_compression') == 0) {
+                    $this->page_content = gzencode($this->page_content);
+                }
                 if ($local) {
-                    echo '<!-- Served by FastPixel.io -->';
+                    $this->page_content .= '<!-- Served by FastPixel.io -->';
                 } else {
-                    echo '<!-- Optimized and served by FastPixel.io -->';
+                    $this->page_content .= '<!-- Optimized and served by FastPixel.io -->';
                 }
             }
-            if ($this->debug) {
-                FASTPIXEL_DEBUG::log('Class FASTPIXEL_Cache_Files: returning index'.($local ? '_local':'').'.html');
+            if ($local) {
+                $this->local_cache_exists = true;
+            } else {
+                // Record cache hit
+                if ($this->stats) {
+                    $this->stats->record_hit();
+                }
+                $this->cache_exists = true;
             }
-            $this->cache_exists = true;
             return true;
         }
 
@@ -287,6 +322,9 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Cache_Files')) {
                 $regex = '/<\s*\/\s*body/s';
                 $buffer = preg_replace($regex, $admin_bar_output . '</body', $buffer);
                 $buffer .= '<!-- Optimized and served by FastPixel.io -->';
+                if ($this->gzip && function_exists('gzencode') && ini_get('zlib.output_compression') == 0) {
+                    $buffer = gzencode($buffer);
+                }
                 return $buffer;
             });
             /*
@@ -305,7 +343,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Cache_Files')) {
             //handle shutdown at the right hook to be able do cache request
             $fastpixel_cache = FASTPIXEL_Cache::get_instance();
             if ($this->display_for_logged == false) {
-                if ($this->cache_exists) {
+                if ($this->cache_exists || $this->local_cache_exists) {
                     $run_cron = apply_filters('fastpixel/cache_files/run_cron', false);
                     if (($this->page_cache_status['need_cache'] //checking if we need cache request
                         && (!$this->page_cache_status['last_cache_request_time'] //when never requested

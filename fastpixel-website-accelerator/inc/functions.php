@@ -34,13 +34,13 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Functions')) {
             $this->wp_cache_status = defined(self::FASTPIXEL_CACHE_VAR_NAME) ? constant(self::FASTPIXEL_CACHE_VAR_NAME) : false;
             $this->ac_sample       = FASTPIXEL_PLUGIN_DIR . DIRECTORY_SEPARATOR . 'advanced-cache.php';
             $this->ac_file         = WP_CONTENT_DIR . DIRECTORY_SEPARATOR . 'advanced-cache.php';
-            $this->cache_dir       = rtrim(WP_CONTENT_DIR, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'cache' . DIRECTORY_SEPARATOR . FASTPIXEL_TEXTDOMAIN;
+            $this->cache_dir       = FASTPIXEL_CACHE_DIR . DIRECTORY_SEPARATOR . FASTPIXEL_TEXTDOMAIN;
             //automatically create cache dir
-            if (!file_exists(rtrim(WP_CONTENT_DIR, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'cache')) {
+            if (!file_exists(FASTPIXEL_CACHE_DIR)) {
                 // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir -- none available before WordPress is loaded.
-                @mkdir(rtrim(WP_CONTENT_DIR, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'cache'); //phpcs:ignore
+                @mkdir(FASTPIXEL_CACHE_DIR); //phpcs:ignore
             }
-            if (!file_exists($this->cache_dir) && file_exists(rtrim(WP_CONTENT_DIR, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'cache')) {
+            if (!file_exists($this->cache_dir) && file_exists(FASTPIXEL_CACHE_DIR)) {
                 // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir -- none available before WordPress is loaded.
                 @mkdir($this->cache_dir); //phpcs:ignore
             }
@@ -156,6 +156,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Functions')) {
             }
             $data = [
                 'have_cache'               => false,
+                'have_local_cache'         => false,
                 'need_cache'               => false,
                 'html_created_time'        => false,
                 'local_html_created_time'  => false,
@@ -175,6 +176,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Functions')) {
             }
             $local_path = $this->get_cache_dir() . DIRECTORY_SEPARATOR . rtrim($url->get_url_path(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'index_local.html';
             if (@file_exists($local_path) && @is_readable($local_path)) {
+                $data['have_local_cache'] = true;
                 $data['local_html_created_time'] = filemtime($local_path);
             }
 
@@ -366,8 +368,9 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Functions')) {
                 $advanced_cache_contents = str_replace("%%FASTPIXEL_LOGGED_IN_COOKIE%%", (defined("LOGGED_IN_COOKIE") ? LOGGED_IN_COOKIE : ""), $advanced_cache_contents);
                 $advanced_cache_contents = str_replace("%%FASTPIXEL_REST_URL%%", $rest_url, $advanced_cache_contents);
                 $advanced_cache_contents = str_replace("%%FASTPIXEL_API_HOST%%", FASTPIXEL_API_HOST, $advanced_cache_contents);
-                $advanced_cache_contents = str_replace("'%%FASTPIXEL_DEBUG%%'", (defined("FASTPIXEL_DEBUG") && FASTPIXEL_DEBUG ? 'TRUE' : 'FALSE'), $advanced_cache_contents);
-                $advanced_cache_contents = str_replace("'%%FASTPIXEL_USE_SK%%'", (defined("FASTPIXEL_USE_SK") && FASTPIXEL_USE_SK ? 'TRUE' : 'FALSE'), $advanced_cache_contents);
+                $advanced_cache_contents = str_replace("'%%FASTPIXEL_DEBUG%%'", ((defined("FASTPIXEL_DEBUG") && FASTPIXEL_DEBUG) ? FASTPIXEL_DEBUG : 'FALSE'), $advanced_cache_contents);
+                $advanced_cache_contents = str_replace("'%%FASTPIXEL_USE_SK%%'", ((defined("FASTPIXEL_USE_SK") && FASTPIXEL_USE_SK) ? 'TRUE' : 'FALSE'), $advanced_cache_contents);
+                $advanced_cache_contents = str_replace("%%FASTPIXEL_CACHE_DIR%%", FASTPIXEL_CACHE_DIR , $advanced_cache_contents);
                 return $wp_filesystem->put_contents($this->ac_file, $advanced_cache_contents);
             }
             return false;

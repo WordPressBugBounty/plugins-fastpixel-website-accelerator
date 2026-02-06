@@ -142,6 +142,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Url')) {
             "gclid",
             "guid",
             "gad_source",
+            "gad_campaign",
             "_gl",
             "epik",
             "vgo_ee",
@@ -205,13 +206,48 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Url')) {
             return rtrim($host_name, '/');
         }
 
+        protected function normalize_proto($proto_value, $functions) {
+            if (empty($proto_value)) {
+                return null;
+            }
+            // Some proxies send a comma-separated list; take the first non-empty value.
+            if (strpos($proto_value, ',') !== false) {
+                $parts = explode(',', $proto_value);
+                $proto_value = '';
+                foreach ($parts as $part) {
+                    $part = trim($part);
+                    if (!empty($part)) {
+                        $proto_value = $part;
+                        break;
+                    }
+                }
+            }
+            $proto_value = strtolower($functions->sanitize_text_field($proto_value));
+            if (in_array($proto_value, ['http', 'https'], true)) {
+                return $proto_value;
+            }
+            return null;
+        }
+
         protected function get_data_from_request()
         {
             $functions = FASTPIXEL_Functions::get_instance();
+            $proto_candidates = [
+                isset($_SERVER['HTTP_X_FORWARDED_PROTO']) ? $_SERVER['HTTP_X_FORWARDED_PROTO'] : null,
+                isset($_SERVER['REQUEST_SCHEME']) ? $_SERVER['REQUEST_SCHEME'] : null,
+                isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] ? 'https' : 'http'
+            ];
+            $proto = 'http';
+            foreach ($proto_candidates as $candidate) {
+                $normalized = $this->normalize_proto($candidate, $functions);
+                if ($normalized) {
+                    $proto = $normalized;
+                    break;
+                }
+            }
             return $functions->esc_url(
-                (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] ? $functions->sanitize_text_field($_SERVER['HTTP_X_FORWARDED_PROTO']) : 
-                (isset($_SERVER['REQUEST_SCHEME']) && $_SERVER['REQUEST_SCHEME'] ? $functions->sanitize_text_field($_SERVER['REQUEST_SCHEME']) : 
-                (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] ? 'https' : 'http'))) . '://' . $functions->sanitize_text_field($this->get_request_host_name()) . '/' . $functions->sanitize_text_field(ltrim(!empty($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '', '/')));
+                $proto . '://' . $functions->sanitize_text_field($this->get_request_host_name()) . '/' . $functions->sanitize_text_field(ltrim(!empty($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '', '/'))
+            );
         }
         public function get_path()
         {

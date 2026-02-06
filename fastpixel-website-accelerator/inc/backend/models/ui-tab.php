@@ -46,9 +46,9 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_UI_Tab')) {
 
         public function get_link() {
             if (!is_multisite()) {
-                return esc_url(admin_url('admin.php?page=' . FASTPIXEL_TEXTDOMAIN . '&tab=' . $this->slug));
+                return esc_url(admin_url('admin.php?page=' . FASTPIXEL_TEXTDOMAIN . '-settings#' . $this->slug));
             } else {
-                return esc_url(network_admin_url('admin.php?page=' . FASTPIXEL_TEXTDOMAIN . '&tab=' . $this->slug));
+                return esc_url(network_admin_url('admin.php?page=' . FASTPIXEL_TEXTDOMAIN . '-settings#' . $this->slug));
             }
         }
 

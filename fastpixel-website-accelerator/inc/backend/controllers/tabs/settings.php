@@ -6,8 +6,8 @@ defined('ABSPATH') || exit;
 if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Settings')) {
     class FASTPIXEL_Tab_Settings extends FASTPIXEL_UI_Tab
     {
-        protected $name = 'Settings';
-        protected $slug = 'settings';
+        protected $name = 'Pages';
+        protected $slug = 'pages';
         protected $order = 4;
         public $cache_dir;
         protected $config_file;
@@ -16,7 +16,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Settings')) {
 
         public function __construct() {
             parent::__construct();
-            $this->name = esc_html__('Settings', 'fastpixel-website-accelerator');
+            $this->name = esc_html__('Pages', 'fastpixel-website-accelerator');
             add_action('fastpixel/tabs/loaded', [$this, 'save_options'], 99);
         }
 
@@ -393,7 +393,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Settings')) {
                 $backend_cache = FASTPIXEL_Backend_Cache::get_instance();
                 $backend_cache->purge_all();
                 /* translators: for %1$s should be link to status page with text "here" which can be translated separately */
-                $text_cleared = sprintf(esc_html__('Cache has been cleared! Pages are now being optimized and cached - this may take a few minutes. Check the status %1$s.', 'fastpixel-website-accelerator'), '<a href="' . admin_url('admin.php?page=' . FASTPIXEL_TEXTDOMAIN) . '">' . esc_html__('here', 'fastpixel-website-accelerator') . '</a>');
+                $text_cleared = sprintf(esc_html__('Cache has been cleared! Pages are now being optimized and cached - this may take a few minutes. Check the status %1$s.', 'fastpixel-website-accelerator'), '<a href="' . admin_url('admin.php?page=' . FASTPIXEL_TEXTDOMAIN . '-settings#cache-status') . '">' . esc_html__('here', 'fastpixel-website-accelerator') . '</a>');
             }
             /* translators: for %1$s text is used which tells that cache was cleared and pages are being generated. This text is translated separately. */
             $notices->add_flash_notice(sprintf(esc_html__('Settings saved successfully. %1$s', 'fastpixel-website-accelerator'), $text_cleared), 'success', false);

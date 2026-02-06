@@ -230,26 +230,31 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Functions')) {
                 'field_value' => '',
                 'label'       => '',
                 'class'       => 'fastpixel-textarea',
+                'placeholder' => '',
                 'data'        => [],
                 'disabled'    => false,
-                'description' => ''
+                'description' => '',
+                'error'       => ''
             );
 
             $args = wp_parse_args($args, $defaults);
             $class = ($args['class'] !== false) ? 'class="' . $args['class'] . '"' : '';
             $field_value = !empty($args['field_value']) ? $args['field_value'] : '';
+            $error = !empty($args['error']) ? $args['error'] : '';
             $field_name = esc_attr($args['field_name']);
             $label = $args['label'];
             $description = $args['description'];
             $data = implode(' ', $args['data']);
             $disabled = (!empty($args['disabled']) && true == $args['disabled']) ? 'disabled' : '';
+            $placeholder = ($args['placeholder'] !== '') ? 'placeholder="' . esc_attr($args['placeholder']) . '"' : '';
             if (empty($field_name)) {
                 return false;
             }
 
             $textarea = sprintf('<label class="fastpixel-textarea-label">%1$s</label>
-            <textarea %2$s name="%3$s" %4$s %5$s>%6$s</textarea>
-            <span class="fastpixel-textarea-description">%7$s</span>', $label, $class, $field_name, $disabled, $data, $field_value, $description);
+            <textarea %2$s name="%3$s" %4$s %5$s %6$s>%7$s</textarea>
+            <span class="fastpixel-textarea-description">%8$s</span>
+            <span class="fastpixel-textarea-error-text">%9$s</span>', $label, $class, $field_name, $disabled, $data, $placeholder, esc_textarea($field_value), $description, esc_html($error));
             $output = '<setting id="' . $field_name . '-container" class="fastpixel-textarea-setting"><content>' . $textarea . '</content></setting>';
             if ($display) {
                 echo $output; //phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped

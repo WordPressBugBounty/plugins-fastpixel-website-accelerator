@@ -8,6 +8,10 @@
   font-weight: bold;
 }
 
+#screen-meta-links {
+    position: absolute;
+    right: 0;
+}
 /* Common styles */
 .fastpixel-header-hr {
     visibility: hidden;
@@ -241,6 +245,9 @@
     text-align: left;
     border: none;
 }
+.fastpixel-website-accelerator-wrap menu ul li.fastpixel-settings-parent {
+    margin: 0 0 6px 0;
+}
 .fastpixel-website-accelerator-wrap menu ul li a {
     padding: 6px 4px;
     font-size: 16px;
@@ -252,6 +259,46 @@
     border: none;
     font-weight: 600;
     white-space: nowrap;
+}
+.fastpixel-website-accelerator-wrap .fastpixel-settings-toggle {
+    background: transparent;
+    border: none;
+    padding: 6px 4px;
+    font-size: 16px;
+    color: #116C7E;
+    text-decoration: none;
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    border: none;
+    font-weight: 600;
+    white-space: nowrap;
+    align-items: center;
+    cursor: pointer;
+}
+.fastpixel-website-accelerator-wrap .fastpixel-settings-toggle:focus {
+    outline: none;
+    box-shadow: none;
+}
+.fastpixel-website-accelerator-wrap .fastpixel-settings-caret {
+    margin-left: 16px;
+    margin-right: auto;
+    width: 6px;
+    height: 6px;
+    border-right: 2px solid #116C7E;
+    border-bottom: 2px solid #116C7E;
+    transform: rotate(45deg);
+    transition: transform 0.15s ease-in-out;
+}
+.fastpixel-website-accelerator-wrap .fastpixel-settings-parent.collapsed .fastpixel-settings-caret {
+    transform: rotate(-135deg);
+}
+.fastpixel-website-accelerator-wrap menu ul li.fastpixel-settings-child a {
+    padding: 6px 4px 6px 24px;
+    font-weight: normal;
+}
+.fastpixel-website-accelerator-wrap menu ul li.fastpixel-settings-child.collapsed {
+    display: none;
 }
 .fastpixel-website-accelerator-wrap menu ul li a:focus {
     border: none;
@@ -381,6 +428,7 @@
     display: none;
     opacity: 1;
     position: absolute;
+    margin-left: -50px;
     width: auto;
     padding: 10px;
     background: #eeeeee;
@@ -472,6 +520,17 @@
 .fastpixel-website-accelerator-wrap .fastpixel-icon.settings {
     background-image: url(../../../icons/processing.svg);   
 }
+.fastpixel-website-accelerator-wrap .fastpixel-icon.page {
+    background-image: url(../../../icons/page.svg);   
+}
+.fastpixel-website-accelerator-wrap .fastpixel-icon.css {
+    background-image: url(../../../icons/braces.svg);
+    background-size: 15px;
+    background-position: 2px;
+}
+.fastpixel-website-accelerator-wrap .fastpixel-icon.cache-status {
+    background-image: url(../../../icons/dashboard.svg);
+}
 .fastpixel-website-accelerator-wrap .fastpixel-page-excludes-example-2d-row { padding-left: 75px; }
 @media (min-resolution: 96dpi) and (max-resolution: 119dpi) {
     .fastpixel-website-accelerator-wrap .fastpixel-page-excludes-example-2d-row { padding-left: 63px; }
@@ -544,7 +603,7 @@
 
 /* Javascript tab styles */
 .fastpixel-website-accelerator-wrap .fastpixel-icon.javascript {
-    background-image: url(../../../icons/tools.svg);   
+    background-image: url(../../../icons/js.svg);   
 }
 .fastpixel-javascript-regexp-excludes-example-2d-row { padding-left: 75px;}
 @media (min-resolution: 96dpi) and (max-resolution: 119dpi) {
@@ -558,7 +617,8 @@
 
 /* Fonts tab styles */
 .fastpixel-website-accelerator-wrap .fastpixel-icon.fonts {
-    background-image: url(../../../icons/eye.svg);   
+    background-image: url(../../../icons/aa.svg);
+    background-size: 19px;
 }
 
 /* Integrations tab styles */
@@ -587,7 +647,7 @@
 
 /* Presets tab */
 .fastpixel-website-accelerator-wrap .fastpixel-icon.presets {
-    background-image: url(../../../icons/dashboard.svg);   
+    background-image: url(../../../icons/presets.svg);
 }
 
 .fastpixel-presets-container {
@@ -743,6 +803,11 @@
     font-weight: 700;
     text-decoration: none;
     box-shadow: none;
+}
+
+/* Statistics tab */
+.fastpixel-website-accelerator-wrap .fastpixel-icon.statistics {
+    background-image: url(../../../icons/sale-statistics.svg);
 }
 
 /* Plugins screen */
@@ -924,7 +989,7 @@
 }
 .fastpixel-website-accelerator-wrap setting .fastpixel-switch-description {
     font-size: 14px;
-    font-weight: 700;
+    /* font-weight: 700; */
     display: block;
     padding: 6px 10px 8px 0;
     box-sizing: border-box;
@@ -1004,7 +1069,7 @@
 }
 .fastpixel-website-accelerator-wrap setting .fastpixel-textarea-description {
     font-size: 14px;
-    font-weight: 700;
+    /* font-weight: 700; */
     display: block;
     padding: 20px 0 0 0;
     color: #116C7E;
@@ -1069,7 +1134,7 @@
 }
 .fastpixel-website-accelerator-wrap setting .fastpixel-horizontal-selector-settings-description {
     font-size: 14px;
-    font-weight: 700;
+    /* font-weight: 700; */
     display: block;
     padding: 6px 0 0 0;
     color: #116C7E;
@@ -1112,6 +1177,13 @@
     font-weight: 700;
     margin-left: 30px;
 }
+.fastpixel-website-accelerator-wrap setting .fastpixel-textarea-error-text {
+    color: #ff0000;
+    display: block;
+    font-size: 14px;
+    font-weight: 700;
+    margin-top: 8px;
+}
 .fastpixel-website-accelerator-wrap setting .fastpixel-input-description {
     display: block;
     color: #818181;
@@ -1140,5 +1212,87 @@
     .fastpixel-website-accelerator-wrap setting .fastpixel-textarea-description {
         display: block;
         box-sizing: border-box;
+    }
+}
+
+/**
+ * FastPixel Statistics CSS
+ */
+.fastpixel-stats-wrap {
+    max-width: 1200px;
+    margin: 20px auto;
+}
+
+.fastpixel-stats-overview {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.fastpixel-stats-card {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    flex: 1;
+    min-width: 150px;
+    text-align: center;
+}
+
+.fastpixel-stats-card h2 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 16px;
+    color: #23282d;
+}
+
+.fastpixel-stats-value {
+    font-size: 24px;
+    font-weight: bold;
+    color: #0073aa;
+}
+
+.fastpixel-stats-charts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 30px;
+    margin-bottom: 30px;
+}
+
+.fastpixel-stats-chart-container {
+    flex: 1 1 calc(50% - 15px);
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    min-height: 350px;
+}
+
+.fastpixel-stats-chart-container h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    font-size: 18px;
+    text-align: center;
+}
+
+.fastpixel-stats-actions {
+    text-align: right;
+    margin-top: 20px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 782px) {
+    .fastpixel-stats-charts {
+        flex-direction: column;
+    }
+    
+    .fastpixel-stats-chart-container {
+        flex: 1 1 100%;
+        margin-bottom: 20px;
+    }
+    
+    .fastpixel-stats-card {
+        flex: 1 1 calc(50% - 20px);
     }
 }

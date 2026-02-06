@@ -7,7 +7,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Request')) {
     class FASTPIXEL_Request 
     {
         public static $instance;
-        protected $debug_request = false; //if enabled, request data should be logged
+        protected $debug_request = FASTPIXEL_DEBUG & FASTPIXEL_DEBUG::FLAG_REQUEST; //if enabled, request data should be logged
         protected $display_notices = false; //if enabled, admin notices should be added, TODO: check if this option is required
         protected $functions; //variable to store functions class
         protected $notices; //variable to store notices class
@@ -57,6 +57,9 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Request')) {
                     'modules' => []
                 ]
             ];
+            if (function_exists('gzdecode')) {
+                $this->request_data['acceptEncoding'] = 'gzip';
+            }
             //getting javascript settings
             if (class_exists('FASTPIXEL\FASTPIXEL_Settings_Javascript')) {
                 $script_settings = FASTPIXEL_Settings_Javascript::get_instance();
@@ -73,6 +76,10 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Request')) {
                 $fonts_settings = FASTPIXEL_Settings_Fonts::get_instance();
                 $this->request_data['settings']['modules']['ReducedFonts'] = $fonts_settings->get_module_settings();
             }
+            $enable_two_phase_loading = $this->functions->get_option('fastpixel_css_two_phase_loading', true);
+            $custom_css = $this->functions->get_option('fastpixel_custom_css', '');
+            $this->request_data['settings']['enableTwoPhaseLoading'] = true; //(bool)$enable_two_phase_loading;
+            $this->request_data['settings']['customCSS'] = (string)$custom_css;
 
             //adding plugin version to all requests
             if (defined('FASTPIXEL_VERSION')) {
@@ -117,8 +124,9 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Request')) {
         {
             //first we need to check for default wordpress CURL wrapper function and use it (required by CODEX)
             if (function_exists('wp_remote_post')) {
+                FASTPIXEL_Debug::log('Sending request to FastPixel API', $this->api_url);
                 if ($this->debug_request) {
-                    FASTPIXEL_DEBUG::log('REQUEST Class: Starting request using wp_remote_post, $api_url', $this->api_url);
+                    FASTPIXEL_Debug::log('REQUEST Class: Starting request using wp_remote_post, $api_url', $this->api_url);
                 }
                 $args = array(
                     'timeout'     => $this->connection_timeout,
@@ -129,7 +137,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Request')) {
                 );
                 if (defined('FASTPIXEL_USE_SK') && FASTPIXEL_USE_SK === true) {
                     if ($this->debug_request) {
-                        FASTPIXEL_DEBUG::log('REQUEST Class: Using SiteKey');
+                        FASTPIXEL_Debug::log('REQUEST Class: Using SiteKey');
                     }
                     $this->request_data['siteKey'] = $this->auth_key; //using post param
                 } else {
@@ -137,18 +145,18 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Request')) {
                 }
                 $args['body'] = wp_json_encode($this->request_data); //adding body after adding siteKey
                 if ($this->debug_request) {
-                    FASTPIXEL_DEBUG::log('REQUEST Class: Request Params', $args);
+                    FASTPIXEL_Debug::log('REQUEST Class: Request Params', $args);
                 }
                 $response = wp_remote_post($this->api_url, $args);
                 // $response = ['response' => ['status' => 'OK']];
                 if (is_wp_error($response)) {
                     if ($this->debug_request) {
-                        FASTPIXEL_DEBUG::log('REQUEST Class: Response Error ', $response);
+                        FASTPIXEL_Debug::log('REQUEST Class: Response Error ', $response);
                     }
                     return false;
                 }
                 if ($this->debug_request) {
-                    FASTPIXEL_DEBUG::log('REQUEST Class: Response', $response['response']);
+                    FASTPIXEL_Debug::log('REQUEST Class: Response', $response['response']);
                 }
                 //validating server response
                 if (class_exists('FASTPIXEL\FASTPIXEL_Response_Handler')) { //checking for response handler class

@@ -113,6 +113,21 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Cache')) {
                     do_action('fastpixel/post/pending_to_publish', $post->ID); //own hook
                 }
             }, 10, 1);
+            add_action('future_to_publish', function ($post) {
+                if ($this->debug) {
+                    FASTPIXEL_DEBUG::log('Class FASTPIXEL_Backend_Cache: ACTION future_to_publish');
+                }
+                if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
+                    return;
+                }
+                if (!empty($post)) {
+                    if (!$this->purged_objects_cache) {
+                        $this->purge_post_object($post->ID);
+                        $this->purged_objects_cache = true;
+                    }
+                    do_action('fastpixel/post/future_to_publish', $post->ID); //own hook
+                }
+            }, 10, 1);
 
             add_action('wp_trash_post', function ($post_id, $old_status = '') {
                 if ($this->debug) {
@@ -153,6 +168,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Cache')) {
             }, 10, 3);
             add_action('admin_post_fastpixel_admin_purge_cache', [$this, 'admin_purge_cache']);
             add_action('admin_post_fastpixel_admin_delete_cached', [$this, 'admin_delete_cached_files']);
+            add_action('admin_post_fastpixel_admin_toggle_exclusion', [$this, 'admin_toggle_exclusion']);
             //taxonomy functions
             add_action('created_term', function ($term, $taxonomy, $args) {
                 do_action('fastpixel/term/created', $term, $taxonomy, $args); //own hook
@@ -340,6 +356,26 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Cache')) {
 
         public function purge_cache_by_id($args = [])
         {
+            if (!is_array($args)) {
+                $args = ['id' => $args];
+            }
+            if (!empty($args['id']) && empty($args['type'])) {
+                $post = get_post($args['id']);
+                if ($post && $post instanceof \WP_Post) {
+                    $args['type'] = 'posts';
+                    if (empty($args['selected_of_type'])) {
+                        $args['selected_of_type'] = $post->post_type;
+                    }
+                } else {
+                    $term = get_term($args['id']);
+                    if ($term && $term instanceof \WP_Term && !is_wp_error($term)) {
+                        $args['type'] = 'taxonomies';
+                        if (empty($args['selected_of_type'])) {
+                            $args['selected_of_type'] = $term->taxonomy;
+                        }
+                    }
+                }
+            }
             //check if id and type is present
             if (empty($args['id']) || empty($args['type'])) {
                 return false;
@@ -360,7 +396,19 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Cache')) {
         }
 
         public function purge_cache_by_url($args = []) {
-            $purge_url = apply_filters('fastpixel/backend/purge/single/permalink', '', $args);
+            $purge_url = '';
+            if (is_string($args)) {
+                $purge_url = $args;
+                $args = ['url' => $purge_url];
+            } else if (is_array($args) && !empty($args['url'])) {
+                $purge_url = $args['url'];
+            } else if (!is_array($args)) {
+                return false;
+            }
+            $purge_url = apply_filters('fastpixel/backend/purge/single/permalink', $purge_url, $args);
+            if (empty($purge_url) && !empty($args['url'])) {
+                $purge_url = $args['url'];
+            }
             if (empty($purge_url)) {
                 return false;
             }
@@ -732,6 +780,105 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Cache')) {
         public function admin_ajax_delete_cached_files()
         {
             $this->admin_delete_cached_files(true);
+        }
+
+        protected function normalize_exclusion_path($url)
+        {
+            $url_obj = new FASTPIXEL_Url($url);
+            $path = $url_obj->get_path();
+            if ($path !== '/') {
+                $path = untrailingslashit($path) . '/';
+            }
+            return $path;
+        }
+
+        protected function get_exclusions_list()
+        {
+            $exclusions = $this->functions->get_option('fastpixel_exclusions');
+            $exclusions = is_string($exclusions) ? preg_split('/\r\n|\r|\n/', $exclusions) : [];
+            $exclusions = array_filter(array_map(function ($item) {
+                $item = trim(strtolower($item));
+                if ($item === '/') {
+                    return '/';
+                }
+                return !empty($item) ? $item : null;
+            }, $exclusions));
+            return $exclusions;
+        }
+
+        protected function save_exclusions_list($list = [])
+        {
+            $list = array_unique(array_filter($list));
+            $this->functions->update_option('fastpixel_exclusions', implode("\r\n", $list));
+        }
+
+        public function admin_toggle_exclusion()
+        {
+            if (!$this->check_capabilities()) {
+                wp_die(esc_html__('You do not have sufficient permissions to access this page.', 'fastpixel-website-accelerator'));
+            }
+            if (!isset($_REQUEST['nonce']) || !wp_verify_nonce(sanitize_text_field($_REQUEST['nonce']), 'cache_status_nonce')) {
+                $this->notices->add_flash_notice(esc_html__('Wrong request. Please try again.', 'fastpixel-website-accelerator'), 'error', false);
+                wp_safe_redirect(wp_get_referer());
+                exit;
+            }
+            $id = isset($_REQUEST['id']) ? sanitize_text_field($_REQUEST['id']) : '';
+            $type = isset($_REQUEST['type']) ? sanitize_text_field($_REQUEST['type']) : '';
+            $selected_of_type = isset($_REQUEST['selected_of_type']) ? sanitize_text_field($_REQUEST['selected_of_type']) : '';
+            $toggle = isset($_REQUEST['toggle']) ? sanitize_key($_REQUEST['toggle']) : 'exclude';
+            $current_url = isset($_REQUEST['current_url']) ? esc_url_raw(rawurldecode(wp_unslash($_REQUEST['current_url']))) : '';
+
+            $redirect = isset($_REQUEST['redirect_to']) ? esc_url_raw(rawurldecode(wp_unslash($_REQUEST['redirect_to']))) : wp_get_referer();
+            $fallback_redirect = admin_url('admin.php?page=' . FASTPIXEL_TEXTDOMAIN . '-settings#cache-status');
+            $redirect = wp_validate_redirect($redirect, $fallback_redirect);
+            if (strpos($redirect, FASTPIXEL_TEXTDOMAIN . '-settings') !== false && strpos($redirect, '#cache-status') === false) {
+                $redirect .= '#cache-status';
+            }
+
+            $url = '';
+            if (!empty($current_url)) {
+                $url = $current_url;
+            } else if (!empty($id) && !empty($type) && !empty($selected_of_type)) {
+                if ($type == 'posts') {
+                    if ($id == 'homepage') {
+                        $url = home_url('/');
+                    } else if (is_numeric($id)) {
+                        $url = get_permalink($id);
+                    }
+                } else if ($type == 'taxonomies') {
+                    if (is_numeric($id)) {
+                        $term = get_term($id, $selected_of_type);
+                        if ($term && !is_wp_error($term)) {
+                            $url = get_term_link($term);
+                        }
+                    }
+                }
+            }
+
+            if (empty($url) || is_wp_error($url)) {
+                $this->notices->add_flash_notice(esc_html__('Unable to detect the page URL to toggle exclusion.', 'fastpixel-website-accelerator'), 'error', false);
+                wp_safe_redirect($redirect);
+                exit;
+            }
+
+            $path = $this->normalize_exclusion_path($url);
+            $exclusions = $this->get_exclusions_list();
+
+            $is_excluded = in_array($path, $exclusions, true);
+            if ($toggle == 'exclude' && !$is_excluded) {
+                $exclusions[] = $path;
+                $this->save_exclusions_list($exclusions);
+                $this->notices->add_flash_notice(esc_html__('Page excluded from cache.', 'fastpixel-website-accelerator'), 'success', false);
+            } else if ($toggle == 'include' && $is_excluded) {
+                $exclusions = array_values(array_diff($exclusions, [$path]));
+                $this->save_exclusions_list($exclusions);
+                $this->notices->add_flash_notice(esc_html__('Page will now be cached.', 'fastpixel-website-accelerator'), 'success', false);
+            } else {
+                $this->notices->add_flash_notice(esc_html__('No changes were needed.', 'fastpixel-website-accelerator'), 'notice', false);
+            }
+
+            wp_safe_redirect($redirect);
+            exit;
         }
 
         public function admin_purge_archives($post_id = null) {

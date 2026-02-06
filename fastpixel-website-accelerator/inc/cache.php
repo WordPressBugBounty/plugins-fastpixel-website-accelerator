@@ -6,8 +6,9 @@ defined('ABSPATH') || exit;
 if (!class_exists('FASTPIXEL\FASTPIXEL_Cache')) {
     class FASTPIXEL_Cache 
     {
-        protected $debug = false;
         protected static $instance;
+
+        protected $debug = false;
         protected $config;
         protected $functions;
         protected $cache_dir;
@@ -29,11 +30,16 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Cache')) {
                 !class_exists('FASTPIXEL\FASTPIXEL_Functions') || !class_exists('FASTPIXEL\FASTPIXEL_Config_Model')) {
                 return false;
             }
+            $this->debug = defined('FASTPIXEL_DEBUG') && (FASTPIXEL_DEBUG & FASTPIXEL_Debug::FLAG_FRONT);
             $this->functions = FASTPIXEL_Functions::get_instance();
             $this->config    = FASTPIXEL_Config_Model::get_instance();
             
             //loading modules (need them in advanced-cache.php)
             $this->load_modules();
+            if ($this->debug) {
+                FASTPIXEL_Debug::log('Class FASTPIXEL_Cache: Modules loaded');
+            }
+
             //define FASTPIXEL_REST_URL for backend actions, using hook because during include rest_url throw error
             add_action('init', function () {
                 if (!defined('FASTPIXEL_REST_URL') && function_exists('rest_url')) {
@@ -58,11 +64,14 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Cache')) {
 
             //initializing url
             $this->url = new FASTPIXEL_Url(null, $this->config->get_option('fastpixel_exclude_all_params'));
+            if ($this->debug) FASTPIXEL_Debug::log('Class FASTPIXEL_Cache: URL ' . $this->url->get_original_url());
 
             if (!$this->check_request_agent()) {
+                if ($this->debug) FASTPIXEL_Debug::log('Class FASTPIXEL_Cache: NO AGENT');
                 return;
             }
             if (!$this->check_request()) {
+                if ($this->debug) FASTPIXEL_Debug::log('Class FASTPIXEL_Cache: IMPROPER REQUEST');
                 return;
             }
             $this->check_request_headers();
@@ -113,9 +122,10 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Cache')) {
                 return false;
             }
             /**
-            * No need to activate this class in wordpress cli or cron or ajax request 
+            * No need to activate this class in wordpress cli or cron or ajax or rest request 
             */
-            if (defined('WP_CLI') || 
+            if ((defined('REST_REQUEST') && REST_REQUEST) ||
+                defined('WP_CLI') || 
                 defined('DOING_CRON') || 
                 defined('DOING_AJAX') ||
                 (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && 

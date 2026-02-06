@@ -27,20 +27,48 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Action_Fastpixel_Purge_Single_Cache')) {
             $purge_id = isset($_REQUEST['purge_id']) ? sanitize_text_field($_REQUEST['purge_id']) : false;
             $purge_type = isset($_REQUEST['purge_type']) ? sanitize_text_field($_REQUEST['purge_type']) : false;
             if ($purge_id == 'homepage') {
-                $this->backend_cache->purge_cache_by_url(get_home_url());
+                $this->backend_cache->purge_cache_by_url([
+                    'id'               => 'homepage',
+                    'type'             => 'posts',
+                    'selected_of_type' => 'page',
+                    'url'              => get_home_url()
+                ]);
             } else if (!empty($purge_type)) {
-                if ($purge_type == 'taxonomy') {
-                    $term = get_term($purge_id);
-                    $link = get_term_link($term);
-                    $this->backend_cache->purge_cache_by_url($link);
-                } else if ($purge_type == 'author') {
-                    $link = get_author_posts_url($purge_id);
-                    $this->backend_cache->purge_cache_by_url($link);
-                } else if ($purge_type == 'archive') {
-                    $link = get_post_type_archive_link($purge_id);
-                    $this->backend_cache->purge_cache_by_url($link);
-                } else {
-                    $this->backend_cache->purge_cache_by_id($purge_id);
+                switch ($purge_type) {
+                    case 'taxonomy':
+                        $term = get_term($purge_id);
+                        if ($term && !is_wp_error($term)) {
+                            $this->backend_cache->purge_cache_by_url([
+                                'id'               => $term->term_id,
+                                'type'             => 'taxonomies',
+                                'selected_of_type' => $term->taxonomy,
+                                'url'              => get_term_link($term)
+                            ]);
+                        }
+                        break;
+                    case 'author':
+                        $author_link = get_author_posts_url($purge_id);
+                        $this->backend_cache->purge_cache_by_url([
+                            'id'   => $purge_id,
+                            'type' => 'author',
+                            'url'  => $author_link
+                        ]);
+                        break;
+                    case 'archive':
+                        $archive_link = get_post_type_archive_link($purge_id);
+                        $this->backend_cache->purge_cache_by_url([
+                            'id'   => $purge_id,
+                            'type' => 'archive',
+                            'url'  => $archive_link
+                        ]);
+                        break;
+                    default:
+                        $this->backend_cache->purge_cache_by_id([
+                            'id'               => $purge_id,
+                            'type'             => 'posts',
+                            'selected_of_type' => $purge_type
+                        ]);
+                        break;
                 }
             }
             $this->add_redirect(wp_get_referer()); 

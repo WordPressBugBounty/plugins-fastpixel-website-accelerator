@@ -18,7 +18,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Diag_Test_Ac_File')) {
         }
 
         public function test() {
-            $generate_ac_file_url = esc_url(admin_url('admin.php?page=' . FASTPIXEL_TEXTDOMAIN . '&fastpixel-action=fastpixel_generate_ac&fastpixel-nonce=' . wp_create_nonce('fastpixel_generate_ac')));
+            $generate_ac_file_url = esc_url(admin_url('admin.php?page=' . FASTPIXEL_TEXTDOMAIN . '-settings&fastpixel-action=fastpixel_generate_ac&fastpixel-nonce=' . wp_create_nonce('fastpixel_generate_ac')));
             if (file_exists(WP_CONTENT_DIR . DIRECTORY_SEPARATOR . 'advanced-cache.php')) {
                 $ac_content = file_get_contents(WP_CONTENT_DIR . DIRECTORY_SEPARATOR . 'advanced-cache.php');
                 if (preg_match('/FASTPIXEL_ADVANCED_CACHE/s', $ac_content) && preg_match('/FASTPIXEL_Config_Model/s', $ac_content)) {
