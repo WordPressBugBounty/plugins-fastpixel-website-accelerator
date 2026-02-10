@@ -2,7 +2,7 @@
 namespace FASTPIXEL;
 
 defined('ABSPATH') || exit; ?>
-<p class="fastpixel-tab-description">Choose from three presets to optimize your website's speed. The "Fast" option may cause glitches or incompatibilities on antypical website setups, so test your site thoroughly before using it.</p>
+<p class="fastpixel-tab-description">Choose from three presets to optimize your website’s speed. The Fast option applies more advanced optimizations and may require additional testing on some site configurations.</p>
 <div class="fastpixel-presets-container">
     <div class="fastpixel-presets-box safe">
         <div class="box-title">Safe<span>(Active)</span></div>

@@ -1,19 +1,19 @@
 <?php return array(
     'root' => array(
-        'name' => 'fastpixel-website-accelerator/fastpixel',
+        'name' => 'aleksandr-guidrevitch/fastpixel',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => 'ff56533c0b1cfa05eb47e679d3c1d30178059a7d',
+        'reference' => '2bd794dedb81a11a1f56b9f20e99fb5851361f73',
         'type' => 'wordpress-plugin',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
         'dev' => false,
     ),
     'versions' => array(
-        'fastpixel-website-accelerator/fastpixel' => array(
+        'aleksandr-guidrevitch/fastpixel' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => 'ff56533c0b1cfa05eb47e679d3c1d30178059a7d',
+            'reference' => '2bd794dedb81a11a1f56b9f20e99fb5851361f73',
             'type' => 'wordpress-plugin',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

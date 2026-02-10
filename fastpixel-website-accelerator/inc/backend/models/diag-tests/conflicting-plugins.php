@@ -47,6 +47,12 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Diag_Test_Conflicting_Plugins')) {
             parent::__construct();
         }
 
+        private function should_skip_litespeed_conflict()
+        {
+            return defined('RB_DASHBOARD_BASE_URL')
+                && RB_DASHBOARD_BASE_URL === 'https://dashboard.raidboxes.de';
+        }
+
         public function test() {
             if (!function_exists('get_plugins')) {
                 include_once ABSPATH . 'wp-admin/includes/plugin.php';
@@ -78,6 +84,10 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Diag_Test_Conflicting_Plugins')) {
             }
 
 
+
+            if ($this->should_skip_litespeed_conflict()) {
+                unset($this->conflicting_plugins['LiteSpeed Cache']);
+            }
 
             $all_plugins = get_plugins();
             $conflicting_plugin_names = array_keys($this->conflicting_plugins);
@@ -117,7 +127,8 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Diag_Test_Conflicting_Plugins')) {
             if (defined('WPCACHEHOME') && function_exists("wp_cache_phase2")) { // WP Super Cache
                 $plugins["WP Super Cache"]['status'] = false;
             }
-            if (defined('LSCACHE_ADV_CACHE') || defined('LSCWP_DIR')) { // LiteSpeed Cache
+            if (isset($this->conflicting_plugins["LiteSpeed Cache"])
+                && (defined('LSCACHE_ADV_CACHE') || defined('LSCWP_DIR'))) { // LiteSpeed Cache
                 $plugins["LiteSpeed Cache"]['status'] = false;
             }
             if (class_exists('Swift_Performance') || class_exists('Swift_Performance_Lite')) { // Swift Performance
