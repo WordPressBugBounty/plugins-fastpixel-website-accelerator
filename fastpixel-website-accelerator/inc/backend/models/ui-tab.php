@@ -69,5 +69,35 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_UI_Tab')) {
             }
             return true;
         }
+
+        /**
+         * Validates settings save request
+         * Checks POST method, AJAX, onboarding actions, action type, and nonce
+         * 
+         * @param bool $require_save_action Whether to require 'save_settings' action (default: true)
+         * @return bool True if validation passes, false otherwise
+         */
+        protected function validate_settings_save_request($require_save_action = true)
+        {
+            if (sanitize_text_field($_SERVER['REQUEST_METHOD']) !== 'POST' || (defined('DOING_AJAX') && DOING_AJAX)) {
+                return false;
+            }
+            // skip nonce check for onboarding actions - check this BEFORE any nonce verification
+            $action = isset($_POST['fastpixel-action']) ? sanitize_key($_POST['fastpixel-action']) : '';
+            if (in_array($action, ['request_new_key', 'validate_key'])) {
+                return false;
+            }
+            // check if this is a settings save action (if required)
+            if ($require_save_action) {
+                if (empty($_POST['fastpixel-action']) || sanitize_key($_POST['fastpixel-action']) != 'save_settings') {
+                    return false;
+                }
+            }
+            // use wp_verify_nonce instead of check_admin_referer to avoid wp_die() on failure
+            if (!isset($_POST['fastpixel-nonce']) || !wp_verify_nonce(sanitize_key($_POST['fastpixel-nonce']), 'fastpixel-settings')) {
+                return false;
+            }
+            return true;
+        }
     }
 }

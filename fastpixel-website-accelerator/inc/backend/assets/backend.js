@@ -481,7 +481,7 @@ document.addEventListener("DOMContentLoaded", function() {
                         field_value = field.val();
                         break;
                 }
-                if (field_value != fastpixel_presets[preset_id][field_name]) {
+                if (fastpixel_presets[preset_id] && typeof fastpixel_presets[preset_id][field_name] !== 'undefined' && field_value != fastpixel_presets[preset_id][field_name]) {
                     match = false;
                     return;
                 }

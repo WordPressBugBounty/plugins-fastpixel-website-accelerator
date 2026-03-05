@@ -289,9 +289,15 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Cache')) {
              * reset cache status when plugins are activated, deactivated, upgraded, theme is changed or upgraded
              */
             add_action('activated_plugin', function(string $plugin, bool $network_wide) {
+                if ($plugin === plugin_basename(FASTPIXEL_PLUGIN_FILE)) {
+                    return;
+                }
                 $this->purge_all_with_message_no_request();
             }, 10, 2);
             add_action('deactivated_plugin', function (string $plugin, bool $network_wide) {
+                if ($plugin === plugin_basename(FASTPIXEL_PLUGIN_FILE)) {
+                    return;
+                }
                 $this->purge_all_with_message_no_request();
             }, 10, 2);
             add_action('after_switch_theme', function(string $old_name, \WP_Theme $old_theme)

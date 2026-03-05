@@ -74,6 +74,8 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_UI')) {
                 });
             }
             wp_enqueue_style('fastpixel_admin_menu_css', FASTPIXEL_PLUGIN_URL . 'inc/backend/assets/admin-menu.css?' . time(), [], FASTPIXEL_VERSION);
+            // Check if we need to redirect to onboarding after activation
+            add_action('admin_init', [$this, 'maybe_redirect_to_onboarding'], 1);
             //initializing tabs only when page is opened
             // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- wordpress page is accessed without any nonces, no data is posted.
             $page = isset($_GET['page']) ? sanitize_key($_GET['page']) : false;
@@ -122,6 +124,26 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_UI')) {
                     wp_enqueue_script('fastpixel-chatbase', FASTPIXEL_PLUGIN_URL . 'inc/backend/assets/chatbase.js', [], FASTPIXEL_VERSION, false);
                     wp_enqueue_script('fastpixel-backend');
                 }
+                // check if onboarding is needed - i mean if API key is absent means that is first install, send to onboarding page
+                // hosters can disable onboarding completely via FASTPIXEL_DISABLE_ONBOARDING constant
+                if (!defined('FASTPIXEL_DISABLE_ONBOARDING') || !FASTPIXEL_DISABLE_ONBOARDING) {
+                    $functions = FASTPIXEL_Functions::get_instance();
+                    $api_key = $functions->get_option('fastpixel_api_key', '');
+                    
+                    // Check if API key is temporary
+                    $api_key_model = FASTPIXEL_Api_Key::get_instance();
+                    $is_temp = $api_key_model->is_temp_key($api_key);
+                    
+                    // Load onboarding script if no API key or if temp key (to allow replacing it)
+                    if ((empty($api_key) || $is_temp) && $page == FASTPIXEL_TEXTDOMAIN . '-settings') {
+                        wp_enqueue_script('fastpixel-onboarding', FASTPIXEL_PLUGIN_URL . 'inc/backend/assets/onboarding.js', ['jquery'], FASTPIXEL_VERSION, true);
+                        wp_localize_script('fastpixel-onboarding', 'fastpixel_onboarding', [
+                            'ajax_url' => admin_url('admin-ajax.php'),
+                            'nonce' => wp_create_nonce('fastpixel-onboarding'),
+                            'settings_page' => FASTPIXEL_TEXTDOMAIN . '-settings',
+                        ]);
+                    }
+                }
             });
         }
 
@@ -129,6 +151,85 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_UI')) {
         {
             return self::$instance;
         }
+
+        public function maybe_redirect_to_onboarding()
+        {
+            // Allow hosters to completely disable onboarding via constant
+            // this can be done by setting in wp-config.php : "define( 'FASTPIXEL_DISABLE_ONBOARDING', true );"
+            if (defined('FASTPIXEL_DISABLE_ONBOARDING') && FASTPIXEL_DISABLE_ONBOARDING) {
+                return;
+            }
+            if (!get_transient('fastpixel_redirect_to_onboarding')) {
+                return;
+            }
+            
+            FASTPIXEL_Debug::log('[UI] maybe_redirect_to_onboarding: called');
+            
+            // check API key first
+            $functions = FASTPIXEL_Functions::get_instance();
+            $api_key = $functions->get_option('fastpixel_api_key', '');
+            $api_key_model = FASTPIXEL_Api_Key::get_instance();
+            $is_temp = $api_key_model->is_temp_key($api_key);
+            
+            // if there is a normal API key (not temp), no need to redirect
+            if (!empty($api_key) && !$is_temp) {
+                delete_transient('fastpixel_redirect_to_onboarding');
+                return;
+            }
+            
+            // If temp key is expired, clear it
+            if ($is_temp) {
+                $skip_timestamp = $functions->get_option('fastpixel_skip_onboarding_timestamp', 0);
+                if ($api_key_model->is_temp_key_expired($skip_timestamp)) {
+                    // Temp key expired - clear it
+                    $functions->update_option('fastpixel_api_key', '');
+                    $functions->update_option('fastpixel_skip_onboarding_timestamp', 0);
+                    $api_key = '';
+                } else {
+                    // Temp key is valid - no need to redirect
+                    delete_transient('fastpixel_redirect_to_onboarding');
+                    return;
+                }
+            }
+            
+            // If no API key at all (empty or cleared), allow redirect to onboarding
+            if (empty($api_key)) {
+                // check if we're already on the settings page (to avoid redirect loops)
+                global $pagenow;
+                $page = isset($_GET['page']) ? sanitize_key($_GET['page']) : false;
+                
+                if ($pagenow == 'admin.php' && $page == FASTPIXEL_TEXTDOMAIN . '-settings') {
+                    delete_transient('fastpixel_redirect_to_onboarding');
+                    return;
+                }
+                // that's before redirect to avoid multiple redirects
+                delete_transient('fastpixel_redirect_to_onboarding');
+                
+                // Redirect to settings page (which will show onboarding)
+                $redirect_url = admin_url('admin.php?page=' . FASTPIXEL_TEXTDOMAIN . '-settings');
+                wp_safe_redirect($redirect_url);
+                exit;
+            }
+            
+            // check if we're already on the settings page (to avoid redirect loops)
+            global $pagenow;
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- just checking page, no data posted
+            $page = isset($_GET['page']) ? sanitize_key($_GET['page']) : false;
+            
+            if ($pagenow == 'admin.php' && $page == FASTPIXEL_TEXTDOMAIN . '-settings') {
+                delete_transient('fastpixel_redirect_to_onboarding');
+                return;
+            }
+            
+            // delete transient before redirect to avoid multiple redirects
+            delete_transient('fastpixel_redirect_to_onboarding');
+            
+            // Redirect to settings page (which will show onboarding)
+            $redirect_url = admin_url('admin.php?page=' . FASTPIXEL_TEXTDOMAIN . '-settings');
+            wp_safe_redirect($redirect_url);
+            exit;
+        }
+
 
         public function init_tabs()
         {
@@ -194,10 +295,55 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_UI')) {
                     <span class="open"><img src="' . (FASTPIXEL_PLUGIN_URL) . 'icons/accordion.svg" class="icon"></span>
                     <span class="close"><img src="' . (FASTPIXEL_PLUGIN_URL) . 'icons/close.svg" class="icon"></span>
                 </div>';
+
+            // build FastPixel account URL / Create account URL
+            $account_url   = FASTPIXEL_DASHBOARD_HOST . '/';
+            $button_label  = __('FastPixel Account', 'fastpixel-website-accelerator');
+            $button_target = '_blank';
+
+            if (class_exists('FASTPIXEL\FASTPIXEL_Functions')) {
+                $functions = FASTPIXEL_Functions::get_instance();
+                $api_key   = $functions->get_option('fastpixel_api_key', '');
+                $api_key_model = FASTPIXEL_Api_Key::get_instance();
+                $is_temp = $api_key_model->is_temp_key($api_key);
+                
+                if (!empty($api_key) && !$is_temp) {
+                    // Normal API key - direct login URL
+                    $account_url = rtrim(FASTPIXEL_DASHBOARD_HOST, '/') . '/login/' . rawurlencode($api_key);
+                } else {
+                    // No API key or temp key: show "Create account" button to return to onboarding
+                    $show_create_account = false;
+                    
+                    if ($is_temp) {
+                        // Check if temp key is not expired
+                        $skip_timestamp = (int) $functions->get_option('fastpixel_skip_onboarding_timestamp', 0);
+                        if (!$api_key_model->is_temp_key_expired($skip_timestamp)) {
+                            $show_create_account = true;
+                        }
+                    } else {
+                        //  if user has recently skipped onboarding, show "Create account" button
+                        $skip_timestamp = (int) $functions->get_option('fastpixel_skip_onboarding_timestamp', 0);
+                        if ($skip_timestamp > 0) {
+                            $time_elapsed = time() - $skip_timestamp;
+                            $two_weeks    = 14 * 24 * 60 * 60;
+                            if ($time_elapsed < $two_weeks) {
+                                $show_create_account = true;
+                            }
+                        }
+                    }
+                    
+                    if ($show_create_account) {
+                        $account_url   = admin_url('admin.php?page=' . FASTPIXEL_TEXTDOMAIN . '-settings&force_onboarding=1');
+                        $button_label  = __('Create account', 'fastpixel-website-accelerator');
+                        $button_target = '_self';
+                    }
+                }
+            }
+
             $header .= '<h1><img src="'.(FASTPIXEL_PLUGIN_URL).'icons/fastpixel-logo.png" class="icon"></h1>
             <div class="top-buttons">
-                <a class="header-button" href="https://dash.fastpixel.io/" target="_blank">
-                    <i class="fastpixel-icon user"></i><name>' . __('FastPixel Account', 'fastpixel-website-accelerator') . '</name>
+                <a class="header-button" href="' . esc_url($account_url) . '" target="' . esc_attr($button_target) . '">
+                    <i class="fastpixel-icon user"></i><name>' . esc_html($button_label) . '</name>
                 </a>
             </div>
             </header>';
@@ -251,7 +397,117 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_UI')) {
             if (!$this->check_capabilities()) {
                 return;
             }
-            FASTPIXEL_Debug::log('Rendering FastPixel settings page');
+            //trace settings_page decision flow
+            $functions = FASTPIXEL_Functions::get_instance();
+            $api_key = $functions->get_option('fastpixel_api_key', '');
+            FASTPIXEL_Debug::log('[UI] settings_page: initial api_key', $api_key);
+
+            // If onboarding is globally disabled (ex: by hosters), always show settings directly
+            if (!(defined('FASTPIXEL_DISABLE_ONBOARDING') && FASTPIXEL_DISABLE_ONBOARDING)) {
+                //  is temp or normal?
+                $api_key_model = FASTPIXEL_Api_Key::get_instance();
+                $is_temp       = $api_key_model->is_temp_key($api_key);
+
+                FASTPIXEL_Debug::log('[UI] settings_page: is_temp', $is_temp ? 'yes' : 'no');
+                // allow forcing onboarding from header "Create account" button, even if inside skip window
+                $force_onboarding = isset($_GET['force_onboarding']) && $_GET['force_onboarding'] === '1';
+                
+                if ($force_onboarding && (empty($api_key) || $is_temp)) {
+                    FASTPIXEL_Debug::log('[UI] settings_page: force_onboarding triggered');
+                    // if temp key exists, don't clear it yet - user might want to validate a real key
+                    // Just show onboarding page
+                    $this->onboarding_page();
+                    return;
+                }
+
+                // Check if user clicked "Remind me later"
+                // -- just checking URL parameter, no data posted
+                $skip_onboarding_param = isset($_GET['skip_onboarding']) && $_GET['skip_onboarding'] === '1';
+                $skip_timestamp        = (int) $functions->get_option('fastpixel_skip_onboarding_timestamp', 0);
+
+                // DEBUG
+                FASTPIXEL_Debug::log('[UI] settings_page: skip_onboarding_param', $skip_onboarding_param ? 'yes' : 'no');
+                FASTPIXEL_Debug::log('[UI] settings_page: skip_timestamp', $skip_timestamp);
+
+                // If skip parameter is present:
+                // - and we already have a temp key -> just set timestamp (start 2 weeks window)
+                // - and no API key at all (edge case) -> generate temp key and set timestamp
+                if ($skip_onboarding_param) {
+                    if ($is_temp) {
+                        // Normal flow: temp key exists (generated on onboarding load), we only set timestamp once.
+                        if ($skip_timestamp <= 0) {
+                            $skip_timestamp = time();
+                            $functions->update_option('fastpixel_skip_onboarding_timestamp', $skip_timestamp);
+                        }
+                        FASTPIXEL_Debug::log('[UI] settings_page: skip_onboarding with existing temp key, timestamp set', $skip_timestamp);
+                        // Redirect to remove skip_onboarding parameter and show settings
+                        $redirect_url = admin_url('admin.php?page=' . FASTPIXEL_TEXTDOMAIN . '-settings');
+                        FASTPIXEL_Debug::log('[UI] settings_page: ABOUT TO REDIRECT to', $redirect_url);
+                        // Ensure no output has been sent
+                        if (!headers_sent()) {
+                            wp_safe_redirect($redirect_url);
+                            exit;
+                        } else {
+                            FASTPIXEL_Debug::log('[UI] settings_page: ERROR - headers already sent, cannot redirect!');
+                            // Fallback: use JavaScript redirect
+                            echo '<script>window.location.href = "' . esc_js($redirect_url) . '";</script>';
+                            exit;
+                        }
+                    } elseif (empty($api_key)) {
+                        // Edge case: somehow no API key yet, emulate onboarding behaviour
+                        $temp_key = $api_key_model->generate_temp_key();
+                        $api_key_model->set_key($temp_key);
+                        $api_key_model->save_key();
+                        $skip_timestamp = time();
+                        $functions->update_option('fastpixel_skip_onboarding_timestamp', $skip_timestamp);
+                        $api_key = $functions->get_option('fastpixel_api_key', '');
+                        $is_temp = $api_key_model->is_temp_key($api_key);
+                        FASTPIXEL_Debug::log('[UI] settings_page: skip_onboarding edge case, generated temp key', $api_key);
+                        $redirect_url = admin_url('admin.php?page=' . FASTPIXEL_TEXTDOMAIN . '-settings');
+                        wp_safe_redirect($redirect_url);
+                        exit;
+                    }
+                }
+                
+                // Determine if we should show onboarding or settings
+                $show_onboarding = false;
+                
+                FASTPIXEL_Debug::log('[UI] settings_page: BEFORE decision logic - api_key', $api_key);
+                FASTPIXEL_Debug::log('[UI] settings_page: BEFORE decision logic - is_temp', $is_temp ? 'yes' : 'no');
+                FASTPIXEL_Debug::log('[UI] settings_page: BEFORE decision logic - skip_timestamp', $skip_timestamp);
+                
+                if (empty($api_key)) {
+                    // No API key at all - ALWAYS show onboarding (no conditions)
+                    FASTPIXEL_Debug::log('[UI] settings_page: decision branch -> empty api_key, show onboarding');
+                    $show_onboarding = true;
+                } elseif ($is_temp) {
+                    // Temp key exists - check if expired ONLY if we have a skip timestamp
+                    FASTPIXEL_Debug::log('[UI] settings_page: decision branch -> temp key exists, checking expiration');
+                    if ($skip_timestamp > 0 && $api_key_model->is_temp_key_expired($skip_timestamp)) {
+                        // Temp key expired - clear it and FORCE onboarding (no skip option)
+                        FASTPIXEL_Debug::log('[UI] settings_page: temp key EXPIRED, forcing onboarding');
+                        $functions->update_option('fastpixel_api_key', '');
+                        $functions->update_option('fastpixel_skip_onboarding_timestamp', 0);
+                        $show_onboarding = true;
+                    } else {
+                        FASTPIXEL_Debug::log('[UI] settings_page: temp key VALID (not expired or no timestamp yet), showing settings');
+                    }
+                    // If temp key is valid (or skip not yet set), show settings.
+                } else {
+                    FASTPIXEL_Debug::log('[UI] settings_page: decision branch -> normal API key exists, showing settings');
+                }
+                // If normal API key exists, show settings (don't set show_onboarding to true)
+                
+                // Show onboarding if needed
+                // DEBUG
+                FASTPIXEL_Debug::log('[UI] settings_page: final decision show_onboarding', $show_onboarding ? 'yes' : 'no');
+
+                if ($show_onboarding) {
+                    $this->onboarding_page();
+                    return;
+                }
+            }
+
             $page_tabs = [
                 'cache-status',
                 'presets',
@@ -273,6 +529,8 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_UI')) {
                 //Disabled for now, TODO enable later 'statistics',
                 'help_center'
             ];
+
+          FASTPIXEL_Debug::log('Rendering FastPixel settings page');
             echo '<hr class="wp-header-end"><hr class="fastpixel-header-hr"><div class="wrap fastpixel-website-accelerator-wrap">';
             echo wp_kses($this->header('settings'), $this->allowed_tags);
             echo '<article class="fastpixel-settings" id="fastpixel-tabs"><menu><ul>';
@@ -355,6 +613,34 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_UI')) {
             echo '</section></article></div>';
         }
 
+
+        public function onboarding_page()
+        {
+            // generate temp API key when onboarding page is loaded (if no API key exists).
+            // this ensures API requests can work even before user enters a real key.
+            $functions = FASTPIXEL_Functions::get_instance();
+            $api_key   = $functions->get_option('fastpixel_api_key', '');
+
+            FASTPIXEL_Debug::log('[UI] onboarding_page: initial api_key', $api_key);
+
+            if (empty($api_key)) {
+                $api_key_model = FASTPIXEL_Api_Key::get_instance();
+                $temp_key      = $api_key_model->generate_temp_key();
+                $api_key_model->set_key($temp_key);
+                $api_key_model->save_key();
+                // Reset skip timestamp – user has not clicked "Remind me later" yet.
+                $functions->update_option('fastpixel_skip_onboarding_timestamp', 0);
+                FASTPIXEL_Debug::log('[UI] onboarding_page: generated temp key', $temp_key);
+            }
+
+            echo '<hr class="wp-header-end"><hr class="fastpixel-header-hr"><div class="wrap fastpixel-website-accelerator-wrap">';
+            echo wp_kses($this->header('settings'), $this->allowed_tags);
+            echo '<article class="fastpixel-settings" id="fastpixel-onboarding">';
+            wp_nonce_field('fastpixel-onboarding', 'fastpixel-nonce', false);
+            include FASTPIXEL_PLUGIN_DIR . DIRECTORY_SEPARATOR . 'inc' . DIRECTORY_SEPARATOR . 'backend' . DIRECTORY_SEPARATOR . 'views' . DIRECTORY_SEPARATOR . 'onboarding.php';
+            echo '</article></div>';
+        }
+
         public function deactivation_popup()
         {
             global $pagenow;
@@ -435,6 +721,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_UI')) {
             }
             return true;
         }
+
 
         public function filter_action_links($links) {
             if (!$this->check_capabilities()) {

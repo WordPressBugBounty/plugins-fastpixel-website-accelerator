@@ -85,11 +85,30 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Notices')) {
 
         public function check_diag_tests()
         {
+            // Don't show API key missing message on onboarding page
+            global $pagenow;
+            $page = isset($_GET['page']) ? sanitize_key($_GET['page']) : false;
+            $is_onboarding_page = ($pagenow == 'admin.php' && $page == FASTPIXEL_TEXTDOMAIN . '-settings');
+            $api_key = '';
+            
+            if ($is_onboarding_page) {
+                $functions = FASTPIXEL_Functions::get_instance();
+                $api_key = $functions->get_option('fastpixel_api_key', '');
+                if (empty($api_key)) {
+                    // we're on onboarding page, don't show API key missing message
+                    return;
+                }
+            }
+            
             // getting notification messages and displaying them
             $diag = FASTPIXEL_Diag::get_instance();
             $notifications = $diag->get_notification_messages();
             if (is_array($notifications) && !empty($notifications)) {
                 foreach($notifications as $message) {
+                    // skip API key missing messages if we're on onboarding page
+                    if ($is_onboarding_page && empty($api_key) && strpos($message['text'], 'API Key is missing') !== false) {
+                        continue;
+                    }
                     $this->add_flash_notice($message['text'], $message['type'], false);
                 }
             }

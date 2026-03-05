@@ -1,5 +1,5 @@
 {
-    "name": "aleksandr-guidrevitch/fastpixel",
+    "name": "fastpixel-website-accelerator/fastpixel",
     "type": "wordpress-plugin",
     "description": "FastPixel",
     "homepage": "https://fastpixel.io/",
@@ -9,6 +9,11 @@
             "name": "Aleksandr Guidrevitch",
             "email": "alex@excitingstartup.com",
             "homepage": "https://fastpixel.io"
+        },
+        {
+            "name": "Simon Duduica",
+            "email": "simon@shortpixel.com",
+            "homepage": "https://shortpixel.com"
         }
     ],
     "require": {

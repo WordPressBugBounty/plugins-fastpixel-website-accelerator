@@ -4,7 +4,7 @@ Tags: speed, cache, caching, performance, web vitals
 Requires at least: 6.0
 Tested up to: 6.9.1
 Requires PHP: 5.6
-Stable tag: 1.2.3
+Stable tag: 1.3.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -202,6 +202,22 @@ For more detailed information on how to use the plugin or the API, troubleshooti
 
 == Changelog ==
 
+= 1.3.0 =
+
+✨ The Onboarding Update
+
+Release Date: March 5, 2026
+
+🚀 Enhancements
+
+* New Onboarding Experience: Introduced a redesigned onboarding screen to help new users get started faster and configure FastPixel more easily.
+
+🛠️ Fixes
+
+* Minor Bug Fixes: Addressed several small issues to improve overall stability and usability.
+
+Update now for a smoother first-time setup and a more polished experience! 🚀
+
 = 1.2.3 =
 
 Release Date: February 10, 2026
@@ -234,15 +250,17 @@ Release Date: January 21, 2026
 
 🚀 Enhancements
 
-* New CSS settings tab allows adding Custom CSS for critical CSS tweaks.
-* Reworked Settings navigation into a grouped, collapsible menu with new Pages/CSS icons.
-* New chatbot for inline help in Dashboard
+* Custom CSS Tab: A brand-new CSS settings tab lets you easily add custom styles, perfect for critical CSS tweaks and advanced control.
+* Improved Settings Navigation: Settings are now grouped into a clean, collapsible menu — complete with new icons for Pages and CSS sections.
+* AI Chatbot Assistant: Need help fast? A new AI-powered chatbot is now available in the Dashboard for real-time guidance and support.
 
 🛠️ Fixes & Improvements
 
-* More reliable single-item cache purging for posts, taxonomies, archives, authors, and the homepage.
-* Advanced-cache file now regenerates on upgrades and supports overrides for API host/debug/cache dir.
-* Proxy protocol handling improved for comma-separated `HTTP_X_FORWARDED_PROTO` headers.
+* Smarter Cache Purge: Single-item cache purging is now more reliable for posts, taxonomies, archives, authors, and even the homepage.
+* Advanced-Cache Handling: The advanced-cache.php file now auto-regenerates on updates and supports overrides for the API host, debug mode, and cache directory.
+* Proxy Protocol Fix: Improved support for HTTP_X_FORWARDED_PROTO headers with comma-separated values for better compatibility in proxy setups.
+
+Update now to take control of your CSS, enjoy a cleaner UI, and benefit from smarter cache and proxy handling! 🚀
 
 = 1.1.0 =
 

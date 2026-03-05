@@ -354,9 +354,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Settings')) {
         }
 
         public function save_options() {
-            if (sanitize_text_field($_SERVER['REQUEST_METHOD']) !== 'POST' || (defined('DOING_AJAX') && DOING_AJAX) || 
-                check_admin_referer('fastpixel-settings', 'fastpixel-nonce') == false ||
-                empty($_POST['fastpixel-action']) || sanitize_key($_POST['fastpixel-action']) != 'save_settings') {
+            if (!$this->validate_settings_save_request()) {
                 return;
             }
             $stale = isset($_POST['fastpixel_serve_stale']) && 1 == sanitize_text_field($_POST['fastpixel_serve_stale']) ? 1 : 0;
@@ -401,7 +399,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Settings')) {
 
         protected function save_excludes() {
             //added extra check to avoid pcp validation notice
-            if (check_admin_referer('fastpixel-settings', 'fastpixel-nonce') == false) {
+            if (!$this->validate_settings_save_request(false)) {
                 return;
             }
             //getting home url for proper url generation
@@ -418,7 +416,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Settings')) {
                 if (is_string($new_values)) {
                     //making array of values from string
                     $excludes = explode("\r\n", $new_values);
-                    //deleting existing cache files for excludes 
+                    //deleting existing cache files for excludes
                     foreach($excludes as $exclude) {
                         $exclude_url = new FASTPIXEL_Url($home_url . $exclude);
                         if (!empty($exclude)) {
@@ -432,7 +430,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Settings')) {
         protected function save_purge_urls()
         {
             //added extra check to avoid pcp validation notice
-            if (check_admin_referer('fastpixel-settings', 'fastpixel-nonce') == false) {
+            if (!$this->validate_settings_save_request(false)) {
                 return;
             }
             //getting old value

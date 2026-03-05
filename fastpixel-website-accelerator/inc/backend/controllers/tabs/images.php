@@ -122,9 +122,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Images')) {
         }
 
         public function save_options() {
-            if (sanitize_text_field($_SERVER['REQUEST_METHOD']) !== 'POST' || (defined('DOING_AJAX') && DOING_AJAX) || 
-                check_admin_referer('fastpixel-settings', 'fastpixel-nonce') == false ||
-                empty($_POST['fastpixel-action']) || sanitize_key($_POST['fastpixel-action']) != 'save_settings') {
+            if (!$this->validate_settings_save_request()) {
                 return;
             }
             if (isset($_POST['fastpixel_images_optimization']) && is_numeric($_POST['fastpixel_images_optimization'])) {
@@ -133,7 +131,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Images')) {
             $images_crop = isset($_POST['fastpixel_images_crop']) && 1 == sanitize_text_field($_POST['fastpixel_images_crop']) ? 1 : 0;
             $this->functions->update_option('fastpixel_images_crop', $images_crop);
             $force_image_dimensions = isset($_POST['fastpixel_force_image_dimensions']) && 1 == sanitize_text_field($_POST['fastpixel_force_image_dimensions']) ? 1 : 0;
-            $this->functions->update_option('fastpixel_force_image_dimensions', $force_image_dimensions);    
+            $this->functions->update_option('fastpixel_force_image_dimensions', $force_image_dimensions);
         }
 
         public function get_purge_all_status($status)

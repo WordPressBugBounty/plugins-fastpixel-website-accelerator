@@ -6,6 +6,10 @@ defined('ABSPATH') || exit;
 if (!class_exists('FASTPIXEL\FASTPIXEL_Plugin')) {
     class FASTPIXEL_Plugin
     {
+        private const VERSIONS_REQUIRE_PURGE = [
+            // Add versions here that require a purge on upgrade.
+            '1.0.0',
+        ];
         private $cache_config;
         protected $functions;
 
@@ -63,8 +67,8 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Plugin')) {
             //checking if there was already installed plugin
             $api_key = $this->functions->get_option('fastpixel_api_key');
             if (empty($api_key)) {
-                $api_key = FASTPIXEL_Api_Key::get_instance();
-                $api_key->init_new_key();
+//                $api_key = FASTPIXEL_Api_Key::get_instance();
+//                $api_key->init_new_key();
                 //automatically enable "javascript optimization", "exclude gdpr scripts"
                 $default_options = [
                     'fastpixel_serve_stale'             => false,
@@ -85,13 +89,19 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Plugin')) {
                     $this->functions->update_option($option_name, $option_value);
                     $this->cache_config->set_option($option_name, $option_value);
                 }
+                // Set transient to redirect to onboarding page on next admin page load
+                if (!defined('WP_CLI')) {
+                    set_transient('fastpixel_redirect_to_onboarding', true, 30);
+                }
             }
             //updating config always
             $this->cache_config->save_file();
 
-            //running purge_all on init
-            $be_cache = FASTPIXEL_Backend_Cache::get_instance();
-            $be_cache->purge_all();
+            //run purge_all only for specific upgrade versions
+            if ($this->should_purge_on_upgrade()) {
+                $be_cache = FASTPIXEL_Backend_Cache::get_instance();
+                $be_cache->purge_all();
+            }
             $this->functions->update_option('fastpixel_plugin_version', FASTPIXEL_VERSION);
         }
 
@@ -160,6 +170,11 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Plugin')) {
             } else {
                 FASTPIXEL_Debug::log('Activation tests failed; advanced cache file not regenerated during init');
             }
+        }
+
+        private function should_purge_on_upgrade(): bool
+        {
+            return in_array(FASTPIXEL_VERSION, self::VERSIONS_REQUIRE_PURGE, true);
         }
     }
     new FASTPIXEL_Plugin();

@@ -72,6 +72,65 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Api_Key')) {
             $this->api_key = md5($home.$rand);
             $this->save_key();
         }
+
+        /**
+         * Generate a temporary API key with temp_ prefix
+         * 
+         * @return string Temporary API key
+         */
+        public function generate_temp_key() {
+//            // Generate a random string (32 characters)
+//            if (function_exists('wp_generate_password')) {
+//                $random = wp_generate_password(32, false);
+//            } else if (function_exists('random_bytes')) {
+//                $random = bin2hex(random_bytes(16));
+//            } else {
+//                $random = md5(uniqid(rand(), true));
+//            }
+//            return 'temp_' . $random;
+            return 'temp_';
+        }
+
+        /**
+         * Check if API key is temporary (starts with temp_)
+         * 
+         * @param string|null $key API key to check (if null, uses current key)
+         * @return bool True if temporary
+         */
+        public function is_temp_key($key = null) {
+            $check_key = $key !== null ? $key : $this->api_key;
+            if (empty($check_key)) {
+                return false;
+            }
+            return strpos($check_key, 'temp_') === 0;
+        }
+
+        /**
+         * Get temporary API key expiration time (configurable, default 2 weeks)
+         * 
+         * @return int Expiration time in seconds
+         */
+        public function get_temp_key_expiration() {
+            // Default: 2 weeks (14 days)
+            $default_expiration = 14 * 24 * 3600;
+            // filter for customization
+            return apply_filters('fastpixel_temp_key_expiration', $default_expiration);
+        }
+
+        /**
+         * Check if temporary API key is expired
+         * 
+         * @param int $timestamp Timestamp when temp key was created
+         * @return bool True if expired
+         */
+        public function is_temp_key_expired($timestamp) {
+            if (empty($timestamp) || $timestamp <= 0) {
+                return false;
+            }
+            $expiration = $this->get_temp_key_expiration();
+            $time_elapsed = time() - $timestamp;
+            return $time_elapsed >= $expiration;
+        }
     }
     new FASTPIXEL_Api_Key();
 }

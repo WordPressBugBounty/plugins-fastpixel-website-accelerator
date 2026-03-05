@@ -33,8 +33,13 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Request')) {
             }
             
             //getting api key and encoding it
-            $this->api_key  = $this->functions->get_option('fastpixel_api_key'); //api key
-            $this->auth_key = base64_encode($this->api_key . ":"); //encoded api key for later use
+            $this->api_key  = $this->functions->get_option('fastpixel_api_key', ''); //api key
+            // Only encode if API key exists (can be empty, temp key, or normal key)
+            if (!empty($this->api_key)) {
+                $this->auth_key = base64_encode($this->api_key . ":"); //encoded api key for later use
+            } else {
+                $this->auth_key = ''; //empty auth key if no API key
+            }
         }
 
         public static function get_instance()
@@ -89,23 +94,39 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Request')) {
 
         public function cache_request($url = null, $headers = []): bool 
         {
+            FASTPIXEL_Debug::log('[REQUEST] cache_request: called with URL', $url);
             if (!empty($url) && filter_var($url, FILTER_VALIDATE_URL)) {
                 $this->reset_url = $url;
             } else {
+                FASTPIXEL_Debug::log('[REQUEST] cache_request: URL validation FAILED', $url);
                 if ($this->display_notices) {
                     $this->notices->add_flash_notice('Url is empty', 'error');
                 }
                 return false;
             }
+            // Refresh API key from DB in case it was updated (de ex: temp key generated)
+            $this->api_key = $this->functions->get_option('fastpixel_api_key', '');
+            FASTPIXEL_Debug::log('[REQUEST] cache_request: reloaded api_key', $this->api_key ? 'present (' . substr($this->api_key, 0, 10) . '...)' : 'EMPTY');
+            if (!empty($this->api_key)) {
+                $this->auth_key = base64_encode($this->api_key . ":");
+            } else {
+                $this->auth_key = '';
+            }
+            
             $this->api_url = FASTPIXEL_API_URL;
             if (!$this->validate()) {//initial validation
+                FASTPIXEL_Debug::log('[REQUEST] cache_request: validate() FAILED');
                 return false;
             }
+            FASTPIXEL_Debug::log('[REQUEST] cache_request: validate() PASSED, proceeding with request');
             if (!empty($headers)) {
                 $this->headers = array_merge($this->headers, $headers);
             }
             $this->prepare_request_params(); //preparing request data
-            return $this->do_request();
+            FASTPIXEL_Debug::log('[REQUEST] cache_request: calling do_request()');
+            $result = $this->do_request();
+            FASTPIXEL_Debug::log('[REQUEST] cache_request: do_request() returned', $result ? 'SUCCESS' : 'FAILED');
+            return $result;
         }
 
         public function purge_all_request(): bool
@@ -200,6 +221,11 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Request')) {
                     FASTPIXEL_DEBUG::log('REQUEST Class: Error, Empty API KEY ', $this->api_key);
                 }
                 return false;
+            }
+            
+            // Ensure auth_key is set if api_key exists
+            if (empty($this->auth_key) && !empty($this->api_key)) {
+                $this->auth_key = base64_encode($this->api_key . ":");
             }
             //validating if reset_url have http or https
             if (empty($this->reset_url) || preg_match('/https?:\/\/\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/i', $this->reset_url)) {

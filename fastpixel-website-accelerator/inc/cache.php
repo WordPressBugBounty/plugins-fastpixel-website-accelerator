@@ -305,12 +305,14 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Cache')) {
                 }
                 return false;
             }
+            FASTPIXEL_Debug::log('[CACHE] request_page_cache: is_cache_request_allowed() returned TRUE, proceeding');
 
             do_action('fastpixel/shutdown/request/before', $this->url);
 
             //Doing Page Cache request
             $request = FASTPIXEL_Request::get_instance();
             $request_headers = ['x-queue-mode' => $this->x_queue_mode ? $this->x_queue_mode : 'push'];
+            FASTPIXEL_Debug::log('[CACHE] request_page_cache: calling cache_request() with headers', $request_headers);
             $requested = $request->cache_request($this->url->get_url(), $request_headers);
             if ($requested) {
                 $this->functions->update_post_cache($this->url->get_url_path(), false, true);

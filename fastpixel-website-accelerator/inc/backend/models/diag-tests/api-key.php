@@ -24,7 +24,9 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Diag_Test_API_KEY')) {
                 $api_key = $functions->get_option('fastpixel_api_key', false);
                 if (!$api_key) {
                     /* translators: %s is used to display contact us link, no need to translate */
-                    $this->add_notification_message(sprintf(esc_html__('API Key is missing, please try reactivating plugin. Otherwise please %s to assist you.', 'fastpixel-website-accelerator'), '<a href="https://fastpixel.io/#contact">' . esc_html__('contact us', 'fastpixel-website-accelerator') . '</a>'), 'error', false);
+                    $this->add_notification_message(sprintf(esc_html__('API Key is missing, please set it up in FastPixel\'s %s. Otherwise please %s to assist you.', 'fastpixel-website-accelerator'), 
+                        '<a href="admin.php?page=fastpixel-website-accelerator-settings">' . esc_html__('Settings', 'fastpixel-website-accelerator') . '</a>',
+                        '<a href="https://fastpixel.io/#contact">' . esc_html__('contact us', 'fastpixel-website-accelerator') . '</a>'), 'error', false);
                 }
             }        
         }

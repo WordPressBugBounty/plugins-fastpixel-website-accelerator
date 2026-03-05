@@ -28,9 +28,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Integrations')) {
         }
 
         protected function save_options() {
-            if (sanitize_text_field($_SERVER['REQUEST_METHOD']) !== 'POST' || (defined('DOING_AJAX') && DOING_AJAX) || 
-                check_admin_referer('fastpixel-settings', 'fastpixel-nonce') == false ||
-                empty($_POST['fastpixel-action']) || sanitize_key($_POST['fastpixel-action']) != 'save_settings') {
+            if (!$this->validate_settings_save_request()) {
                 return false;
             }
             do_action('fastpixel/integrations_tab/save_options');
