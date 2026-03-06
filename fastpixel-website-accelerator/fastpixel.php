@@ -4,7 +4,7 @@
  * Plugin URI:  https://fastpixel.io
  * Description: Faster WordPress Made Easy – Solve all your website speed problems effortlessly with just a few clicks.
  * Author:      ShortPixel
- * Version:     1.3.1
+ * Version:     1.3.2
  * Text Domain: fastpixel-website-accelerator
  * Domain Path: /languages
  * License:     GPLv2 or later
@@ -20,7 +20,7 @@
 
 defined('ABSPATH') || exit;
 
-define('FASTPIXEL_VERSION', '1.3.1');
+define('FASTPIXEL_VERSION', '1.3.2');
 define('FASTPIXEL_NAME', 'FastPixel');
 if (!defined('FASTPIXEL_PLUGIN_DIR'))
     define('FASTPIXEL_PLUGIN_DIR', __DIR__);
@@ -34,6 +34,8 @@ if (!defined('FASTPIXEL_API_HOST'))
     define('FASTPIXEL_API_HOST', 'https://api.fastpixel.io');
 if (!defined('FASTPIXEL_DASHBOARD_HOST'))
     define('FASTPIXEL_DASHBOARD_HOST', 'https://dash.fastpixel.io'); //  https://dash.fastpixel.io for live
+if (!defined('FASTPIXEL_DOMAIN_API_HOST'))
+    define('FASTPIXEL_DOMAIN_API_HOST', 'https://cdn.fastpixel.io'); // domain association check API (live)
 if (!defined('FASTPIXEL_DEBUG'))
     define('FASTPIXEL_DEBUG', false); //15 all, false no logging, first two bits for destination, (1 log to system default, 3 log to file) then add 4 for front and 8 for request
 if (!defined('FASTPIXEL_USE_SK'))

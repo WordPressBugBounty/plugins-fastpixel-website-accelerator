@@ -328,8 +328,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Actions')) {
              */
             $domain = apply_filters('fastpixel/onboarding/domain_check_domain', $domain);
 
-            $api_url = 'https://cdn.fastpixel.io/read-domain/' . rawurlencode($domain); //live
-            $api_url = 'https://devapi.fastpixel.io/read-domain/' . rawurlencode($domain); //dev
+            $api_url  = rtrim(FASTPIXEL_DOMAIN_API_HOST, '/') . '/read-domain/' . rawurlencode($domain);
 
             /**
              * Filter the API URL used for FastPixel domain association check.
