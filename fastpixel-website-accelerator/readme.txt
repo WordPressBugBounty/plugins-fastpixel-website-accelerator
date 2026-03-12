@@ -4,7 +4,7 @@ Tags: speed, cache, caching, performance, web vitals
 Requires at least: 6.0
 Tested up to: 6.9.1
 Requires PHP: 5.6
-Stable tag: 1.3.2
+Stable tag: 1.3.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -23,7 +23,7 @@ https://www.youtube.com/watch?v=6UbWASU8RNw
 
 == 🎬 Ready for a Quick TEST of our Speed Optimization Tool? ==
 There is **no need to install our plugin to run a test**.
-You can test FastPixel live on a [sandbox website@TasteWP](https://tastewp.com/template/FastPixel) or you can quickly assess how [FastPixel](https://fastpixel.io/) can optimize your website by conducting a test. Simply use [this test page](https://test.fastpixel.io/), and we will apply all optimizations to a copy of your website.
+You can test FastPixel live on a [sandbox website at TasteWP](https://tastewp.com/template/FastPixel) or you can quickly assess how [FastPixel](https://fastpixel.io/) can optimize your website by conducting a test. Simply use [this test page](https://test.fastpixel.io/), and we will apply all optimizations to a copy of your website.
 This way, you can easily evaluate the substantial speed improvements it can achieve using the most widely recognized website performance analysis tools.
 
 == 💡 Why choose FastPixel Caching plugin? ==
@@ -201,6 +201,14 @@ For more detailed information on how to use the plugin or the API, troubleshooti
 
 
 == Changelog ==
+
+= 1.3.3 =
+
+🛠️ Fixes & Improvements
+
+* Set the Fast as the default preset for new installs.
+* Make sure user can't dismiss the onboarding by mistake.
+* When serving gzipped from PHP, make sure we include the end comment in the gzipped content
 
 = 1.3.2 =
 

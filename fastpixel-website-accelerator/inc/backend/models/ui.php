@@ -454,17 +454,19 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_UI')) {
                             exit;
                         }
                     } elseif (empty($api_key)) {
-                        // Edge case: somehow no API key yet, emulate onboarding behaviour
+                        // if "Remind me later": no API key yet → create temp key and set timestamp
                         $temp_key = $api_key_model->generate_temp_key();
                         $api_key_model->set_key($temp_key);
                         $api_key_model->save_key();
                         $skip_timestamp = time();
                         $functions->update_option('fastpixel_skip_onboarding_timestamp', $skip_timestamp);
-                        $api_key = $functions->get_option('fastpixel_api_key', '');
-                        $is_temp = $api_key_model->is_temp_key($api_key);
-                        FASTPIXEL_Debug::log('[UI] settings_page: skip_onboarding edge case, generated temp key', $api_key);
+                        FASTPIXEL_Debug::log('[UI] settings_page: skip_onboarding, generated temp key');
                         $redirect_url = admin_url('admin.php?page=' . FASTPIXEL_TEXTDOMAIN . '-settings');
-                        wp_safe_redirect($redirect_url);
+                        if (!headers_sent()) {
+                            wp_safe_redirect($redirect_url);
+                            exit;
+                        }
+                        echo '<script>window.location.href = "' . esc_js($redirect_url) . '";</script>';
                         exit;
                     }
                 }
@@ -616,22 +618,10 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_UI')) {
 
         public function onboarding_page()
         {
-            // generate temp API key when onboarding page is loaded (if no API key exists).
-            // this ensures API requests can work even before user enters a real key.
+           // temp key is created only when the user explicitly clicks "Remind me later" (in settings_page).
             $functions = FASTPIXEL_Functions::get_instance();
             $api_key   = $functions->get_option('fastpixel_api_key', '');
-
-            FASTPIXEL_Debug::log('[UI] onboarding_page: initial api_key', $api_key);
-
-            if (empty($api_key)) {
-                $api_key_model = FASTPIXEL_Api_Key::get_instance();
-                $temp_key      = $api_key_model->generate_temp_key();
-                $api_key_model->set_key($temp_key);
-                $api_key_model->save_key();
-                // Reset skip timestamp – user has not clicked "Remind me later" yet.
-                $functions->update_option('fastpixel_skip_onboarding_timestamp', 0);
-                FASTPIXEL_Debug::log('[UI] onboarding_page: generated temp key', $temp_key);
-            }
+            FASTPIXEL_Debug::log('[UI] onboarding_page: api_key', $api_key ? '(set)' : '(empty)');
 
             echo '<hr class="wp-header-end"><hr class="fastpixel-header-hr"><div class="wrap fastpixel-website-accelerator-wrap">';
             echo wp_kses($this->header('settings'), $this->allowed_tags);

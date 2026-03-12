@@ -66,27 +66,35 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Excluded_Url_Params')) {
             /**
              * checking excluded urls by params
              */
-            if ($url->params_stripped()) {
-                $excluded_params = $this->default_excluded_params;
+            // start with default excluded params
+            $excluded_params = $this->default_excluded_params;
+            // merge in user-defined excluded params, regardless of whether params are stripped for cache key
+            if (function_exists('get_option')) {
+                $raw_excluded_params = $this->functions->get_option('fastpixel_params_exclusions');
+                $excluded_params_exploded = explode(chr(13), trim((string) $raw_excluded_params));
             } else {
-                if (function_exists('get_option')) {
-                    $excluded_params = $this->functions->get_option('fastpixel_params_exclusions');
-                    $excluded_params_exploded = explode(chr(13), trim($excluded_params));
+                $raw_excluded_params = $this->config->get_option('fastpixel_params_exclusions');
+                $excluded_params_exploded = explode(" ", trim((string) $raw_excluded_params));
+            }
+            $user_excluded_params = [];
+            foreach ($excluded_params_exploded as $value) {
+                $value = trim($value);
+                if ($value === '') {
+                    continue;
+                }
+                $exploded_param = explode('=', $value, 2);
+                $key = ltrim($exploded_param[0], "\r\n");
+                if ($key === '') {
+                    continue;
+                }
+                if (!empty($exploded_param[1])) {
+                    $user_excluded_params[$key] = $exploded_param[1];
                 } else {
-                    $excluded_params = $this->config->get_option('fastpixel_params_exclusions');
-                    $excluded_params_exploded = explode(" ", trim($excluded_params));
+                    $user_excluded_params[$key] = '';
                 }
-                $user_excluded_params = [];
-                foreach ($excluded_params_exploded as $value) {
-                    $exploded_param = explode('=', $value);
-                    $key = ltrim($exploded_param[0], "\r\n");
-                    if (!empty($exploded_param[1])) {
-                        $user_excluded_params[$key] = $exploded_param[1];
-                    } else {
-                        $user_excluded_params[$key] = '';
-                    }
-                }
-                $excluded_params = array_merge($this->default_excluded_params, $user_excluded_params);
+            }
+            if (!empty($user_excluded_params)) {
+                $excluded_params = array_merge($excluded_params, $user_excluded_params);
             }
             $excluded_params_keys = array_keys($excluded_params);
             if (!$url->params_stripped()) {

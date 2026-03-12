@@ -282,13 +282,13 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Cache_Files')) {
                 ob_start();
                 // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile -- direct file output to the browser.
                 $this->page_content = file_get_contents($path); // phpcs:ignore
-                if ($this->gzip && function_exists('gzencode') && ini_get('zlib.output_compression') == 0) {
-                    $this->page_content = gzencode($this->page_content);
-                }
                 if ($local) {
                     $this->page_content .= '<!-- Served by FastPixel.io -->';
                 } else {
                     $this->page_content .= '<!-- Optimized and served by FastPixel.io -->';
+                }
+                if ($this->gzip && function_exists('gzencode') && ini_get('zlib.output_compression') == 0) {
+                    $this->page_content = gzencode($this->page_content);
                 }
             }
             if ($local) {

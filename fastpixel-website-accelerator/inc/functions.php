@@ -496,6 +496,54 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Functions')) {
             return true;
         }
 
+        public function atomic_write_file($target_path, $content, $modified_time = null, $max_size_checks = 5, $size_check_sleep_us = 20000)
+        {
+            if (!is_string($target_path) || $target_path === '') {
+                return false;
+            }
+            $tmp_path = $target_path . '.part.' . uniqid('', true);
+            $expected_size = strlen((string) $content);
+
+            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- required for atomic file write with LOCK_EX.
+            $written = @file_put_contents($tmp_path, $content, LOCK_EX);
+            if ($written === false || (int) $written !== $expected_size) {
+                // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_unlink -- cleanup temporary file.
+                @unlink($tmp_path);
+                return false;
+            }
+
+            $actual_size = false;
+            for ($i = 0; $i < $max_size_checks; $i++) {
+                clearstatcache(true, $tmp_path);
+                // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_filesize -- validating written bytes before publish.
+                $actual_size = @filesize($tmp_path);
+                if ($actual_size !== false && (int) $actual_size === $expected_size) {
+                    break;
+                }
+                if ($i < ($max_size_checks - 1)) {
+                    usleep($size_check_sleep_us);
+                }
+            }
+            if ($actual_size === false || (int) $actual_size !== $expected_size) {
+                // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_unlink -- cleanup temporary file on size mismatch.
+                @unlink($tmp_path);
+                return false;
+            }
+
+            if ($modified_time !== null) {
+                // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_touch -- preserve modified time for cache age checks.
+                @touch($tmp_path, (int) $modified_time);
+            }
+            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rename -- atomic swap to avoid serving partially written files.
+            if (!@rename($tmp_path, $target_path)) {
+                // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_unlink -- cleanup temporary file on rename failure.
+                @unlink($tmp_path);
+                return false;
+            }
+            clearstatcache(true, $target_path);
+            return true;
+        }
+
         public function get_option($option_name, $default = false)
         {
             if (is_multisite()) {

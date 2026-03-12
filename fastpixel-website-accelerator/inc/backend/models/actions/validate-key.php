@@ -74,7 +74,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Action_Validate_Key')) {
             $user = isset($response_data['user']) ? sanitize_text_field($response_data['user']) : '';
 
             if ($status !== 1) {
-                $error_message = !empty($reason) ? esc_html($reason) : esc_html__('Invalid API Key. Please check your key and try again.', 'fastpixel-website-accelerator');
+                $error_message = !empty($reason) ? esc_html($reason) : esc_html__('Invalid API Key. Please check your Key and try again.', 'fastpixel-website-accelerator');
                 return [
                     'valid' => false,
                     'error' => $error_message,

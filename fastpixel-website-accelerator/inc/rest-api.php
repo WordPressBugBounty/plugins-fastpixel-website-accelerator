@@ -146,28 +146,26 @@ gwIDAQAB
                 }
             }
 
-            // Save the response body.
-            if (!$wp_filesystem->put_contents($path . DIRECTORY_SEPARATOR . 'index.html', $parameters['html'])) {
-                if ($this->debug) {
-                    FASTPIXEL_Debug::log('REST API: error occured while putting HTML file content to disk');
-                }
-            }
-
-            // Save the resonse headers.
-            if (!$wp_filesystem->put_contents($path . DIRECTORY_SEPARATOR . 'headers.json', wp_json_encode(isset($parameters['headers']) ? $parameters['headers'] : null))){
+            // Save the response headers atomically.
+            if (!$this->functions->atomic_write_file($path . DIRECTORY_SEPARATOR . 'headers.json', wp_json_encode(isset($parameters['headers']) ? $parameters['headers'] : null))){
                 if ($this->debug) {
                     FASTPIXEL_Debug::log('REST API: error occured while putting headers file content to disk');
                 }
             }
             if (isset($parameters['css']) && !empty($parameters['css'])) {
-                if (!$wp_filesystem->put_contents($path . DIRECTORY_SEPARATOR . 'style.css', $parameters['css'])) {
+                if (!$this->functions->atomic_write_file($path . DIRECTORY_SEPARATOR . 'style.css', $parameters['css'])) {
                     if ($this->debug) {
                         FASTPIXEL_Debug::log('REST API: error occured while putting css file content to disk');
                     }
                 }
             }
+            // Save the response body atomically and LAST to prevent serving partially written cache files.
+            if (!$this->functions->atomic_write_file($path . DIRECTORY_SEPARATOR . 'index.html', $parameters['html'], $modified_time)) {
+                if ($this->debug) {
+                    FASTPIXEL_Debug::log('REST API: error occured while putting HTML file content to disk');
+                }
+            }
 
-            $wp_filesystem->touch($path . DIRECTORY_SEPARATOR . 'index.html', $modified_time);
             //need to remove error if it was stored
             $this->functions->error_file($parameters['url'], 'delete');
 

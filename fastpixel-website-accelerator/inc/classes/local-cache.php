@@ -114,13 +114,12 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Local_Cache')) {
                         }
                         return false;
                     }
-                    // Save the response body.
-                    if (!$wp_filesystem->put_contents($local_path, $data)) {
+                    // Save the response body atomically to prevent serving partially written cache files.
+                    if (!$this->functions->atomic_write_file($local_path, $data, $modified_time)) {
                         if ($this->debug) {
                             FASTPIXEL_Debug::log('Class FASTPIXEL_Local_Cache: Error occured while saving Buffer to file');
                         }
                     }
-                    $wp_filesystem->touch($local_path, $modified_time);
                     if ($this->debug) {
                         FASTPIXEL_Debug::log('Class FASTPIXEL_Local_Cache: Saved output buffer to $path', $local_path);
                     }

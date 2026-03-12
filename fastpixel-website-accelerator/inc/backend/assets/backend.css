@@ -1501,13 +1501,16 @@
     margin: 25px 0;
     text-align: center;
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
     width: 100%;
+    gap: 8px;
 }
 
 settinglist.onboard-submit {
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
     width: 100%;
@@ -1534,21 +1537,22 @@ settinglist.onboard-submit {
     background: #1598a3;
 }
 
-.onboard-submit button#fastpixel-onboard-skip,
-.onboard-submit button.button-secondary {
-    background: #9ca3af !important;
-    padding: 15px 40px !important;
-    font-weight: normal !important;
-    font-size: 16px !important;
-    line-height: 1.5 !important;
-    height: auto !important;
-    min-height: auto !important;
-    box-sizing: border-box !important;
+/* "Remind me later"  doar text under main button */
+.onboard-submit .fastpixel-onboard-link {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: auto;
+    color: #1ABDCA !important;
+    font-size: 14px;
+    font-weight: normal;
+    cursor: pointer;
+    text-decoration: none;
 }
 
-.onboard-submit button#fastpixel-onboard-skip:hover,
-.onboard-submit button.button-secondary:hover {
-    background: #8b92a0 !important;
+.onboard-submit .fastpixel-onboard-link:hover {
+    text-decoration: none;
 }
 
 .onboard-submit button .dots {
@@ -1556,6 +1560,19 @@ settinglist.onboard-submit {
     animation-play-state: paused;
     display: none;
     margin-left: 2px;
+}
+/* override the ugly default wp spinner  */
+.onboard-submit button .spinner {
+    float: none;
+    margin: 0 0 0 8px !important;
+    width: 16px;
+    height: 16px;
+    background: none !important;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    border-top-color: #ffffff;
+    box-shadow: none !important;
+    animation: rotation 0.8s linear infinite;
 }
 
 .onboard-submit button.submitting .dots {

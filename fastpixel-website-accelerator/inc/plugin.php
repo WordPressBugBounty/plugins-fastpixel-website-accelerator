@@ -69,21 +69,21 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Plugin')) {
             if (empty($api_key)) {
 //                $api_key = FASTPIXEL_Api_Key::get_instance();
 //                $api_key->init_new_key();
-                //automatically enable "javascript optimization", "exclude gdpr scripts"
+                //automatically enable default preset (Fast)
                 $default_options = [
                     'fastpixel_serve_stale'             => false,
                     'fastpixel_exclusions'              => implode("\r\n", ['/checkout', '/cart', '/my-account']),
-                    'fastpixel_javascript_optimization' => 1, //for basic preset
+                    'fastpixel_javascript_optimization' => 2, //for fast preset
                     'fastpixel_javascript_exclude_gdpr' => true, //for basic preset
                     'fastpixel_cache_lifetime'          => 1,
-                    'fastpixel_images_optimization'     => 2, //for basic preset
-                    'fastpixel_images_crop'             => true, //for basic preset
-                    'fastpixel_fonts_soft'              => true, //for basic preset
+                    'fastpixel_images_optimization'     => 1, //for fast preset
+                    'fastpixel_images_crop'             => true, //for fast preset
+                    'fastpixel_fonts_soft'              => false, //for fast preset
                     'fastpixel_exclude_all_params'      => true,
                     'fastpixel_params_exclusions'       => implode("\r\n", []),
                     'fastpixel_speculation_rules'       => true,
                     'fastpixel_speculation_mode'        => 'prerender',
-                    'fastpixel_speculation_eagerness'   => 'moderate',
+                    'fastpixel_speculation_eagerness'   => 'eager',
                 ];
                 foreach($default_options as $option_name => $option_value) {
                     $this->functions->update_option($option_name, $option_value);
