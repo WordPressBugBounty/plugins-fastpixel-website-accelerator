@@ -547,6 +547,9 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Functions')) {
 
         protected function render_object_cache_dropin_template($template, array $settings)
         {
+            $global_groups = $this->normalize_object_cache_group_list($settings['global_groups'] ?? []);
+            $non_persistent_groups = $this->normalize_object_cache_group_list($settings['non_persistent_groups'] ?? []);
+
             $raw_replacements = [
                 "'%%FASTPIXEL_OC_PORT%%'" => (string) (int) $settings['port'],
                 "'%%FASTPIXEL_OC_DBID%%'" => (string) (int) $settings['dbid'],
@@ -555,8 +558,8 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Functions')) {
                 "'%%FASTPIXEL_OC_CACHE_WP_ADMIN%%'" => $settings['cache_wp_admin'] ? 'true' : 'false',
                 "'%%FASTPIXEL_OC_STORE_TRANSIENTS%%'" => $settings['store_transients'] ? 'true' : 'false',
                 "'%%FASTPIXEL_OC_SAFE_MODE%%'" => $settings['safe_mode'] ? 'true' : 'false',
-                "'%%FASTPIXEL_OC_GLOBAL_GROUPS%%'" => var_export($settings['global_groups'], true),
-                "'%%FASTPIXEL_OC_NON_PERSISTENT_GROUPS%%'" => var_export($settings['non_persistent_groups'], true),
+                "'%%FASTPIXEL_OC_GLOBAL_GROUPS%%'" => var_export($global_groups, true),
+                "'%%FASTPIXEL_OC_NON_PERSISTENT_GROUPS%%'" => var_export($non_persistent_groups, true),
             ];
 
             $template = str_replace(array_keys($raw_replacements), array_values($raw_replacements), $template);
@@ -567,7 +570,6 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Functions')) {
                 '%%FASTPIXEL_OC_USERNAME%%' => str_replace("'", "\\'", (string) $settings['username']),
                 '%%FASTPIXEL_OC_PASSWORD%%' => str_replace("'", "\\'", (string) $settings['password']),
                 '%%FASTPIXEL_OC_KEY_SALT%%' => str_replace("'", "\\'", (string) $settings['key_salt']),
-                '%%FASTPIXEL_OC_NON_PERSISTENT_GROUPS%%' => var_export($settings['non_persistent_groups'], true),
             ];
 
             return str_replace(array_keys($replacements), array_values($replacements), $template);
@@ -683,16 +685,48 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Functions')) {
         protected function normalize_object_cache_group_list($value)
         {
             if (is_string($value)) {
-                $value = preg_split("/\r\n|\n|\r/", $value);
+                $value = $this->parse_object_cache_group_string($value);
             }
             if (!is_array($value)) {
                 return [];
             }
-            $list = array_values(array_filter(array_map(static function ($item) {
-                $item = trim((string) $item);
-                return $item === '' ? null : $item;
-            }, $value)));
+            $list = array_values(array_filter(array_map([$this, 'sanitize_object_cache_group_name'], $value)));
             return array_values(array_unique($list));
+        }
+
+        protected function parse_object_cache_group_string($value)
+        {
+            $value = trim((string) $value);
+            if ($value === '') {
+                return [];
+            }
+
+            if ($value[0] === '[') {
+                $decoded = json_decode($value, true);
+                if (is_array($decoded)) {
+                    return $decoded;
+                }
+            }
+
+            if (preg_match('/^\s*array\s*\(/i', $value)) {
+                preg_match_all("/=>\s*'((?:\\\\.|[^'])*)'/", $value, $matches);
+                if (!empty($matches[1])) {
+                    return array_map('stripcslashes', $matches[1]);
+                }
+            }
+
+            return preg_split("/[\r\n,]+/", $value);
+        }
+
+        protected function sanitize_object_cache_group_name($value)
+        {
+            if (!is_scalar($value)) {
+                return '';
+            }
+
+            $sanitized = str_replace(':', '-', trim((string) $value));
+            $sanitized = preg_replace('/[^A-Za-z0-9_-]/', '', $sanitized);
+            return is_string($sanitized) ? $sanitized : '';
         }
 
         protected function normalize_object_cache_bool($value, $default = false)

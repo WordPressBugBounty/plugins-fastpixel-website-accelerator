@@ -328,11 +328,11 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Object_Cache')) {
             $this->functions->update_option('fastpixel_object_cache_dbid', intval($_POST['fastpixel_object_cache_dbid'] ?? 0));
             $this->functions->update_option('fastpixel_object_cache_default_lifetime', intval($_POST['fastpixel_object_cache_default_lifetime'] ?? 360));
 
-            $global_groups_raw = isset($_POST['fastpixel_object_cache_global_groups']) ? sanitize_textarea_field($_POST['fastpixel_object_cache_global_groups']) : '';
-            $do_not_cache_raw  = isset($_POST['fastpixel_object_cache_do_not_cache']) ? sanitize_textarea_field($_POST['fastpixel_object_cache_do_not_cache']) : '';
+            $global_groups_raw = isset($_POST['fastpixel_object_cache_global_groups']) ? sanitize_textarea_field(wp_unslash($_POST['fastpixel_object_cache_global_groups'])) : '';
+            $do_not_cache_raw  = isset($_POST['fastpixel_object_cache_do_not_cache']) ? sanitize_textarea_field(wp_unslash($_POST['fastpixel_object_cache_do_not_cache'])) : '';
 
-            $global_groups = array_values(array_filter(array_map('trim', preg_split("/\r\n|\n|\r/", $global_groups_raw))));
-            $do_not_cache  = array_values(array_filter(array_map('trim', preg_split("/\r\n|\n|\r/", $do_not_cache_raw))));
+            $global_groups = $this->sanitize_object_cache_group_input($global_groups_raw);
+            $do_not_cache  = $this->sanitize_object_cache_group_input($do_not_cache_raw);
 
             $this->functions->update_option('fastpixel_object_cache_global_groups', $global_groups);
             $this->functions->update_option('fastpixel_object_cache_do_not_cache', $do_not_cache);
@@ -750,6 +750,30 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Object_Cache')) {
                 'plugins',
                 'wc_session_id',
             ];
+        }
+
+        protected function sanitize_object_cache_group_input($value) {
+            if (!is_scalar($value)) {
+                return [];
+            }
+
+            $parts = preg_split("/[\r\n,]+/", (string) $value);
+            if (!is_array($parts)) {
+                return [];
+            }
+
+            $groups = array_values(array_filter(array_map([$this, 'sanitize_object_cache_group_name'], $parts)));
+            return array_values(array_unique($groups));
+        }
+
+        protected function sanitize_object_cache_group_name($value) {
+            if (!is_scalar($value)) {
+                return '';
+            }
+
+            $sanitized = str_replace(':', '-', trim((string) $value));
+            $sanitized = preg_replace('/[^A-Za-z0-9_-]/', '', $sanitized);
+            return is_string($sanitized) ? $sanitized : '';
         }
 
         protected function normalize_object_cache_method($value) {
