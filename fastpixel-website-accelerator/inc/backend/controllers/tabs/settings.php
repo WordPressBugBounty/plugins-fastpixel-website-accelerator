@@ -221,15 +221,15 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Settings')) {
                 %4$s
             </label>
             </switch>
-            <span class="fastpixel-switch-description">%5$s</span>', $field_name, $checked, $disabled, $label, $description);
+            <span class="fastpixel-switch-description fastpixel-setting-description">%5$s</span>', $field_name, $checked, $disabled, $label, $description);
 
             $speculation_mode = $this->functions->get_option('fastpixel_speculation_mode', 'prerender');
-            $mode_html = '<h4 class="fastpixel-switch-option-subtitle">'. esc_html__('Speculation Mode', 'fastpixel-website-accelerator') .'</h3>';
+            $mode_html = '<h4 class="fastpixel-switch-option-subtitle fastpixel-setting-subsection-title">'. esc_html__('Speculation Mode', 'fastpixel-website-accelerator') .'</h4>';
             $mode_html .= '<div class="fastpixel-settings-radio"><input id="fastpixel_speculation_mode_prefetch" type="radio" name="fastpixel_speculation_mode" value="prefetch" ' . checked($speculation_mode, 'prefetch', false) . ' data-depends-on="fastpixel-speculation-rules"> <span class="fastpixel-field-desc">' . esc_html__('Prefetch', 'fastpixel-website-accelerator') . '</span></div>';
             $mode_html .= '<div class="fastpixel-settings-radio"><input id="fastpixel_speculation_mode_prerender" type="radio" name="fastpixel_speculation_mode" value="prerender" ' . checked($speculation_mode, 'prerender', false) . ' data-depends-on="fastpixel-speculation-rules"> <span class="fastpixel-field-desc">' . esc_html__('Prerender', 'fastpixel-website-accelerator') . '</span></div>';
 
             $speculation_eagerness = $this->functions->get_option('fastpixel_speculation_eagerness', 'moderate');
-            $eagerness_html = '<h4 class="fastpixel-switch-option-subtitle">' . esc_html__('Speculation Eagerness', 'fastpixel-website-accelerator') . '</h3>';
+            $eagerness_html = '<h4 class="fastpixel-switch-option-subtitle fastpixel-setting-subsection-title">' . esc_html__('Speculation Eagerness', 'fastpixel-website-accelerator') . '</h4>';
             $eagerness_html .= '<div class="fastpixel-settings-radio"><input id="fastpixel_speculation_eagerness_conservative" type="radio" name="fastpixel_speculation_eagerness" value="conservative" ' . checked($speculation_eagerness, 'conservative', false) . 'data-depends-on="fastpixel-speculation-rules"> <span class="fastpixel-field-desc">' . esc_html__('Conservative', 'fastpixel-website-accelerator') . '</span></div>';
             $eagerness_html .= '<div class="fastpixel-settings-radio"><input id="fastpixel_speculation_eagerness_moderate" type="radio" name="fastpixel_speculation_eagerness" value="moderate" '. checked($speculation_eagerness, 'moderate', false) . ' data-depends-on="fastpixel-speculation-rules"> <span class="fastpixel-field-desc">' . esc_html__('Moderate', 'fastpixel-website-accelerator') . '</span></div>';
             $eagerness_html .= '<div class="fastpixel-settings-radio"><input id="fastpixel_speculation_eagerness_eager" type="radio" name="fastpixel_speculation_eagerness" value="eager" ' . checked($speculation_eagerness, 'eager', false) . ' data-depends-on="fastpixel-speculation-rules"> <span class="fastpixel-field-desc">' . esc_html__('Eager', 'fastpixel-website-accelerator') . '</span></div>';

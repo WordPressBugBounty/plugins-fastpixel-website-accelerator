@@ -241,7 +241,12 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Diag_Test_Conflicting_Plugins')) {
                     $this->passed = false;
                     $url = admin_url('admin.php?page=' . FASTPIXEL_TEXTDOMAIN . '-settings#diagnostics');
                     /* translators: %s should be an url */
-                    $this->add_notification_message(sprintf(esc_html__('It looks like there are conflicting plugins active that may overlap and cause issues. Please deactivate them on the %s page to achieve the best results.', 'fastpixel-website-accelerator'), sprintf('<a class="button" href="%s"> ' . esc_html__('Diagnostics', 'fastpixel-website-accelerator') . '</a>', esc_url($url))), 'warning');
+                    $this->add_notification_message(
+                        sprintf(esc_html__('It looks like there are conflicting plugins active that may overlap and cause issues. Please deactivate them on the %s page to achieve the best results.', 'fastpixel-website-accelerator'), sprintf('<a class="button" href="%s"> ' . esc_html__('Diagnostics', 'fastpixel-website-accelerator') . '</a>', esc_url($url))),
+                        'warning',
+                        true,
+                        'diag-conflicting-plugins'
+                    );
                     break;
                 }
             }

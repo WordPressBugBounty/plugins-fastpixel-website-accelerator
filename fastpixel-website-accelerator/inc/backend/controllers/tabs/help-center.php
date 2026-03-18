@@ -22,29 +22,42 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Help_Center')) {
         protected function get_links() {
             $links = [
                 [
+                    'icon'         => FASTPIXEL_PLUGIN_URL . 'icons/FastPixel-Happy.svg',
+                    'title'        => __('FastPixel AI Agent', 'fastpixel-website-accelerator'),
+                    'description'  => __('Our AI assistant is here to help you find answers quickly.', 'fastpixel-website-accelerator'),
+                    'link'         => '#',
+                    'button_title' => __('Try our chatbot', 'fastpixel-website-accelerator'),
+                    'action'       => 'open_chat',
+                    'row'          => 'top',
+                ],
+                [
                     'icon' => FASTPIXEL_PLUGIN_URL . 'icons/help.svg',
                     'title' => __('Knowledge Base', 'fastpixel-website-accelerator'),
                     'description' => __('Most customer questions are answered in our Knowledge Base.', 'fastpixel-website-accelerator'),
                     'link' => 'https://fastpixel.io/docs/',
+                    'row'  => 'top',
                 ],
                 [
                     'icon' => FASTPIXEL_PLUGIN_URL . 'icons/envelope.svg',
                     'title' => __('Get Support', 'fastpixel-website-accelerator'),
                     'description' => __('Contact us with any issues, bug reports, or questions.', 'fastpixel-website-accelerator'),
                     'link' => 'https://fastpixel.io/#contact',
-                    'button_title' => __('Contact Us', 'fastpixel-website-accelerator')
-                ],
-                [
-                    'icon' => FASTPIXEL_PLUGIN_URL . 'icons/processing.svg',
-                    'title' => __('Upgrade Plan', 'fastpixel-website-accelerator'),
-                    'description' => __('Upgrade your plan to get more pageviews and priority caching for your website.', 'fastpixel-website-accelerator'),
-                    'link' => 'https://fastpixel.io/pricing/'
+                    'button_title' => __('Contact Us', 'fastpixel-website-accelerator'),
+                    'row'  => 'bottom',
                 ],
                 [
                     'icon'        => FASTPIXEL_PLUGIN_URL . 'icons/lightbulb.svg',
                     'title'       => __('Feature Request', 'fastpixel-website-accelerator'),
                     'description' => __('Is there a feature missing? Do you have suggestions for improving FastPixel?', 'fastpixel-website-accelerator'),
-                    'link'        => 'mailto:support@fastpixel.io?subject=FastPixel Feature Request'
+                    'link'        => 'mailto:support@fastpixel.io?subject=FastPixel Feature Request',
+                    'row'         => 'bottom',
+                ],
+                [
+                    'icon' => FASTPIXEL_PLUGIN_URL . 'icons/processing.svg',
+                    'title' => __('Upgrade Plan', 'fastpixel-website-accelerator'),
+                    'description' => __('Upgrade your plan to get more pageviews and priority caching for your website.', 'fastpixel-website-accelerator'),
+                    'link' => 'https://fastpixel.io/pricing/',
+                    'row'  => 'bottom',
                 ]
             ];
             return $links;

@@ -1,6 +1,7 @@
 document.addEventListener("DOMContentLoaded", function() {
     let h;
-    const settingsGroupSlugs = ['pages', 'css', 'javascript', 'images', 'fonts', 'compatibility', 'integrations'];
+    const settingsGroupSlugs = ['pages', 'object-cache', 'css', 'javascript', 'images', 'fonts', 'compatibility', 'integrations'];
+    const $fastpixelTabs = jQuery("#fastpixel-tabs");
     const $settingsParent = jQuery('.fastpixel-settings-parent');
     const $settingsToggle = jQuery('.fastpixel-settings-toggle');
     const $settingsChildren = jQuery('.fastpixel-settings-child');
@@ -24,6 +25,20 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     }
 
+    function fastpixelGetTabIndexBySlug(slug) {
+        let index = -1;
+        if (!slug) {
+            return index;
+        }
+        $fastpixelTabs.find('menu a.fastpixel-tab').each(function(tabIndex) {
+            if (jQuery(this).attr('href') === '#' + slug) {
+                index = tabIndex;
+                return false;
+            }
+        });
+        return index;
+    }
+
     if ($settingsToggle.length) {
         $settingsToggle.on('click', function(e) {
             e.preventDefault();
@@ -32,7 +47,7 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
-    jQuery("#fastpixel-tabs").tabs({
+    $fastpixelTabs.tabs({
         create: function (e, ui) {
             h = "#" + ui.panel.attr("id"); 
             fastpixelEnsureSettingsGroupOpenFor(ui.panel.attr("id"));
@@ -40,7 +55,9 @@ document.addEventListener("DOMContentLoaded", function() {
         activate: function (e, ui) {
             h = "#" + ui.newPanel.attr("id");
             fastpixelEnsureSettingsGroupOpenFor(ui.newPanel.attr("id"));
-            window.history.pushState(null, null, h);
+            if (window.location.hash !== h) {
+                window.history.pushState(null, null, h);
+            }
             const mobile_menu = jQuery('.fastpixel-mobile-header-menu');
             if (mobile_menu.hasClass('opened')) {
                 mobile_menu.removeClass('opened').addClass('closed');
@@ -51,12 +68,25 @@ document.addEventListener("DOMContentLoaded", function() {
     fastpixelSetSettingsGroupState(true);
     function fastpixelOnHashChange() {
         let hash = window.location.hash.replace('#', '');
-        let index = jQuery('#fastpixel-tabs').find('li[data-slug="' + hash + '"').index();
+        let index = fastpixelGetTabIndexBySlug(hash);
         if (index > -1) {
-            jQuery("#fastpixel-tabs").tabs("option", "active", index);
+            $fastpixelTabs.tabs("option", "active", index);
         }
     }
     window.addEventListener("hashchange", fastpixelOnHashChange, false);
+    fastpixelOnHashChange();
+
+    jQuery('.fastpixel-website-accelerator-wrap').on('click', '.help-center [data-fastpixel-chat-trigger="1"], .help-center a.button-setting[href="#"]', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (typeof e.stopImmediatePropagation === 'function') {
+            e.stopImmediatePropagation();
+        }
+
+        if (typeof window.chatbase === 'function') {
+            window.chatbase('open');
+        }
+    });
 
     function fastpixelOnOptimizationChange(disable = true) {
         if (disable) {

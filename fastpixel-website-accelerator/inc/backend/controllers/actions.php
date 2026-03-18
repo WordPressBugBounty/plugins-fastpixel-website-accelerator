@@ -23,6 +23,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Actions')) {
             add_action('wp_ajax_fastpixel_request_new_key', [$this, 'ajax_request_new_key']);
             add_action('wp_ajax_fastpixel_validate_key', [$this, 'ajax_validate_key']);
             add_action('wp_ajax_fastpixel_check_domain', [$this, 'ajax_check_domain']);
+            add_action('wp_ajax_fastpixel_object_cache_test_connection', [$this, 'ajax_object_cache_test_connection']);
         }
 
         public function run_action() 
@@ -385,6 +386,320 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Actions')) {
                 'domain'      => $api_domain,
                 'raw'         => $data,
             ]);
+        }
+
+        /**
+         * AJAX handler for testing Object Cache connection from settings UI.
+         */
+        public function ajax_object_cache_test_connection()
+        {
+            if (!$this->check_capabilities()) {
+                wp_send_json_error([
+                    'message' => esc_html__('You do not have sufficient permissions to do this.', 'fastpixel-website-accelerator'),
+                ], 403);
+                return;
+            }
+
+            $nonce = isset($_POST['nonce']) ? sanitize_text_field(wp_unslash($_POST['nonce'])) : '';
+            if ($nonce === '' || !wp_verify_nonce($nonce, 'fastpixel-object-cache-test')) {
+                wp_send_json_error([
+                    'message' => esc_html__('Security check failed.', 'fastpixel-website-accelerator'),
+                ], 403);
+                return;
+            }
+
+            $method = $this->normalize_object_cache_method(
+                sanitize_text_field(wp_unslash($_POST['method'] ?? 'disabled'))
+            );
+            if ($method === 'disabled') {
+                wp_send_json_error([
+                    'message' => esc_html__('Please select Redis or Memcached before testing.', 'fastpixel-website-accelerator'),
+                ], 400);
+                return;
+            }
+
+            if ($method === 'redis' && !class_exists('Redis')) {
+                wp_send_json_error([
+                    'message' => esc_html__('Redis PHP extension is not enabled', 'fastpixel-website-accelerator'),
+                ], 400);
+                return;
+            }
+            if ($method === 'memcached' && !class_exists('Memcached')) {
+                wp_send_json_error([
+                    'message' => esc_html__('Memcached PHP extension is not enabled', 'fastpixel-website-accelerator'),
+                ], 400);
+                return;
+            }
+
+            $settings = [
+                'method' => $method,
+                'host' => sanitize_text_field(wp_unslash($_POST['host'] ?? '')),
+                'port' => sanitize_text_field(wp_unslash($_POST['port'] ?? '')),
+                'username' => sanitize_text_field(wp_unslash($_POST['username'] ?? '')),
+                'password' => sanitize_text_field(wp_unslash($_POST['password'] ?? '')),
+                'dbid' => intval(wp_unslash($_POST['dbid'] ?? 0)),
+                'persistent' => isset($_POST['persistent']) && intval(wp_unslash($_POST['persistent'])) === 1,
+            ];
+
+            $result = $method === 'redis'
+                ? $this->test_redis_connection($settings)
+                : $this->test_memcached_connection($settings);
+
+            if (!empty($result['ok'])) {
+                $server_label = $method === 'memcached'
+                    ? esc_html__('Memcached server', 'fastpixel-website-accelerator')
+                    : esc_html__('Redis server', 'fastpixel-website-accelerator');
+                wp_send_json_success([
+                    'message' => sprintf(
+                        esc_html__('Successfully connected to the %s.', 'fastpixel-website-accelerator'),
+                        $server_label
+                    ),
+                ]);
+                return;
+            }
+
+            wp_send_json_error([
+                'message' => !empty($result['message'])
+                    ? (string) $result['message']
+                    : esc_html__('Connection failed.', 'fastpixel-website-accelerator'),
+            ], 400);
+        }
+
+        private function test_redis_connection(array $settings)
+        {
+            if (!class_exists('Redis')) {
+                return [
+                    'ok' => false,
+                    'message' => esc_html__('Failed (Redis extension disabled)', 'fastpixel-website-accelerator'),
+                ];
+            }
+
+            $host = $this->normalize_string($settings['host'] ?? '127.0.0.1');
+            if ($host === '') {
+                return [
+                    'ok' => false,
+                    'message' => esc_html__('Failed (Redis host is empty)', 'fastpixel-website-accelerator'),
+                ];
+            }
+
+            $is_socket = $this->is_unix_socket($host);
+            if ($is_socket && strpos($host, 'unix://') === 0) {
+                $host = substr($host, 7);
+            }
+            $port = $is_socket ? 0 : $this->normalize_int($settings['port'] ?? 6379, 6379);
+            $persistent = !empty($settings['persistent']);
+            $username = $this->normalize_string($settings['username'] ?? '');
+            $password = $this->normalize_string($settings['password'] ?? '');
+            $dbid = $this->normalize_int($settings['dbid'] ?? 0, 0);
+            if ($dbid < 0) {
+                $dbid = 0;
+            }
+
+            $client = null;
+            try {
+                $client = new \Redis();
+                $timeout = 1;
+                $connected = $persistent
+                    ? @$client->pconnect($host, $port, $timeout, 'fastpixel_oc_status_' . md5($host . '|' . $port . '|' . $dbid))
+                    : @$client->connect($host, $port, $timeout);
+                if (!$connected) {
+                    return [
+                        'ok' => false,
+                        'message' => esc_html__('Failed to connect to the Redis server.', 'fastpixel-website-accelerator'),
+                    ];
+                }
+
+                if ($password !== '') {
+                    $auth_ok = ($username !== '')
+                        ? @$client->auth([$username, $password])
+                        : @$client->auth($password);
+                    if (!$auth_ok) {
+                        return [
+                            'ok' => false,
+                            'message' => esc_html__('Failed (Redis authentication failed)', 'fastpixel-website-accelerator'),
+                        ];
+                    }
+                }
+
+                if ($dbid >= 0 && !@$client->select($dbid)) {
+                    return [
+                        'ok' => false,
+                        'message' => esc_html__('Failed (Redis DB selection failed)', 'fastpixel-website-accelerator'),
+                    ];
+                }
+
+                $pong = @$client->ping();
+                if ($pong === false) {
+                    return [
+                        'ok' => false,
+                        'message' => esc_html__('Failed (Redis ping failed)', 'fastpixel-website-accelerator'),
+                    ];
+                }
+
+                return [
+                    'ok' => true,
+                    'message' => esc_html__('Passed', 'fastpixel-website-accelerator'),
+                ];
+            } catch (\Throwable $e) {
+                $exception_message = (string) $e->getMessage();
+                if (
+                    $exception_message !== '' &&
+                    (stripos($exception_message, 'protocol error') !== false || stripos($exception_message, 'reply type byte') !== false)
+                ) {
+                    return [
+                        'ok' => false,
+                        'message' => esc_html__('Failed to connect to the Redis server.', 'fastpixel-website-accelerator'),
+                    ];
+                }
+
+                return [
+                    'ok' => false,
+                    'message' => sprintf(esc_html__('Failed (%s)', 'fastpixel-website-accelerator'), $exception_message),
+                ];
+            } finally {
+                if (is_object($client) && method_exists($client, 'close')) {
+                    try {
+                        @$client->close();
+                    } catch (\Throwable $e) {
+                        // ignore close errors
+                    }
+                }
+            }
+        }
+
+        private function test_memcached_connection(array $settings)
+        {
+            if (!class_exists('Memcached')) {
+                return [
+                    'ok' => false,
+                    'message' => esc_html__('Failed (Memcached extension disabled)', 'fastpixel-website-accelerator'),
+                ];
+            }
+
+            $host = $this->normalize_string($settings['host'] ?? '127.0.0.1');
+            if ($host === '') {
+                return [
+                    'ok' => false,
+                    'message' => esc_html__('Failed (Memcached host is empty)', 'fastpixel-website-accelerator'),
+                ];
+            }
+
+            $is_socket = $this->is_unix_socket($host);
+            if ($is_socket && strpos($host, 'unix://') === 0) {
+                $host = substr($host, 7);
+            }
+            $port = $is_socket ? 0 : $this->normalize_int($settings['port'] ?? 11211, 11211);
+            $username = $this->normalize_string($settings['username'] ?? '');
+            $password = $this->normalize_string($settings['password'] ?? '');
+
+            $client = null;
+            try {
+                $client = new \Memcached();
+                if (defined('Memcached::OPT_CONNECT_TIMEOUT')) {
+                    $client->setOption(\Memcached::OPT_CONNECT_TIMEOUT, 800);
+                }
+                if (defined('Memcached::OPT_RETRY_TIMEOUT')) {
+                    $client->setOption(\Memcached::OPT_RETRY_TIMEOUT, 1);
+                }
+
+                if (($username !== '' || $password !== '')) {
+                    if (method_exists($client, 'setSaslAuthData') && defined('Memcached::OPT_BINARY_PROTOCOL')) {
+                        $client->setOption(\Memcached::OPT_BINARY_PROTOCOL, true);
+                        $client->setSaslAuthData($username, $password);
+                    } else {
+                        return [
+                            'ok' => false,
+                            'message' => esc_html__('Failed (Memcached SASL not supported)', 'fastpixel-website-accelerator'),
+                        ];
+                    }
+                }
+
+                if (!$client->addServer($host, $port)) {
+                    return [
+                        'ok' => false,
+                        'message' => esc_html__('Failed (Memcached addServer failed)', 'fastpixel-website-accelerator'),
+                    ];
+                }
+
+                $versions = $client->getVersion();
+                if (empty($versions) || !is_array($versions)) {
+                    return [
+                        'ok' => false,
+                        'message' => esc_html__('Failed to connect to the Memcached server.', 'fastpixel-website-accelerator'),
+                    ];
+                }
+
+                $version_ok = false;
+                foreach ($versions as $ver) {
+                    if (is_string($ver) && $ver !== '' && $ver !== '255.255.255') {
+                        $version_ok = true;
+                        break;
+                    }
+                }
+                if (!$version_ok) {
+                    return [
+                        'ok' => false,
+                        'message' => esc_html__('Failed (Memcached server not responding)', 'fastpixel-website-accelerator'),
+                    ];
+                }
+
+                return [
+                    'ok' => true,
+                    'message' => esc_html__('Passed', 'fastpixel-website-accelerator'),
+                ];
+            } catch (\Throwable $e) {
+                return [
+                    'ok' => false,
+                    'message' => sprintf(esc_html__('Failed (%s)', 'fastpixel-website-accelerator'), $e->getMessage()),
+                ];
+            } finally {
+                if (is_object($client) && method_exists($client, 'quit')) {
+                    try {
+                        @$client->quit();
+                    } catch (\Throwable $e) {
+                        // ignore quit errors
+                    }
+                }
+            }
+        }
+
+        private function normalize_object_cache_method($value)
+        {
+            $method = strtolower($this->normalize_string($value));
+            if ($method === 'memcache') {
+                $method = 'memcached';
+            }
+            if (in_array($method, ['disabled', 'none', 'off', '0', 'false'], true)) {
+                $method = 'disabled';
+            }
+            if (!in_array($method, ['disabled', 'redis', 'memcached'], true)) {
+                $method = 'disabled';
+            }
+            return $method;
+        }
+
+        private function normalize_string($value)
+        {
+            if (!is_scalar($value)) {
+                return '';
+            }
+            return trim((string) $value);
+        }
+
+        private function normalize_int($value, $default = 0)
+        {
+            if ($value === '' || $value === null) {
+                return (int) $default;
+            }
+            if (is_numeric($value)) {
+                return (int) $value;
+            }
+            return (int) $default;
+        }
+
+        private function is_unix_socket($host)
+        {
+            return is_string($host) && ($host !== '') && (strpos($host, '/') === 0 || strpos($host, 'unix://') === 0);
         }
     }
     new FASTPIXEL_Backend_Actions();

@@ -12,6 +12,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Request')) {
         protected $functions; //variable to store functions class
         protected $notices; //variable to store notices class
         protected $connection_timeout = 5; //connection timeout variable
+        protected $insecure_retry_delay = 3; //seconds to wait before one-time retry on insecure website error
 
         protected $api_url;
         protected $api_key;
@@ -141,7 +142,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Request')) {
         }
 
 
-        protected function do_request(): bool
+        protected function do_request(bool $allow_retry = true): bool
         {
             //first we need to check for default wordpress CURL wrapper function and use it (required by CODEX)
             if (function_exists('wp_remote_post')) {
@@ -176,6 +177,18 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Request')) {
                     }
                     return false;
                 }
+                if ($allow_retry && $this->should_retry_after_insecure_website_error($response)) {
+                    if ($this->debug_request) {
+                        FASTPIXEL_Debug::log('REQUEST Class: Received "this website is not secure", flushing object cache and retrying once');
+                    }
+                    if (function_exists('wp_cache_flush')) {
+                        wp_cache_flush();
+                    }
+                    if ($this->insecure_retry_delay > 0) {
+                        sleep((int) $this->insecure_retry_delay);
+                    }
+                    return $this->do_request(false);
+                }
                 if ($this->debug_request) {
                     FASTPIXEL_Debug::log('REQUEST Class: Response', $response['response']);
                 }
@@ -195,6 +208,35 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Request')) {
                 }
             }
             return false;
+        }
+
+        protected function should_retry_after_insecure_website_error($response): bool
+        {
+            if (!is_array($response)) {
+                return false;
+            }
+            $response_body = isset($response['body']) && is_string($response['body']) ? $response['body'] : '';
+            if ($response_body === '') {
+                return false;
+            }
+            $messages = [$response_body];
+            $decoded_body = json_decode($response_body, true);
+            if (is_array($decoded_body)) {
+                foreach (['error', 'message', 'body_response', 'Status'] as $key) {
+                    if (!empty($decoded_body[$key]) && is_string($decoded_body[$key])) {
+                        $messages[] = $decoded_body[$key];
+                    }
+                }
+                if (!empty($decoded_body['errors']) && is_array($decoded_body['errors'])) {
+                    foreach ($decoded_body['errors'] as $error_item) {
+                        if (is_string($error_item) && !empty($error_item)) {
+                            $messages[] = $error_item;
+                        }
+                    }
+                }
+            }
+            $combined_message = strtolower(implode(' ', $messages));
+            return strpos($combined_message, 'this website is not secure') !== false;
         }
 
         protected function validate(): bool 

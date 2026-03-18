@@ -24,6 +24,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Plugin')) {
             //if the plugin version has changed, delete as soon as possible the advanced-cache.php file and regenerate it on init.
             add_action('plugins_loaded', [$this, 'maybe_cleanup_ac_file']);
             add_action('init', [$this, 'maybe_regenerate_ac_file']);
+            add_action('fastpixel/objectcache/after_save', [$this, 'sync_object_cache_dropin'], 20, 1);
             add_action('wp_ajax_fastpixel_deactivate_plugin_feedback', [$this, 'feedback']);
         }
 
@@ -45,6 +46,9 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Plugin')) {
                 if ($file_updated && !$this->functions->get_wp_cache_status()) {
                     $this->functions->update_config_file(true);
                 }
+            }
+            if ((bool) $this->functions->get_option('fastpixel_object_cache_enabled', false)) {
+                $this->functions->sync_object_cache_dropin();
             }
             //creating cache dir if not exists to avoid later errors
             $cache_dir = rtrim(WP_CONTENT_DIR, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'cache' . DIRECTORY_SEPARATOR;
@@ -118,8 +122,21 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Plugin')) {
             if (file_exists($this->functions->get_ac_file_path())) {
                 $res = wp_delete_file($this->functions->get_ac_file_path());
             }
+            $this->functions->disable_object_cache_dropin();
             //disabling WP_CACHE on deactivate
             $this->functions->update_config_file(false);
+        }
+
+        public function sync_object_cache_dropin($object_cache_data = [])
+        {
+            $payload = is_array($object_cache_data) ? $object_cache_data : [];
+            $result = $this->functions->sync_object_cache_dropin($payload);
+            if (!$result && class_exists('FASTPIXEL\FASTPIXEL_Debug')) {
+                FASTPIXEL_Debug::log('Object cache drop-in sync failed.', [
+                    'error' => $this->functions->get_object_cache_last_error(),
+                    'enabled' => $payload['enabled'] ?? null,
+                ]);
+            }
         }
 
         public function feedback() {

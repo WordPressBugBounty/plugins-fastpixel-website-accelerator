@@ -524,6 +524,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_UI')) {
                         'images',
                         'fonts',
                         'compatibility',
+                        ['slug' => 'object-cache', 'icon' => 'object-cache'],
                         'integrations'
                     ]
                 ],
@@ -596,16 +597,17 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_UI')) {
             echo '</menu><section class="wrapper">';
             $form_open = false;
             foreach ($this->tabs as $tab) {
-                if (!in_array($tab->get_slug(), $allowed_slugs, true) || !$tab->is_enabled()) {
+                $tab_slug = $tab->get_slug();
+                if (!in_array($tab_slug, $allowed_slugs, true) || !$tab->is_enabled()) {
                     continue;
                 }
-                if ($tab->get_slug() !== 'cache-status' && !$form_open) {
+                if ($tab_slug !== 'cache-status' && !$form_open) {
                     echo '<form id="fastpixel-settings-form" name="fastpixel-settings-form" method="post">';
                     wp_nonce_field('fastpixel-settings', 'fastpixel-nonce', false);
                     echo '<input type="hidden" name="fastpixel-action" value="save_settings" />';
                     $form_open = true;
                 }
-                echo '<section id="' . esc_attr($tab->get_slug()) . '" class="fastpixel-options-tab"><settinglist><h2>' . $tab->get_name() . '</h2>'; //phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+                echo '<section id="' . esc_attr($tab_slug) . '" class="fastpixel-options-tab"><settinglist><h2>' . $tab->get_name() . '</h2>'; //phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
                 $tab->view();
                 echo '</settinglist></section>';
             }

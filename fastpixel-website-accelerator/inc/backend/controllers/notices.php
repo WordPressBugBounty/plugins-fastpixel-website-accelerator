@@ -32,10 +32,81 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Notices')) {
             return self::$instance;
         }
 
+        protected function get_dismissed_diag_notice_ids()
+        {
+            if (!is_user_logged_in()) {
+                return [];
+            }
+            $dismissed = get_user_meta(get_current_user_id(), 'fastpixel_dismissed_diag_notice_ids', true);
+            return is_array($dismissed) ? $dismissed : [];
+        }
+
+        protected function add_dismissed_diag_notice_id($notice_id)
+        {
+            if (!is_user_logged_in() || empty($notice_id)) {
+                return;
+            }
+            $dismissed = $this->get_dismissed_diag_notice_ids();
+            if (!in_array($notice_id, $dismissed, true)) {
+                $dismissed[] = $notice_id;
+                update_user_meta(get_current_user_id(), 'fastpixel_dismissed_diag_notice_ids', $dismissed);
+            }
+        }
+
+        protected function get_flash_notices()
+        {
+            $notices = $this->functions->get_option("fastpixel_flash_notices", []);
+            return is_array($notices) ? $notices : [];
+        }
+
+        protected function save_flash_notices($notices)
+        {
+            $notices = array_values(array_filter($notices, 'is_array'));
+            if (!empty($notices)) {
+                $this->functions->update_option("fastpixel_flash_notices", $notices);
+            } else {
+                $this->functions->delete_option("fastpixel_flash_notices");
+            }
+        }
+
+        protected function clear_diag_flash_notices()
+        {
+            $notices = $this->get_flash_notices();
+            if (empty($notices)) {
+                return;
+            }
+            $filtered_notices = array_filter($notices, function ($notice) {
+                $notice_id = !empty($notice['id']) ? sanitize_key($notice['id']) : '';
+                return strpos($notice_id, 'diag-') !== 0;
+            });
+            $this->save_flash_notices($filtered_notices);
+        }
+
+        protected function sync_dismissed_diag_notice_ids($active_notice_ids)
+        {
+            if (!is_user_logged_in()) {
+                return;
+            }
+            $dismissed = $this->get_dismissed_diag_notice_ids();
+            if (empty($dismissed)) {
+                return;
+            }
+            $active_notice_ids = array_values(array_filter(array_map('sanitize_key', $active_notice_ids)));
+            $updated_dismissed = array_values(array_intersect($dismissed, $active_notice_ids));
+            if ($updated_dismissed === $dismissed) {
+                return;
+            }
+            if (!empty($updated_dismissed)) {
+                update_user_meta(get_current_user_id(), 'fastpixel_dismissed_diag_notice_ids', $updated_dismissed);
+            } else {
+                delete_user_meta(get_current_user_id(), 'fastpixel_dismissed_diag_notice_ids');
+            }
+        }
+
         public function add_flash_notice($notice = "", $type = "warning", $dismissible = true, $id = null)
         {
             // Here we return the notices saved on our option, if there are not notices, then an empty array is returned
-            $notices = $this->functions->get_option("fastpixel_flash_notices", []);
+            $notices = $this->get_flash_notices();
             $notice = [
                 "notice" => '<strong>FastPixel Website Accelerator:</strong> ' . wp_kses($notice, [
                     'a' => [
@@ -64,7 +135,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Notices')) {
 
         public function display_flash_notices()
         {
-            $notices = $this->functions->get_option("fastpixel_flash_notices", array());
+            $notices = $this->get_flash_notices();
             $dismissible = [];
             foreach ($notices as $notice) {
                 $notice_obj = wpdesk_wp_notice($notice['notice'], $notice['type'], $notice['dismissible']);
@@ -76,11 +147,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Notices')) {
                 }
             }
             // Now we reset our options to prevent notices being displayed forever.
-            if (!empty($dismissible)) {
-                $this->functions->update_option("fastpixel_flash_notices", $dismissible);
-            } else {
-                $this->functions->delete_option("fastpixel_flash_notices");
-            }
+            $this->save_flash_notices($dismissible);
         }
 
         public function check_diag_tests()
@@ -103,13 +170,32 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Notices')) {
             // getting notification messages and displaying them
             $diag = FASTPIXEL_Diag::get_instance();
             $notifications = $diag->get_notification_messages();
+            $active_diag_notice_ids = [];
             if (is_array($notifications) && !empty($notifications)) {
+                foreach ($notifications as $message) {
+                    $notice_id = !empty($message['id']) ? sanitize_key($message['id']) : null;
+                    if (!empty($notice_id) && strpos($notice_id, 'diag-') === 0) {
+                        $active_diag_notice_ids[] = $notice_id;
+                    }
+                }
+            }
+
+            $this->clear_diag_flash_notices();
+            $this->sync_dismissed_diag_notice_ids($active_diag_notice_ids);
+
+            if (is_array($notifications) && !empty($notifications)) {
+                $dismissed_diag_notice_ids = $this->get_dismissed_diag_notice_ids();
                 foreach($notifications as $message) {
                     // skip API key missing messages if we're on onboarding page
                     if ($is_onboarding_page && empty($api_key) && strpos($message['text'], 'API Key is missing') !== false) {
                         continue;
                     }
-                    $this->add_flash_notice($message['text'], $message['type'], false);
+                    $notice_id = !empty($message['id']) ? sanitize_key($message['id']) : null;
+                    $dismissible = !empty($message['dismissible']);
+                    if ($dismissible && !empty($notice_id) && in_array($notice_id, $dismissed_diag_notice_ids, true)) {
+                        continue;
+                    }
+                    $this->add_flash_notice($message['text'], $message['type'], $dismissible, $notice_id);
                 }
             }
         }
@@ -119,11 +205,15 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Notices')) {
 
         public function dismiss_notice() {
             $notice_id = filter_input(INPUT_POST, 'notice_id', FILTER_SANITIZE_STRING);
-            $notices = $this->functions->get_option("fastpixel_flash_notices", []);
+            $notice_id = !empty($notice_id) ? sanitize_key($notice_id) : '';
+            $notices = $this->get_flash_notices();
             $notices = array_filter($notices, function($notice) use ($notice_id) {
-                return $notice['id'] !== $notice_id;
+                return empty($notice['id']) || $notice['id'] !== $notice_id;
             });
-            $this->functions->update_option("fastpixel_flash_notices", $notices);
+            $this->save_flash_notices($notices);
+            if (strpos($notice_id, 'diag-') === 0) {
+                $this->add_dismissed_diag_notice_id($notice_id);
+            }
             wp_send_json_success();
         }
     }

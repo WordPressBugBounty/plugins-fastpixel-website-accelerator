@@ -2,9 +2,9 @@
 Contributors: shortpixel
 Tags: speed, cache, caching, performance, web vitals
 Requires at least: 6.0
-Tested up to: 6.9.1
+Tested up to: 6.9
 Requires PHP: 5.6
-Stable tag: 1.3.3
+Stable tag: 1.4.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -25,6 +25,17 @@ https://www.youtube.com/watch?v=6UbWASU8RNw
 There is **no need to install our plugin to run a test**.
 You can test FastPixel live on a [sandbox website at TasteWP](https://tastewp.com/template/FastPixel) or you can quickly assess how [FastPixel](https://fastpixel.io/) can optimize your website by conducting a test. Simply use [this test page](https://test.fastpixel.io/), and we will apply all optimizations to a copy of your website.
 This way, you can easily evaluate the substantial speed improvements it can achieve using the most widely recognized website performance analysis tools.
+
+### 🆕 New! Object Cache – Now Available! ### 
+You can now connect FastPixel to your Redis or Memcached server and let our plugin handle the rest. 
+Object caching stores the results of database queries in memory, so WordPress skips repetitive work on every page load, meaning faster pages and less load on your server. No configuration needed. Just connect and go.
+- No need for additional plugins
+- Tuned for WooCommerce compatibility
+- Built for maximum performance with the same resources
+- Smart cache prefetching
+- Fully compliant with WordPress
+- Improved efficiency with simple settings and defaults
+- Encrypted communication
 
 == 💡 Why choose FastPixel Caching plugin? ==
 - **Website Performance Boost**: Just activate the plugin and within seconds the optimized webpages will start to be served.
@@ -67,14 +78,23 @@ Yes, we do! Please [contact us](https://fastpixel.io/#contact) to discuss about 
 = Why should I choose FastPixel? =
 The FastPixel plugin offers an all-in-one solution to speed up your website. It's easy to set up, integrates the latest website speed optimization technologies, and is superbly supported by the [ShortPixel support team](https://wordpress.org/support/plugin/shortpixel-image-optimiser/reviews/?filter=5)
 
+= Can I use FastPixel with Cloudflare? =
+Yes, FastPixel can be used with Cloudflare. It also includes a Cloudflare integration that allows it to automatically purge the Cloudflare cache remotely once a page has been optimized.
+
+= Can FastPixel replace other cache plugins? =
+Yes, FastPixel can easily replace any other caching plugin and we recommend disabling any other caching plugins when using FastPixel to avoid potential conflicts.
+
 = Does FastPixel work on all hosting providers? =
 Yes, our plugin works with all hosting providers, but if you encounter any issues just let us know and we will be happy to help!
 
 = The Cache Status of my pages says "Queued". What does this mean? =
 "Queued" cache status means that the page is in queue to be processed by our servers and will soon appear as "Cached".
 
+= Why are my WordPress changes not showing? =
+If your WordPress changes are not appearing, please make sure to clear the FastPixel cache, as you are likely seeing a cached version of the page. Once the cache is purged, the changes should appear instantly.
+
 = Is FastPixel free? =
-Yes, as long as you install it on a website that doesn't generate more than 5,000 page views/month, you don't have to pay for it :-)
+Yes, as long as you install it on a website that doesn't generate more than 1,000 page views/month, you don't have to pay for it :-)
 If you exceed this threshold no worries, affordable monthly or yearly plans are available for you.
 
 = How much is 1,000 page views/month? = 
@@ -202,13 +222,32 @@ For more detailed information on how to use the plugin or the API, troubleshooti
 
 == Changelog ==
 
+= 1.4.0 =
+
+⚡ The Object Cache Update
+
+Release Date: March 16, 2026
+
+🚀 New Feature
+
+* Object Cache: FastPixel can now connect directly to your Redis or Memcached server, enabling powerful object caching with minimal setup. Just configure the connection and let the plugin handle the rest.
+
+✨ Improvements
+
+* Revamped Help Center: The Help Center page inside the plugin has been redesigned to make finding guides and support resources faster and easier.
+* Notification Improvements: Some previously non-dismissible notifications can now be dismissed for a cleaner dashboard experience.
+* Parameter Handling Improvements: Improved the way parameters are processed during optimization to ensure more reliable and consistent results.
+* Small UI Fixes: Minor visual tweaks and adjustments across the plugin interface.
+
+Update now to unlock faster performance with object caching and enjoy a cleaner, more helpful interface! 🚀
+
 = 1.3.3 =
 
 🛠️ Fixes & Improvements
 
-* Set the Fast as the default preset for new installs.
-* Make sure user can't dismiss the onboarding by mistake.
-* When serving gzipped from PHP, make sure we include the end comment in the gzipped content
+* Improved compatibility: The Fast preset is now selected by default when FastPixel is installed.
+* Improved onboarding: Prevents the onboarding flow from being accidentally skipped.  
+* GZIP fix: When serving gzipped content from PHP, the end comment is now correctly included in the compressed output.
 
 = 1.3.2 =
 

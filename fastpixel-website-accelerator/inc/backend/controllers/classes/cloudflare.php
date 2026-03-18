@@ -44,7 +44,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_CloudFlare_Integration')) {
                 'fastpixel_cloudflare_settings_section',
                 __('Cloudflare', 'fastpixel-website-accelerator'),
                 function () {
-                    echo wp_kses_post('<p class="fastpixel-settings-section-description">If you are using Cloudflare on your site, we recommend filling in the details below. This allows FastPixel to work seamlessly with Cloudflare, ensuring that pages optimized by FastPixel are automatically updated on Cloudflare as well.</p>');
+                    echo wp_kses_post('<p class="fastpixel-settings-section-description fastpixel-setting-description">If you are using Cloudflare on your site, we recommend filling in the details below. This allows FastPixel to work seamlessly with Cloudflare, ensuring that pages optimized by FastPixel are automatically updated on Cloudflare as well.</p>');
                 },
                 FASTPIXEL_TEXTDOMAIN . '-integrations',
                 [

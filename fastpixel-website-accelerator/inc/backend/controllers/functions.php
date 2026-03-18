@@ -170,7 +170,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Functions')) {
                 %6$s
             </label>
             </switch>
-            <span class="fastpixel-switch-description">%7$s</span>', $switch_class, $field_name, $checked, $disabled, $data, $label, $description);
+            <span class="fastpixel-switch-description fastpixel-setting-description">%7$s</span>', $switch_class, $field_name, $checked, $disabled, $data, $label, $description);
             $output = '<setting id="' . $field_name . '-container" class="switch"><content>' . $switch . '</content></setting>';
             if ($display) {
                 echo $output; //phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
@@ -214,7 +214,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Functions')) {
             <input type="%2$s" %3$s name="%4$s" %5$s %6$s value="%7$s" />
             <span class="fastpixel-error-text">%9$s</span>
             </span>
-            <span class="fastpixel-input-description">%8$s</span>
+            <span class="fastpixel-input-description fastpixel-setting-description">%8$s</span>
             </content></setting>', $label, $type, $class, $field_name, $disabled, $data, $field_value, $description, $error);
             if ($display) {
                 echo $output; //phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
@@ -253,7 +253,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Functions')) {
 
             $textarea = sprintf('<label class="fastpixel-textarea-label">%1$s</label>
             <textarea %2$s name="%3$s" %4$s %5$s %6$s>%7$s</textarea>
-            <span class="fastpixel-textarea-description">%8$s</span>
+            <span class="fastpixel-textarea-description fastpixel-setting-description">%8$s</span>
             <span class="fastpixel-textarea-error-text">%9$s</span>', $label, $class, $field_name, $disabled, $data, $placeholder, esc_textarea($field_value), $description, esc_html($error));
             $output = '<setting id="' . $field_name . '-container" class="fastpixel-textarea-setting"><content>' . $textarea . '</content></setting>';
             if ($display) {
@@ -298,7 +298,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Functions')) {
             $descriptions = '';
             if (!empty($value_descriptions)) {
                 foreach($value_descriptions as $key => $value) {
-                    $descriptions .= sprintf('<p class="fastpixel-horizontal-selector-settings-description fastpixel-desc-hidden" data-value="%1$s">%2$s</p>', $key, $value);
+                    $descriptions .= sprintf('<p class="fastpixel-horizontal-selector-settings-description fastpixel-setting-description fastpixel-desc-hidden" data-value="%1$s">%2$s</p>', $key, $value);
                 }
             } else {
                 $descriptions = $description;

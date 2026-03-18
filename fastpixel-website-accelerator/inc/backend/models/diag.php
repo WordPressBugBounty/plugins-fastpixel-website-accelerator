@@ -27,9 +27,17 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Diag_Test')) {
             return $this->order_id;
         }
 
-        protected function add_notification_message($text, $type = 'error')
+        protected function add_notification_message($text, $type = 'error', $dismissible = false, $id = null)
         {
-            $this->notification_messages[] = ['text' => $text, 'type' => $type];
+            $message = [
+                'text'        => $text,
+                'type'        => $type,
+                'dismissible' => (bool) $dismissible
+            ];
+            if (!empty($id)) {
+                $message['id'] = sanitize_key($id);
+            }
+            $this->notification_messages[] = $message;
         }
 
         abstract public function test();

@@ -11,9 +11,14 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Functions')) {
         protected static $instance;
         protected $ac_sample;
         protected $ac_file;
+        protected $oc_sample;
+        protected $oc_file;
+        protected $oc_backup;
+        protected $object_cache_last_error = '';
         protected $wp_cache_status;
         protected $wp_config_path;
         const FASTPIXEL_CACHE_VAR_NAME = 'WP_CACHE';
+        const FASTPIXEL_OC_MARKER = 'FastPixel Object Cache';
         protected $match_regexp = '/(\s*?)define\(\s*?[\'|"]' . self::FASTPIXEL_CACHE_VAR_NAME . '[\'|"]\s*?,\s*?(true|false)[^\)]*?\)\s*?;/im';
         protected $cache_dir;
 
@@ -34,6 +39,9 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Functions')) {
             $this->wp_cache_status = defined(self::FASTPIXEL_CACHE_VAR_NAME) ? constant(self::FASTPIXEL_CACHE_VAR_NAME) : false;
             $this->ac_sample       = FASTPIXEL_PLUGIN_DIR . DIRECTORY_SEPARATOR . 'advanced-cache.php';
             $this->ac_file         = WP_CONTENT_DIR . DIRECTORY_SEPARATOR . 'advanced-cache.php';
+            $this->oc_sample       = FASTPIXEL_PLUGIN_DIR . DIRECTORY_SEPARATOR . 'object-cache.php';
+            $this->oc_file         = WP_CONTENT_DIR . DIRECTORY_SEPARATOR . 'object-cache.php';
+            $this->oc_backup       = FASTPIXEL_PLUGIN_DIR . DIRECTORY_SEPARATOR . 'runtime' . DIRECTORY_SEPARATOR . 'object-cache.php.fastpixel.bak';
             $this->cache_dir       = FASTPIXEL_CACHE_DIR . DIRECTORY_SEPARATOR . FASTPIXEL_TEXTDOMAIN;
             //automatically create cache dir
             if (!file_exists(FASTPIXEL_CACHE_DIR)) {
@@ -376,6 +384,124 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Functions')) {
             return false;
         }
 
+        public function update_oc_file(array $settings = [])
+        {
+            $this->object_cache_last_error = '';
+            global $wp_filesystem;
+
+            if (!$this->init_wp_filesystem()) {
+                $this->object_cache_last_error = 'WP_Filesystem initialization failed.';
+                return false;
+            }
+
+            if (!$wp_filesystem->exists($this->oc_sample)) {
+                $this->object_cache_last_error = 'Object cache template not found.';
+                return false;
+            }
+
+            $template = $wp_filesystem->get_contents($this->oc_sample);
+            if ($template === false || $template === '') {
+                $this->object_cache_last_error = 'Object cache template is not readable.';
+                return false;
+            }
+
+            if ($wp_filesystem->exists($this->oc_file)) {
+                $current_content = $wp_filesystem->get_contents($this->oc_file);
+                $is_foreign = !$this->is_fastpixel_object_cache_content((string) $current_content);
+                if ($is_foreign && !$wp_filesystem->exists($this->oc_backup)) {
+                    if (!$this->ensure_oc_backup_directory_exists()) {
+                        $this->object_cache_last_error = 'Unable to create plugin backup directory.';
+                        return false;
+                    }
+                    $backup_ok = $wp_filesystem->copy($this->oc_file, $this->oc_backup, true);
+                    if (!$backup_ok) {
+                        $this->object_cache_last_error = 'Unable to create object-cache backup.';
+                        return false;
+                    }
+                }
+            }
+
+            $normalized = $this->normalize_object_cache_dropin_settings($settings);
+            $dropin_content = $this->render_object_cache_dropin_template($template, $normalized);
+
+            if (!$wp_filesystem->put_contents($this->oc_file, $dropin_content)) {
+                $this->object_cache_last_error = 'Unable to write wp-content/object-cache.php.';
+                return false;
+            }
+
+            return true;
+        }
+
+        public function sync_object_cache_dropin(array $settings = [])
+        {
+            $enabled = array_key_exists('enabled', $settings)
+                ? $this->normalize_object_cache_bool($settings['enabled'], false)
+                : (bool) $this->get_option('fastpixel_object_cache_enabled', false);
+
+            if (!$enabled) {
+                return $this->disable_object_cache_dropin();
+            }
+
+            return $this->update_oc_file($settings);
+        }
+        public function disable_object_cache_dropin()
+        {
+            $this->object_cache_last_error = '';
+            global $wp_filesystem;
+
+            if (!$this->init_wp_filesystem()) {
+                $this->object_cache_last_error = 'WP_Filesystem initialization failed.';
+                return false;
+            }
+
+            $backup_exists = $wp_filesystem->exists($this->oc_backup);
+            $dropin_exists = $wp_filesystem->exists($this->oc_file);
+            $dropin_is_ours = false;
+
+            if ($dropin_exists) {
+                $dropin_content = $wp_filesystem->get_contents($this->oc_file);
+                $dropin_is_ours = $this->is_fastpixel_object_cache_content((string) $dropin_content);
+            }
+
+            if ($backup_exists && (!$dropin_exists || $dropin_is_ours)) {
+                if (!$wp_filesystem->copy($this->oc_backup, $this->oc_file, true)) {
+                    $this->object_cache_last_error = 'Unable to restore object-cache backup.';
+                    return false;
+                }
+                $wp_filesystem->delete($this->oc_backup);
+                return true;
+            }
+
+            if ($dropin_exists && $dropin_is_ours) {
+                if (!$wp_filesystem->delete($this->oc_file)) {
+                    $this->object_cache_last_error = 'Unable to remove FastPixel object-cache drop-in.';
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        public function get_oc_file_path()
+        {
+            return $this->oc_file;
+        }
+
+        public function get_oc_template_path()
+        {
+            return $this->oc_sample;
+        }
+
+        public function get_oc_backup_path()
+        {
+            return $this->oc_backup;
+        }
+
+        public function get_object_cache_last_error()
+        {
+            return (string) $this->object_cache_last_error;
+        }
+
         public function get_ac_file_path() 
         {
             return $this->ac_file;
@@ -389,6 +515,239 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Functions')) {
         public function get_wp_cache_status() 
         {
             return $this->wp_cache_status;
+        }
+
+        protected function init_wp_filesystem()
+        {
+            global $wp_filesystem;
+            if (empty($wp_filesystem) && file_exists(ABSPATH . '/wp-admin/includes/file.php')) {
+                require_once ABSPATH . '/wp-admin/includes/file.php';
+                WP_Filesystem();
+            }
+            return !empty($wp_filesystem);
+        }
+
+        protected function ensure_oc_backup_directory_exists()
+        {
+            global $wp_filesystem;
+            $backup_dir = dirname($this->oc_backup);
+            if ($wp_filesystem->exists($backup_dir)) {
+                return true;
+            }
+            return (bool) $wp_filesystem->mkdir($backup_dir);
+        }
+
+        protected function is_fastpixel_object_cache_content($content)
+        {
+            if (!is_string($content) || $content === '') {
+                return false;
+            }
+            return strpos($content, self::FASTPIXEL_OC_MARKER) !== false;
+        }
+
+        protected function render_object_cache_dropin_template($template, array $settings)
+        {
+            $raw_replacements = [
+                "'%%FASTPIXEL_OC_PORT%%'" => (string) (int) $settings['port'],
+                "'%%FASTPIXEL_OC_DBID%%'" => (string) (int) $settings['dbid'],
+                "'%%FASTPIXEL_OC_PERSISTENT%%'" => $settings['persistent'] ? 'true' : 'false',
+                "'%%FASTPIXEL_OC_TTL%%'" => (string) (int) $settings['default_ttl'],
+                "'%%FASTPIXEL_OC_CACHE_WP_ADMIN%%'" => $settings['cache_wp_admin'] ? 'true' : 'false',
+                "'%%FASTPIXEL_OC_STORE_TRANSIENTS%%'" => $settings['store_transients'] ? 'true' : 'false',
+                "'%%FASTPIXEL_OC_SAFE_MODE%%'" => $settings['safe_mode'] ? 'true' : 'false',
+                "'%%FASTPIXEL_OC_GLOBAL_GROUPS%%'" => var_export($settings['global_groups'], true),
+                "'%%FASTPIXEL_OC_NON_PERSISTENT_GROUPS%%'" => var_export($settings['non_persistent_groups'], true),
+            ];
+
+            $template = str_replace(array_keys($raw_replacements), array_values($raw_replacements), $template);
+
+            $replacements = [
+                '%%FASTPIXEL_OC_METHOD%%' => str_replace("'", "\\'", (string) $settings['method']),
+                '%%FASTPIXEL_OC_HOST%%' => str_replace("'", "\\'", (string) $settings['host']),
+                '%%FASTPIXEL_OC_USERNAME%%' => str_replace("'", "\\'", (string) $settings['username']),
+                '%%FASTPIXEL_OC_PASSWORD%%' => str_replace("'", "\\'", (string) $settings['password']),
+                '%%FASTPIXEL_OC_KEY_SALT%%' => str_replace("'", "\\'", (string) $settings['key_salt']),
+                '%%FASTPIXEL_OC_NON_PERSISTENT_GROUPS%%' => var_export($settings['non_persistent_groups'], true),
+            ];
+
+            return str_replace(array_keys($replacements), array_values($replacements), $template);
+        }
+
+        protected function normalize_object_cache_dropin_settings(array $settings = [])
+        {
+            $raw = [
+                'method' => array_key_exists('method', $settings) ? $settings['method'] : $this->get_option('fastpixel_object_cache_method', 'redis'),
+                'host' => array_key_exists('host', $settings) ? $settings['host'] : $this->get_option('fastpixel_object_cache_host', '127.0.0.1'),
+                'port' => array_key_exists('port', $settings) ? $settings['port'] : $this->get_option('fastpixel_object_cache_port', ''),
+                'username' => array_key_exists('username', $settings) ? $settings['username'] : $this->get_option('fastpixel_object_cache_username', ''),
+                'password' => array_key_exists('password', $settings) ? $settings['password'] : $this->get_option('fastpixel_object_cache_password', ''),
+                'dbid' => array_key_exists('dbid', $settings) ? $settings['dbid'] : $this->get_option('fastpixel_object_cache_dbid', 0),
+                'persistent' => array_key_exists('persistent', $settings) ? $settings['persistent'] : $this->get_option('fastpixel_object_cache_persistent', true),
+                'default_ttl' => array_key_exists('default_ttl', $settings)
+                    ? $settings['default_ttl']
+                    : (array_key_exists('default_lifetime', $settings)
+                        ? $settings['default_lifetime']
+                        : $this->get_option('fastpixel_object_cache_default_lifetime', 360)),
+                'cache_wp_admin' => array_key_exists('cache_wp_admin', $settings) ? $settings['cache_wp_admin'] : $this->get_option('fastpixel_object_cache_cache_wp_admin', true),
+                'store_transients' => array_key_exists('store_transients', $settings) ? $settings['store_transients'] : $this->get_option('fastpixel_object_cache_store_transients', true),
+                'safe_mode' => false,
+                'global_groups' => array_key_exists('global_groups', $settings) ? $settings['global_groups'] : $this->get_option('fastpixel_object_cache_global_groups', $this->get_default_object_cache_global_groups()),
+                'non_persistent_groups' => array_key_exists('non_persistent_groups', $settings)
+                    ? $settings['non_persistent_groups']
+                    : (array_key_exists('do_not_cache', $settings)
+                        ? $settings['do_not_cache']
+                        : $this->get_option('fastpixel_object_cache_do_not_cache', $this->get_default_object_cache_non_persistent_groups())),
+                'key_salt' => defined('WP_CACHE_KEY_SALT') ? WP_CACHE_KEY_SALT : '',
+            ];
+
+            $normalized = [];
+            $normalized['method'] = $this->normalize_object_cache_method($raw['method']);
+            $normalized['host'] = $this->normalize_object_cache_string($raw['host'], '127.0.0.1');
+            $normalized['port'] = $this->normalize_object_cache_int($raw['port'], 0);
+            $normalized['username'] = $this->normalize_object_cache_string($raw['username'], '');
+            $normalized['password'] = $this->normalize_object_cache_string($raw['password'], '');
+            $normalized['dbid'] = max(0, $this->normalize_object_cache_int($raw['dbid'], 0));
+            $normalized['persistent'] = $this->normalize_object_cache_bool($raw['persistent'], true);
+            $normalized['default_ttl'] = max(0, $this->normalize_object_cache_int($raw['default_ttl'], 360));
+            $normalized['cache_wp_admin'] = $this->normalize_object_cache_bool($raw['cache_wp_admin'], true);
+            $normalized['store_transients'] = $this->normalize_object_cache_bool($raw['store_transients'], true);
+            $normalized['safe_mode'] = false;
+            $normalized['global_groups'] = $this->normalize_object_cache_group_list($raw['global_groups']);
+            $normalized['non_persistent_groups'] = $this->normalize_object_cache_group_list($raw['non_persistent_groups']);
+	    // generate generate key_salt is mandatory. Redis uses a guard for flushing db without keysalt.
+            $normalized['key_salt'] = $this->normalize_object_cache_string($raw['key_salt'], '');
+            if ($normalized['key_salt'] === '') {
+                $normalized['key_salt'] = $this->build_default_object_cache_key_salt();
+            }
+
+            if ($normalized['host'] === '') {
+                $normalized['host'] = '127.0.0.1';
+            }
+            if ($normalized['port'] <= 0) {
+                $normalized['port'] = $normalized['method'] === 'memcached' ? 11211 : 6379;
+            }
+            if (strpos($normalized['host'], '/') === 0 || strpos($normalized['host'], 'unix://') === 0) {
+                $normalized['port'] = 0;
+            }
+
+            return $normalized;
+        }
+
+        protected function normalize_object_cache_method($method)
+        {
+            $method = strtolower($this->normalize_object_cache_string($method, 'redis'));
+            if ($method === 'memcache') {
+                $method = 'memcached';
+            }
+            if (in_array($method, ['disabled', 'none', 'off', '0', 'false'], true)) {
+                return 'disabled';
+            }
+            if (!in_array($method, ['redis', 'memcached'], true)) {
+                $method = 'redis';
+            }
+            return $method;
+        }
+
+        protected function get_default_object_cache_global_groups()
+        {
+            return [
+                'users',
+                'userlogins',
+                'useremail',
+                'userslugs',
+                'usermeta',
+                'user_meta',
+                'site-transient',
+                'site-options',
+                'site-lookup',
+                'site-details',
+                'blog-lookup',
+                'blog-details',
+                'blog-id-cache',
+                'rss',
+                'global-posts',
+                'global-cache-test',
+            ];
+        }
+
+        protected function get_default_object_cache_non_persistent_groups()
+        {
+            return [
+                'comment',
+                'counts',
+                'plugins',
+                'wc_session_id',
+            ];
+        }
+
+        protected function normalize_object_cache_group_list($value)
+        {
+            if (is_string($value)) {
+                $value = preg_split("/\r\n|\n|\r/", $value);
+            }
+            if (!is_array($value)) {
+                return [];
+            }
+            $list = array_values(array_filter(array_map(static function ($item) {
+                $item = trim((string) $item);
+                return $item === '' ? null : $item;
+            }, $value)));
+            return array_values(array_unique($list));
+        }
+
+        protected function normalize_object_cache_bool($value, $default = false)
+        {
+            if (is_bool($value)) {
+                return $value;
+            }
+            if (is_numeric($value)) {
+                return ((int) $value) === 1;
+            }
+            if (is_string($value)) {
+                return in_array(strtolower(trim($value)), ['1', 'true', 'yes', 'on'], true);
+            }
+            return (bool) $default;
+        }
+
+        protected function normalize_object_cache_string($value, $default = '')
+        {
+            if (!is_scalar($value)) {
+                return (string) $default;
+            }
+            return trim((string) $value);
+        }
+
+        protected function normalize_object_cache_int($value, $default = 0)
+        {
+            if ($value === '' || $value === null) {
+                return (int) $default;
+            }
+            if (is_numeric($value)) {
+                return (int) $value;
+            }
+            return (int) $default;
+        }
+
+	/*
+		Generate a keysalt as 'stable source'.
+
+		We do not use a constant key such as 'fastpixel' to avoid collisions in the same Redis DB
+		* */
+        protected function build_default_object_cache_key_salt()
+        {
+            $seed = '';
+            if (function_exists('is_multisite') && is_multisite() && function_exists('network_home_url')) {
+                $seed = trim((string) network_home_url('/')); // more general for multisites
+            } elseif (function_exists('home_url')) {
+                $seed = trim((string) home_url('/'));
+            }
+
+	    // fallback
+            if ($seed === '') {
+                $seed = ABSPATH;
+            }
+
+            return 'fastpixel-' . substr(sha1($seed), 0, 12);
         }
 
         public function update_config_file(bool $var_value)
