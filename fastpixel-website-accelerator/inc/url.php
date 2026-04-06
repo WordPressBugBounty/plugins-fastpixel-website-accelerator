@@ -69,6 +69,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Url')) {
 
             // Pinterest (referrer)
             "referrer",
+            
 
             // Snapchat (sc_)
             "sc_aadid",
@@ -189,7 +190,12 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Url')) {
             $this->port = isset($parts["port"]) ? $parts["port"] : null;
             $this->host = isset($parts["host"]) ? strtolower($parts["host"]) : null;
             $this->path = isset($parts["path"]) ? strtolower($parts["path"]) : "/";
-            $this->query = $this->strip_params == false && isset($parts["query"]) ? $this->remove_tracking_params($parts["query"]) : null;
+            $raw_query = isset($parts["query"]) ? $this->remove_tracking_params($parts["query"]) : null;
+            if ($this->strip_params) {
+                $this->query = null;
+            } else {
+                $this->query = $this->filter_query_params($raw_query);
+            }
             $this->generate_path();
             $this->clear_url();
         }
@@ -286,6 +292,44 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Url')) {
                 }
             }
             return $this->http_build_query($params_array);
+        }
+
+        protected function filter_query_params($query_params) {
+            if (empty($query_params)) {
+                return null;
+            }
+            // when strip_params is true we never get here; this is only for the main URL path generation
+            // Apply "Ignore Unregistered Parameters" and whitelist ("Registered Parameters") settings
+            if (!class_exists('FASTPIXEL\FASTPIXEL_Config_Model')) {
+                return $query_params;
+            }
+            $config = FASTPIXEL_Config_Model::get_instance();
+            $ignore_unregistered = (bool) $config->get_option('fastpixel_exclude_all_params');
+            // If not ignoring unregistered, keep all
+            if (!$ignore_unregistered) {
+                return $query_params;
+            }
+            // Ignore Unregistered ON: keep only registered params list (whitelist).
+            $registered_list = $config->get_option('fastpixel_registered_params_list');
+            if (!is_array($registered_list) || empty($registered_list)) {
+                // No whitelist defined -> strip all params (equivalent to old "Disable All Parameters")
+                $this->strip_params = true;
+                return null;
+            }
+            parse_str($query_params, $params_array);
+            if (empty($params_array)) {
+                return null;
+            }
+            $filtered = [];
+            foreach ($params_array as $key => $value) {
+                if (in_array($key, $registered_list, true)) {
+                    $filtered[$key] = $value;
+                }
+            }
+            if (empty($filtered)) {
+                return null;
+            }
+            return $this->http_build_query($filtered);
         }
         public function clear_url()
         {

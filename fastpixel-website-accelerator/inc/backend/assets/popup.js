@@ -9,9 +9,11 @@ document.addEventListener("DOMContentLoaded", function() {
             '<label id="fastpixel-deactivation-send-anonymous-label" for="fastpixel-deactivation-send-anonymous">' + fastpixel_popup['translations']['send_anonymous'] + '</label></div></div><div class="fastpixel-column">'+
             '<p class="fastpixel-deactivating-spinner"><span class="spinner"></span> ' + fastpixel_popup['translations']['submitting_form'] + '</p>'+
             '<a id="fastpixel-deactivate-submit-form" class="button button-primary button-large" href="javascript:void(0);">' + fastpixel_popup['translations']['btn_deactivate'] + '</a></div></div>'),
-        delete_files = '<div class="fastpixel-deactivation-delete-files-container">'+
-            '<input type="checkbox" name="fastpixel-deactivation-delete-files" id="fastpixel-deactivation-delete-files" value="1"> '+
-            '<label for="fastpixel-deactivation-delete-files">' + fastpixel_popup['translations']['delete_cached_files'] + '</label><br></div>',
+        deactivation_options = '<div class="fastpixel-deactivation-delete-files-container">'+
+            '<div class="fastpixel-deactivation-option-row"><input type="checkbox" name="fastpixel-deactivation-delete-files" id="fastpixel-deactivation-delete-files" value="1"> '+
+            '<label for="fastpixel-deactivation-delete-files">' + fastpixel_popup['translations']['delete_cached_files'] + '</label></div>'+
+            '<div class="fastpixel-deactivation-option-row"><input type="checkbox" name="fastpixel-deactivation-delete-options" id="fastpixel-deactivation-delete-options" value="1"> '+
+            '<label for="fastpixel-deactivation-delete-options">' + fastpixel_popup['translations']['delete_options'] + '</label></div></div>',
         options_p = jQuery('<p></p>');
         jQuery.each(fastpixel_popup['options'], function(index, element) {
             options_p.append(jQuery('<input type="radio" name="fastpixel-deactivate-reason" id="' + index + '" value="' + index + '" data-display-textarea="' + element['display_textarea'] + '"><label for="' + index + '">' + element['text'] + '</label></br>'));
@@ -19,8 +21,21 @@ document.addEventListener("DOMContentLoaded", function() {
         options.append(options_p);
         options.append('<p class="fastpixel-deactivation-details-container"><label id="fastpixel-deactivate-details-label" for="fastpixel-deactivate-reasons"><strong id="fastpixel-deactivate-textarea-label"></strong></label>' +
             '<textarea name="fastpixel-deactivate-details" id="fastpixel-deactivate-details" rows="2" style="width:100%"></textarea></p>');
-        body.append(options).append('<hr>').append(delete_files).append('<hr>');;
+        body.append(options).append('<hr>').append(deactivation_options).append('<hr>');
         return container.append(head).append(body).append(footer);
+    }
+
+    function get_deactivation_url(delete_files, delete_options) {
+        const url = new URL(fastpixel_popup_deactivation_links['deactivate_link']);
+
+        if (delete_files) {
+            url.searchParams.set('fastpixel-delete-cached-files', '1');
+        }
+        if (delete_options) {
+            url.searchParams.set('fastpixel-delete-options', '1');
+        }
+
+        return url.toString();
     }
     const deactivate_link = jQuery(fastpixel_popup['deactivate_link_id']),
     form_container = jQuery(fastpixel_popup['form_container']);
@@ -31,12 +46,7 @@ document.addEventListener("DOMContentLoaded", function() {
     jQuery(deactivate_link).on("click", function (e) {
         e.preventDefault();
         jQuery('body').toggleClass('fastpixel-deactivate-form-active');
-        form_container.fadeIn({
-            complete: function () {
-                var offset = form_container.offset();
-                jQuery('html').animate({ scrollTop: Math.max(0, offset.top - (jQuery('#fastpixel-deactivate-form').height() + 70) )});
-            }
-        });
+        form_container.fadeIn();
     });
     //click on radio buttons
     jQuery('body').on('click', 'input[name="fastpixel-deactivate-reason"]', function () {
@@ -67,6 +77,7 @@ document.addEventListener("DOMContentLoaded", function() {
         data['action'] = 'fastpixel_deactivate_plugin_feedback';
         data['security'] = fastpixel_popup['nonce'];
         const delete_files = form_container.find('#fastpixel-deactivation-delete-files').prop('checked') ? true : false;
+        const delete_options = form_container.find('#fastpixel-deactivation-delete-options').prop('checked') ? true : false;
         if (data['reason']) { //checking if reason is selected
             jQuery.ajax({
                 type: 'POST',
@@ -96,20 +107,12 @@ document.addEventListener("DOMContentLoaded", function() {
                 },
                 complete: function (response) {
                     //Always redirect to original deactivation URL
-                    if (delete_files == true) {
-                        window.location.href = fastpixel_popup_deactivation_links['delete_link'];
-                    } else {
-                        window.location.href = fastpixel_popup_deactivation_links['deactivate_link'];
-                    }
+                    window.location.href = get_deactivation_url(delete_files, delete_options);
                 }
             });
         } else {
             // Redirect to original deactivation URL
-            if (delete_files == true) {
-                window.location.href = fastpixel_popup_deactivation_links['delete_link'];
-            } else {
-                window.location.href = fastpixel_popup_deactivation_links['deactivate_link'];
-            }
+            window.location.href = get_deactivation_url(delete_files, delete_options);
         }
     });
 
@@ -118,6 +121,7 @@ document.addEventListener("DOMContentLoaded", function() {
         jQuery('#fastpixel-deactivate-details').hide();
         jQuery('#fastpixel-deactivate-textarea-label').hide(); 
         jQuery('#fastpixel-deactivation-delete-files').prop('checked', false);
+        jQuery('#fastpixel-deactivation-delete-options').prop('checked', false);
         jQuery('#fastpixel-deactivation-send-anonymous').prop('checked', true);
         jQuery('#fastpixel-deactivation-send-anonymous-container').hide();
         jQuery('#fastpixel-deactivation-details-container').hide();

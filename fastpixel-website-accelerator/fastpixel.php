@@ -4,7 +4,7 @@
  * Plugin URI:  https://fastpixel.io
  * Description: Faster WordPress Made Easy – Solve all your website speed problems effortlessly with just a few clicks.
  * Author:      ShortPixel
- * Version:     1.4.1
+ * Version:     1.5.0
  * Text Domain: fastpixel-website-accelerator
  * Domain Path: /languages
  * License:     GPLv2 or later
@@ -20,7 +20,7 @@
 
 defined('ABSPATH') || exit;
 
-define('FASTPIXEL_VERSION', '1.4.1');
+define('FASTPIXEL_VERSION', '1.5.0');
 define('FASTPIXEL_NAME', 'FastPixel');
 if (!defined('FASTPIXEL_PLUGIN_DIR'))
     define('FASTPIXEL_PLUGIN_DIR', __DIR__);
@@ -41,9 +41,19 @@ if (!defined('FASTPIXEL_DEBUG'))
 if (!defined('FASTPIXEL_USE_SK'))
     define('FASTPIXEL_USE_SK', true);
 if( !defined('FASTPIXEL_CACHE_DIR')) {
-    //this is also defined in debug.php for the upgrade from 1.1.0 to 1.2.0
     define('FASTPIXEL_CACHE_DIR', rtrim(WP_CONTENT_DIR, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'cache' . DIRECTORY_SEPARATOR . FASTPIXEL_TEXTDOMAIN);
 }
+
+define('FASTPIXEL_DEFAULT_CACHE_LIMIT_GB', 10);
+define('FASTPIXEL_CACHE_CLEANUP_START_RATIO', 0.80);
+define('FASTPIXEL_CACHE_CLEANUP_MEDIUM_RATIO', 0.90);
+define('FASTPIXEL_CACHE_CLEANUP_HIGH_RATIO', 0.95);
+define('FASTPIXEL_CACHE_CLEANUP_CRITICAL_RATIO', 0.98);
+define('FASTPIXEL_CACHE_CLEANUP_DEFAULT_DAYS', 14);
+define('FASTPIXEL_CACHE_CLEANUP_MEDIUM_DAYS', 7);
+define('FASTPIXEL_CACHE_CLEANUP_HIGH_DAYS', 3);
+define('FASTPIXEL_CACHE_CLEANUP_CRITICAL_DAYS', 1);
+
 if (defined('FASTPIXEL_ADVANCED_CACHE') && defined('FASTPIXEL_PLUGIN_DIR') && !file_exists(FASTPIXEL_PLUGIN_DIR . '/inc/autoload.php')) {
     if (file_exists(WP_CONTENT_DIR . DIRECTORY_SEPARATOR . 'advanced-cache.php') && function_exists('wp_delete_file')) {
         wp_delete_file(WP_CONTENT_DIR . DIRECTORY_SEPARATOR . 'advanced-cache.php');

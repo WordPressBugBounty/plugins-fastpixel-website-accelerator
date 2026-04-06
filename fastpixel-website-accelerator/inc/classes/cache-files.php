@@ -110,6 +110,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Cache_Files')) {
                     'global_invalidation_time' => gmdate('Y-m-d H:i:s', $this->page_cache_status['global_invalidation_time']) . ' -> ' . $this->page_cache_status['global_invalidation_time'],
                     'local_invalidation_time'  => gmdate('Y-m-d H:i:s', $this->page_cache_status['local_invalidation_time']) . ' -> ' . $this->page_cache_status['local_invalidation_time'],
                     'last_cache_request_time'  => gmdate('Y-m-d H:i:s', $this->page_cache_status['last_cache_request_time']) . ' -> ' . $this->page_cache_status['last_cache_request_time'],
+                    'last_access_time'         => gmdate('Y-m-d H:i:s', (int) $this->page_cache_status['last_access_time']) . ' -> ' . $this->page_cache_status['last_access_time'],
                     'error'                    => $this->page_cache_status['error'],
                     'error_time'               => $this->page_cache_status['error_time'],
                 ];
@@ -298,6 +299,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Cache_Files')) {
                 if ($this->stats) {
                     $this->stats->record_hit();
                 }
+                $this->functions->update_post_cache($this->url->get_url_path(), false, false, true);
                 $this->cache_exists = true;
             }
             return true;

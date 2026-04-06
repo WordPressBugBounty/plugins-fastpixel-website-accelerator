@@ -21,13 +21,20 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Diag_Test_Config')) {
         }
 
         public function test() {
+            $default_cache_limit_gb = (float) FASTPIXEL_DEFAULT_CACHE_LIMIT_GB;
             $this->passed = true;
             //checking if config file params match database params, if not then updating config to database params
-            $options = ['fastpixel_serve_stale', 'fastpixel_display_cached_for_logged', 'fastpixel_cache_lifetime'];
+            $options = [
+                'fastpixel_serve_stale' => false,
+                'fastpixel_display_cached_for_logged' => false,
+                'fastpixel_expired_cleanup' => false,
+                'fastpixel_expired_cleanup_limit_gb' => $default_cache_limit_gb,
+                'fastpixel_cache_lifetime' => 1
+            ];
             $modified = false;
 
-            foreach ($options as $option_name) {
-                $option_value = $this->functions->get_option($option_name, false);
+            foreach ($options as $option_name => $default_value) {
+                $option_value = $this->functions->get_option($option_name, $default_value);
                 if ($this->config_file->get_option($option_name) != $option_value) {
                     $this->config_file->set_option($option_name, $option_value);
                     $modified = true;

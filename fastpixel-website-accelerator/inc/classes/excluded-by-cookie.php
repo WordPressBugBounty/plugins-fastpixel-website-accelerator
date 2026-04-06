@@ -10,7 +10,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Excluded_By_Cookie')) {
         public static $instance;
         protected $functions;
         protected $config;
-        protected $cookies = [
+        protected $default_cookies = [
             'bfw_ref_cookie_set' => null
         ];
 
@@ -21,6 +21,8 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Excluded_By_Cookie')) {
             $this->functions = FASTPIXEL_Functions::get_instance();
             $this->config = FASTPIXEL_Config_Model::get_instance();
             add_filter('fastpixel/init/excluded', [$this, 'is_excluded'], 11, 2);
+            add_filter('fastpixel/is_cache_request_allowed/excluded', [$this, 'is_excluded'], 11, 2);
+            add_filter('fastpixel/rest-api/excluded', [$this, 'is_excluded'], 11, 2);
         }
 
         public static function get_instance()
@@ -35,19 +37,53 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Excluded_By_Cookie')) {
             if ($excluded == true) {
                 return $excluded;
             }
-            //loop through cookies array
-            foreach ($this->cookies as $cookie_name => $cookie_value) {
-                //checking if we have required cookie by it's name
-                if (!empty($_COOKIE[$cookie_name])) {
-                    //checking if we have specific value for cookie and if it matches
-                    if (!empty($cookie_value) && $_COOKIE[$cookie_name] == $cookie_value) {
-                        return true;
-                    } elseif (empty($cookie_value)) {
-                        return true;
-                    }
+
+            foreach ($this->get_excluded_cookies() as $cookie_name => $cookie_value) {
+                if (!array_key_exists($cookie_name, $_COOKIE)) {
+                    continue;
                 }
+
+                if ($cookie_value !== null && (string) $_COOKIE[$cookie_name] !== (string) $cookie_value) {
+                    continue;
+                }
+
+                return true;
             }
+
             return false;
+        }
+
+        protected function get_excluded_cookies(): array
+        {
+            if (function_exists('get_option')) {
+                $raw_cookies = $this->functions->get_option('fastpixel_cookie_exclusions', '');
+            } else {
+                $raw_cookies = $this->config->get_option('fastpixel_cookie_exclusions');
+            }
+
+            $cookies = $this->default_cookies;
+            $rows = preg_split('/[\r\n\s]+/', trim((string) $raw_cookies));
+            if (!is_array($rows)) {
+                return $cookies;
+            }
+
+            foreach ($rows as $row) {
+                $row = trim((string) $row);
+                if ($row === '') {
+                    continue;
+                }
+
+                $parts = explode('=', $row, 2);
+                $cookie_name = trim((string) $parts[0]);
+                if ($cookie_name === '') {
+                    continue;
+                }
+
+                // User-defined cookie exclusions are presence-based even if a value is provided.
+                $cookies[$cookie_name] = null;
+            }
+
+            return $cookies;
         }
     }
     new FASTPIXEL_Excluded_By_Cookie();

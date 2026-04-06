@@ -37,6 +37,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Plugin')) {
 
         public function activate()
         {   
+            $default_cache_limit_gb = (float) FASTPIXEL_DEFAULT_CACHE_LIMIT_GB;
             if (is_multisite() && get_current_blog_id() > 1) {
                 wp_die(esc_html__('Only network activation allowed', 'fastpixel-website-accelerator'));
             }
@@ -70,13 +71,17 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Plugin')) {
             }
             //checking if there was already installed plugin
             $api_key = $this->functions->get_option('fastpixel_api_key');
-            if (empty($api_key)) {
-//                $api_key = FASTPIXEL_Api_Key::get_instance();
-//                $api_key->init_new_key();
-                //automatically enable default preset (Fast)
+            $js_optimization_option = $this->functions->get_option('fastpixel_javascript_optimization', null);
+            $is_fresh_install = ($js_optimization_option === null);
+
+            //automatically enable default preset (Fast)
+            if ($is_fresh_install) {
                 $default_options = [
                     'fastpixel_serve_stale'             => false,
+                    'fastpixel_expired_cleanup'         => false,
+                    'fastpixel_expired_cleanup_limit_gb' => $default_cache_limit_gb,
                     'fastpixel_exclusions'              => implode("\r\n", ['/checkout', '/cart', '/my-account']),
+                    'fastpixel_cookie_exclusions'       => implode("\r\n", []),
                     'fastpixel_javascript_optimization' => 2, //for fast preset
                     'fastpixel_javascript_exclude_gdpr' => true, //for basic preset
                     'fastpixel_cache_lifetime'          => 1,
@@ -84,7 +89,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Plugin')) {
                     'fastpixel_images_crop'             => true, //for fast preset
                     'fastpixel_fonts_soft'              => false, //for fast preset
                     'fastpixel_exclude_all_params'      => true,
-                    'fastpixel_params_exclusions'       => implode("\r\n", []),
+                    'fastpixel_params_exclusions'       => implode("\r\n", ['mailpoet_router']),
                     'fastpixel_speculation_rules'       => true,
                     'fastpixel_speculation_mode'        => 'prerender',
                     'fastpixel_speculation_eagerness'   => 'eager',
@@ -93,6 +98,9 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Plugin')) {
                     $this->functions->update_option($option_name, $option_value);
                     $this->cache_config->set_option($option_name, $option_value);
                 }
+            }
+
+            if (empty($api_key)) {
                 // Set transient to redirect to onboarding page on next admin page load
                 if (!defined('WP_CLI')) {
                     set_transient('fastpixel_redirect_to_onboarding', true, 30);
@@ -100,6 +108,9 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Plugin')) {
             }
             //updating config always
             $this->cache_config->save_file();
+            if (class_exists('FASTPIXEL\FASTPIXEL_Cache_Cleanup')) {
+                FASTPIXEL_Cache_Cleanup::get_instance()->maybe_schedule();
+            }
 
             //run purge_all only for specific upgrade versions
             if ($this->should_purge_on_upgrade()) {
@@ -112,11 +123,15 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Plugin')) {
         public function deactivate()
         {
             //checking if user want to delete cached files
-            if (isset($_GET['fastpixel-action']) && sanitize_text_field($_GET['fastpixel-action']) == 'delete_cached_files') {
+            if ($this->should_delete_cached_files_on_deactivate()) {
                 //initializing filesystem
                 global $wp_filesystem;
                 //deleting cache dir recursively
                 $wp_filesystem->rmdir($this->functions->get_cache_dir(), true);
+            }
+
+            if ($this->should_delete_options_on_deactivate()) {
+                $this->delete_fastpixel_options();
             }
 
             if (file_exists($this->functions->get_ac_file_path())) {
@@ -125,6 +140,9 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Plugin')) {
             $this->functions->disable_object_cache_dropin();
             //disabling WP_CACHE on deactivate
             $this->functions->update_config_file(false);
+            if (class_exists('FASTPIXEL\FASTPIXEL_Cache_Cleanup')) {
+                FASTPIXEL_Cache_Cleanup::clear_schedule();
+            }
         }
 
         public function sync_object_cache_dropin($object_cache_data = [])
@@ -192,6 +210,61 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Plugin')) {
         private function should_purge_on_upgrade(): bool
         {
             return in_array(FASTPIXEL_VERSION, self::VERSIONS_REQUIRE_PURGE, true);
+        }
+
+        private function should_delete_cached_files_on_deactivate(): bool
+        {
+            if (isset($_GET['fastpixel-delete-cached-files'])) {
+                return (bool) absint($_GET['fastpixel-delete-cached-files']);
+            }
+
+            return isset($_GET['fastpixel-action']) && sanitize_text_field($_GET['fastpixel-action']) === 'delete_cached_files';
+        }
+
+        private function should_delete_options_on_deactivate(): bool
+        {
+            return isset($_GET['fastpixel-delete-options']) && (bool) absint($_GET['fastpixel-delete-options']);
+        }
+
+        private function delete_fastpixel_options(): void
+        {
+            global $wpdb;
+
+            if (!isset($wpdb)) {
+                return;
+            }
+
+            $option_patterns = [
+                'fastpixel\\_%',
+                '\\_transient\\_fastpixel\\_%',
+                '\\_transient\\_timeout\\_fastpixel\\_%',
+            ];
+
+            foreach ($option_patterns as $pattern) {
+                $wpdb->query(
+                    $wpdb->prepare(
+                        "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s ESCAPE '\\\\'",
+                        $pattern
+                    )
+                );
+            }
+
+            if (is_multisite() && isset($wpdb->sitemeta)) {
+                $site_patterns = [
+                    'fastpixel\\_%',
+                    '\\_site\\_transient\\_fastpixel\\_%',
+                    '\\_site\\_transient\\_timeout\\_fastpixel\\_%',
+                ];
+
+                foreach ($site_patterns as $pattern) {
+                    $wpdb->query(
+                        $wpdb->prepare(
+                            "DELETE FROM {$wpdb->sitemeta} WHERE meta_key LIKE %s ESCAPE '\\\\'",
+                            $pattern
+                        )
+                    );
+                }
+            }
         }
     }
     new FASTPIXEL_Plugin();

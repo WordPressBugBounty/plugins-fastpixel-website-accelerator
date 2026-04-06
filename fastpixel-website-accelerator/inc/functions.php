@@ -171,6 +171,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Functions')) {
                 'global_invalidation_time' => false,
                 'local_invalidation_time'  => false,
                 'last_cache_request_time'  => false,
+                'last_access_time'         => false,
                 'error'                    => false,
                 'error_time'               => false
             ];
@@ -197,7 +198,8 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Functions')) {
             //initializing $meta variable to avoid notices
             $meta = [
                 'invalidated_time' => 0,
-                'cache_request_time' => 0
+                'cache_request_time' => 0,
+                'last_access_time' => 0
             ];
             //checking for local invalidation time and cache request time
             if (@file_exists($meta_file) && @is_readable($meta_file)) {
@@ -207,11 +209,13 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Functions')) {
                 if (empty($meta)) { //duplicate initialization in case file was broken or json_decode returned null
                     $meta = [
                         'invalidated_time'   => 0,
-                        'cache_request_time' => 0
+                        'cache_request_time' => 0,
+                        'last_access_time' => 0
                     ];
                 }
                 $data['local_invalidation_time'] = $meta['invalidated_time'];
                 $data['last_cache_request_time'] = $meta['cache_request_time'];
+                $data['last_access_time'] = !empty($meta['last_access_time']) ? (int) $meta['last_access_time'] : 0;
             } else {
                 //require cache when file is not present
                 $data['need_cache'] = true;
@@ -249,14 +253,14 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Functions')) {
          * this function uses default php functions(unlink, rmdir, fopen, fclose, file_get_contents, file_put_contents etc...) 
          * because this function is used early in advanced-cache.php and native WP functions(WP_Filesystem) are not available
          */
-        public function update_post_cache($path, $invalidated = true, $requested = false) 
+        public function update_post_cache($path, $invalidated = true, $requested = false, $accessed = false) 
         {
             if (empty($path)) {
                 return false;
             }
             $path = rtrim($path, DIRECTORY_SEPARATOR); //removing trailing slash
             $cache_dir = $this->get_cache_dir();
-            $meta = ['invalidated_time' => false, 'cache_request_time' => false];
+            $meta = ['invalidated_time' => false, 'cache_request_time' => false, 'last_access_time' => 0];
             if (file_exists($cache_dir . DIRECTORY_SEPARATOR . $path . DIRECTORY_SEPARATOR . 'meta')) {
                 $loaded_meta = json_decode(file_get_contents($cache_dir . DIRECTORY_SEPARATOR . $path . DIRECTORY_SEPARATOR . 'meta'), true);
                 if (empty($loaded_meta)) {
@@ -271,6 +275,9 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Functions')) {
             } 
             if ($requested) {
                 $meta['cache_request_time'] = time();
+            }
+            if ($accessed && (empty($meta['last_access_time']) || ((int) $meta['last_access_time'] < (time() - 3600)))) {
+                $meta['last_access_time'] = time();
             }
             if (!file_exists($cache_dir . DIRECTORY_SEPARATOR . $path)) {
                 $dirs = explode(DIRECTORY_SEPARATOR, $path);

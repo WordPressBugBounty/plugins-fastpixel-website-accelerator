@@ -36,7 +36,8 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_UI')) {
             'a'   => [
                 'href'   => [],
                 'target' => [],
-                'class'  => []
+                'class'  => [],
+                'rel'    => []
             ],
             'img' => [
                 'src' => []
@@ -47,6 +48,16 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_UI')) {
             'name' => [],
             'span' => [
                 'class' => []
+            ],
+            'svg' => [
+                'class'       => [],
+                'viewbox'     => [],
+                'aria-hidden' => [],
+                'focusable'   => []
+            ],
+            'path' => [
+                'fill' => [],
+                'd'    => []
             ]
         ];
         protected $pages = [
@@ -99,6 +110,8 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_UI')) {
                     'delete_cached_files_link' => sprintf('admin-post.php?action=%1$s&nonce=%2$s&post_id=', 'fastpixel_admin_delete_cached', wp_create_nonce('cache_status_nonce')),
                     'cache_now_text'           => esc_html__('Cache Now', 'fastpixel-website-accelerator'),
                     'purge_cache_text'         => esc_html__('Purge Cache', 'fastpixel-website-accelerator'),
+                    'bulk_action_text'         => esc_html__('Please select a bulk action first.', 'fastpixel-website-accelerator'),
+                    'bulk_select_text'         => esc_html__('Please select at least one item to perform this action on.', 'fastpixel-website-accelerator'),
                     'purge_post_link'          => sprintf('admin-post.php?action=%1$s&nonce=%2$s&post_id=', 'fastpixel_admin_purge_post_cache', wp_create_nonce('cache_status_nonce')),
                     'deactivate_plugin_text'   => esc_html__('DEACTIVATED', 'fastpixel-website-accelerator'),
                     'stats_url'                => rest_url(FASTPIXEL_TEXTDOMAIN . '/v1/stats'),
@@ -125,8 +138,8 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_UI')) {
                     wp_enqueue_script('fastpixel-backend');
                 }
                 // check if onboarding is needed - i mean if API key is absent means that is first install, send to onboarding page
-                // hosters can disable onboarding completely via FASTPIXEL_DISABLE_ONBOARDING constant
-                if (!defined('FASTPIXEL_DISABLE_ONBOARDING') || !FASTPIXEL_DISABLE_ONBOARDING) {
+                // hosters can disable onboarding completely via constants.
+                if (!$this->is_onboarding_disabled()) {
                     $functions = FASTPIXEL_Functions::get_instance();
                     $api_key = $functions->get_option('fastpixel_api_key', '');
                     
@@ -152,11 +165,28 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_UI')) {
             return self::$instance;
         }
 
+        private function is_onboarding_disabled()
+        {
+            if (defined('FASTPIXEL_DISABLE_ONBOARDING') && FASTPIXEL_DISABLE_ONBOARDING) {
+                return true;
+            }
+            if (defined('RB_DASHBOARD_BASE_URL')) {
+                return true;
+            }
+            return false;
+        }
+
+        private function is_onboarding_skip_enabled()
+        {
+            // teemporary disabled for some testing...
+            // pt. restore old behavior after testing, switch this to true
+            return false;
+        }
+
         public function maybe_redirect_to_onboarding()
         {
-            // Allow hosters to completely disable onboarding via constant
-            // this can be done by setting in wp-config.php : "define( 'FASTPIXEL_DISABLE_ONBOARDING', true );"
-            if (defined('FASTPIXEL_DISABLE_ONBOARDING') && FASTPIXEL_DISABLE_ONBOARDING) {
+            // Allow hosters to completely disable onboarding via constants.
+            if ($this->is_onboarding_disabled()) {
                 return;
             }
             if (!get_transient('fastpixel_redirect_to_onboarding')) {
@@ -300,6 +330,8 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_UI')) {
             $account_url   = FASTPIXEL_DASHBOARD_HOST . '/';
             $button_label  = __('FastPixel Account', 'fastpixel-website-accelerator');
             $button_target = '_blank';
+            $rate_us_url   = 'https://wordpress.org/support/plugin/fastpixel-website-accelerator/reviews/#new-post';
+            $rate_us_label = __('Rate Us', 'fastpixel-website-accelerator');
 
             if (class_exists('FASTPIXEL\FASTPIXEL_Functions')) {
                 $functions = FASTPIXEL_Functions::get_instance();
@@ -340,9 +372,10 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_UI')) {
                 }
             }
 
-            $header .= '<h1><img src="'.(FASTPIXEL_PLUGIN_URL).'icons/fastpixel-logo.png" class="icon"></h1>
+            $header .= '<h1><a class="fastpixel-logo-link" href="https://fastpixel.io/" target="_blank" rel="noopener noreferrer"><img src="'.(FASTPIXEL_PLUGIN_URL).'icons/fastpixel-logo.png" class="icon"></a></h1>
             <div class="top-buttons">
-                <a class="header-button" href="' . esc_url($account_url) . '" target="' . esc_attr($button_target) . '">
+                <a class="header-button rate-us-button" href="' . esc_url($rate_us_url) . '" target="_blank" rel="noopener noreferrer"><svg class="rate-us-star" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="m12 17.275l-4.15 2.5q-.275.175-.575.15t-.525-.2t-.35-.437t-.05-.588l1.1-4.725L3.775 10.8q-.25-.225-.312-.513t.037-.562t.3-.45t.55-.225l4.85-.425l1.875-4.45q.125-.3.388-.45t.537-.15t.537.15t.388.45l1.875 4.45l4.85.425q.35.05.55.225t.3.45t.038.563t-.313.512l-3.675 3.175l1.1 4.725q.075.325-.05.588t-.35.437t-.525.2t-.575-.15z"/></svg><name>' . esc_html($rate_us_label) . '</name></a>
+                <a class="header-button" href="' . esc_url($account_url) . '" target="' . esc_attr($button_target) . '"' . ('_blank' === $button_target ? ' rel="noopener noreferrer"' : '') . '>
                     <i class="fastpixel-icon user"></i><name>' . esc_html($button_label) . '</name>
                 </a>
             </div>
@@ -403,7 +436,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_UI')) {
             FASTPIXEL_Debug::log('[UI] settings_page: initial api_key', $api_key);
 
             // If onboarding is globally disabled (ex: by hosters), always show settings directly
-            if (!(defined('FASTPIXEL_DISABLE_ONBOARDING') && FASTPIXEL_DISABLE_ONBOARDING)) {
+            if (!$this->is_onboarding_disabled()) {
                 //  is temp or normal?
                 $api_key_model = FASTPIXEL_Api_Key::get_instance();
                 $is_temp       = $api_key_model->is_temp_key($api_key);
@@ -422,7 +455,9 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_UI')) {
 
                 // Check if user clicked "Remind me later"
                 // -- just checking URL parameter, no data posted
-                $skip_onboarding_param = isset($_GET['skip_onboarding']) && $_GET['skip_onboarding'] === '1';
+                $skip_onboarding_param = $this->is_onboarding_skip_enabled()
+                    && isset($_GET['skip_onboarding'])
+                    && $_GET['skip_onboarding'] === '1';
                 $skip_timestamp        = (int) $functions->get_option('fastpixel_skip_onboarding_timestamp', 0);
 
                 // DEBUG
@@ -663,7 +698,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_UI')) {
                             'incompatibility' => [
                                 'text'             => esc_html__('Incompatible with a plugin or theme', 'fastpixel-website-accelerator'),
                                 'display_textarea' => true,
-                                'textarea_text'    => esc_html__('With what plugin or theme is incompatible ?', 'fastpixel-website-accelerator')
+                                'textarea_text'    => esc_html__('With what plugin or theme is it incompatible ?', 'fastpixel-website-accelerator')
                             ],
                             'better-plugin' => [
                                 'text' =>esc_html__('Found a better plugin', 'fastpixel-website-accelerator'),
@@ -687,6 +722,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_UI')) {
                             'submitting_form'           => esc_html__('Submitting form', 'fastpixel-website-accelerator'),
                             'send_anonymous'            => esc_html__('Send anonymous', 'fastpixel-website-accelerator'),
                             'delete_cached_files'       => esc_html__('Delete cached files', 'fastpixel-webisite-accelerator'),
+                            'delete_options'            => esc_html__('Delete the FastPixel options', 'fastpixel-website-accelerator'),
                             'btn_deactivate'            => esc_html__('Deactivate', 'fastpixel-webisite-accelerator'),
                             'btn_submit_and_deactivate' => esc_html__('Submit and Deactivate', 'fastpixel-webisite-accelerator'),
                         ],
@@ -694,12 +730,10 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_UI')) {
                     if (is_multisite()) {
                         wp_localize_script('fastpixel-popup', 'fastpixel_popup_deactivation_links', [
                             'deactivate_link' => wp_nonce_url(network_admin_url('plugins.php?action=deactivate&plugin=' . plugin_basename(FASTPIXEL_PLUGIN_FILE)), 'deactivate-plugin_' . plugin_basename(FASTPIXEL_PLUGIN_FILE)),
-                            'delete_link'     => wp_nonce_url(network_admin_url('plugins.php?action=deactivate&plugin=' . plugin_basename(FASTPIXEL_PLUGIN_FILE)) . '&fastpixel-action=delete_cached_files', 'deactivate-plugin_' . plugin_basename(FASTPIXEL_PLUGIN_FILE)),
                         ]);
                     } else {
                         wp_localize_script('fastpixel-popup', 'fastpixel_popup_deactivation_links', [
                             'deactivate_link' => wp_nonce_url(admin_url('plugins.php?action=deactivate&plugin=' . plugin_basename(FASTPIXEL_PLUGIN_FILE)), 'deactivate-plugin_' . plugin_basename(FASTPIXEL_PLUGIN_FILE)),
-                            'delete_link'     => wp_nonce_url(admin_url('plugins.php?action=deactivate&plugin=' . plugin_basename(FASTPIXEL_PLUGIN_FILE)) . '&fastpixel-action=delete_cached_files', 'deactivate-plugin_' . plugin_basename(FASTPIXEL_PLUGIN_FILE)),
                         ]);
                     }
                 });

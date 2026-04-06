@@ -51,6 +51,27 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Debug')) {
                 error_log(sprintf("FASTPIXEL OPTIMIZER: %s \r\n", $msg), self::$message_type, $destination);
             }
         }
+
+        /**
+         * Helper to rapidly inspect keys from $wp->query_vars.
+         * Write to log only if FASTPIXEL_DEBUG is active.
+         */
+        public static function log_query_vars_keys(): void
+        {
+            if (!self::$enabled) {
+                return;
+            }
+            if (!function_exists('is_admin') || is_admin()) {
+                return;
+            }
+            global $wp;
+            if (!isset($wp) || !is_object($wp) || !is_array($wp->query_vars)) {
+                self::log('WP query_vars not available');
+                return;
+            }
+            $keys = array_keys($wp->query_vars);
+            self::log('WP query_vars keys', $keys);
+        }
     }
     new FASTPIXEL_Debug();
 }

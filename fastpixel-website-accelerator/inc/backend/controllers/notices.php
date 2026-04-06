@@ -133,19 +133,117 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Notices')) {
             $this->functions->update_option("fastpixel_flash_notices", $notices);
         }
 
+        protected function normalize_notice_content($content)
+        {
+            if (!is_string($content) || $content === '') {
+                return '';
+            }
+
+            $content = trim($content);
+            $content = preg_replace('#^\s*<strong>\s*FastPixel Website Accelerator:\s*</strong>\s*#i', '', $content);
+
+            return trim($content);
+        }
+
+        protected function render_flash_notice($notice)
+        {
+            if (!is_array($notice) || empty($notice['notice'])) {
+                return '';
+            }
+
+            $message = $this->normalize_notice_content($notice['notice']);
+            if ($message === '') {
+                return '';
+            }
+
+            $type = !empty($notice['type']) ? sanitize_key($notice['type']) : 'notice';
+            if (!in_array($type, ['success', 'warning', 'error', 'notice'], true)) {
+                $type = 'notice';
+            }
+
+            $notice_id = !empty($notice['id']) ? sanitize_key($notice['id']) : '';
+            $persist_dismiss = (!empty($notice['dismissible']) && $notice_id !== '');
+
+            $attributes = [];
+
+            if ($notice_id !== '') {
+                $attributes[] = 'data-fastpixel-notice-id="' . esc_attr($notice_id) . '"';
+            }
+
+            if ($persist_dismiss) {
+                $attributes[] = 'data-fastpixel-persist-dismiss="1"';
+            }
+
+            $fallback_class = 'notice-info';
+
+            if ($type === 'success') {
+                $fallback_class = 'notice-success';
+            } elseif ($type === 'warning') {
+                $fallback_class = 'notice-warning';
+            } elseif ($type === 'error') {
+                $fallback_class = 'notice-error';
+            }
+
+            $icon = in_array($type, ['warning', 'error'], true)
+                ? FASTPIXEL_PLUGIN_URL . 'icons/FastPixel-Sad.svg'
+                : FASTPIXEL_PLUGIN_URL . 'icons/FastPixel-Happy.svg';
+
+            $allowed_tags = [
+                'a' => [
+                    'href'   => [],
+                    'class'  => [],
+                    'target' => [],
+                ],
+                'b' => [],
+                'br' => [],
+                'strong' => [
+                    'class' => [],
+                ],
+            ];
+
+            if (!$persist_dismiss) {
+                return sprintf(
+                    '<div %1$s class="fastpixel-notice-source" data-fastpixel-notice-source="1" data-fastpixel-notice-type="%2$s" data-fastpixel-auto-dismiss="1"><div class="fastpixel-notice-source-message">%3$s</div></div>',
+                    implode(' ', $attributes),
+                    esc_attr($type),
+                    wp_kses($message, $allowed_tags)
+                );
+            }
+
+            return sprintf(
+                '<div %1$s class="notice %2$s fastpixel-wp-notice%3$s"><div class="fastpixel-wp-notice__inner"><span class="fastpixel-notification__avatar"><img class="fastpixel-notification__avatar-image" src="%4$s" alt="" /></span><div class="fastpixel-notification__content"><div class="fastpixel-notification__app-meta"><span class="fastpixel-notification__brand" aria-label="%5$s"><span class="fastpixel-notification__brand-fast">FAST</span><span class="fastpixel-notification__brand-pixel">PIXEL</span></span></div><div class="fastpixel-notification__message"><p>%6$s</p></div></div></div></div>',
+                implode(' ', $attributes),
+                esc_attr($fallback_class),
+                ' is-dismissible',
+                esc_url($icon),
+                esc_attr__('FastPixel', 'fastpixel-website-accelerator'),
+                wp_kses($message, $allowed_tags)
+            );
+        }
+
         public function display_flash_notices()
         {
             $notices = $this->get_flash_notices();
+            if (empty($notices)) {
+                return;
+            }
+
             $dismissible = [];
+            $rendered_notices = [];
             foreach ($notices as $notice) {
-                $notice_obj = wpdesk_wp_notice($notice['notice'], $notice['type'], $notice['dismissible']);
-                if (!empty($notice['id'])) {
-                    $notice_obj->addAttribute('data-fastpixel-notice-id', $notice['id']);
+                $rendered_notice = $this->render_flash_notice($notice);
+                if ($rendered_notice !== '') {
+                    $rendered_notices[] = $rendered_notice;
                 }
                 if ($notice['dismissible'] && !empty($notice['id'])) { 
                     $dismissible[] = $notice;
                 }
             }
+
+            if (!empty($rendered_notices)) {
+                echo '<div class="fastpixel-wp-notices-group">' . implode('', $rendered_notices) . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+            }
+
             // Now we reset our options to prevent notices being displayed forever.
             $this->save_flash_notices($dismissible);
         }
@@ -200,11 +298,30 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Notices')) {
             }
         }
         public function enqueue_scripts() {
+            wp_enqueue_style('fastpixel-notices', FASTPIXEL_PLUGIN_URL . 'inc/backend/assets/notices.css', [], FASTPIXEL_VERSION);
             wp_enqueue_script('fastpixel-notices', FASTPIXEL_PLUGIN_URL . 'inc/backend/assets/notices.js', ['jquery'], FASTPIXEL_VERSION, true);
+            wp_localize_script('fastpixel-notices', 'fastpixel_notices', [
+                'ajax_url' => admin_url('admin-ajax.php'),
+                'nonce' => wp_create_nonce('fastpixel_dismiss_notice'),
+                'dismiss_label' => esc_html__('Dismiss notification', 'fastpixel-website-accelerator'),
+                'brand_label' => esc_html__('FastPixel', 'fastpixel-website-accelerator'),
+                'icons' => [
+                    'happy' => esc_url(FASTPIXEL_PLUGIN_URL . 'icons/FastPixel-Happy.svg'),
+                    'sad' => esc_url(FASTPIXEL_PLUGIN_URL . 'icons/FastPixel-Sad.svg'),
+                ],
+                'titles' => [
+                    'success' => esc_html__('All set', 'fastpixel-website-accelerator'),
+                    'warning' => esc_html__('Heads up', 'fastpixel-website-accelerator'),
+                    'error' => esc_html__('Needs attention', 'fastpixel-website-accelerator'),
+                    'notice' => esc_html__('FastPixel update', 'fastpixel-website-accelerator'),
+                ],
+            ]);
         }
 
         public function dismiss_notice() {
-            $notice_id = filter_input(INPUT_POST, 'notice_id', FILTER_SANITIZE_STRING);
+            check_ajax_referer('fastpixel_dismiss_notice', 'nonce');
+
+            $notice_id = isset($_POST['notice_id']) ? sanitize_text_field(wp_unslash($_POST['notice_id'])) : '';
             $notice_id = !empty($notice_id) ? sanitize_key($notice_id) : '';
             $notices = $this->get_flash_notices();
             $notices = array_filter($notices, function($notice) use ($notice_id) {

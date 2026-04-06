@@ -119,38 +119,138 @@ document.addEventListener("DOMContentLoaded", function() {
     
     //status page
     jQuery(function($) {
-        const moveLeft = -400;
-        const moveDown = 0;
+        const popupViewportPadding = 12;
+        const popupSpacing = 10;
+        const popupTriggerSelector = 'span.have-popup, .queued-container, .stale-container';
         function getPopup(el) {
+            if (jQuery(el).hasClass('queued-container') || jQuery(el).hasClass('stale-container')) {
+                return jQuery(el).next('.pop-up');
+            }
             if (jQuery(el).hasClass('queued') || jQuery(el).hasClass('invalidated')) {
                 return jQuery(el).parent().next('.pop-up');
             }
             return jQuery(el).next('.pop-up');
         }
-        function hideAllPopups() {
-            jQuery('.fastpixel-website-accelerator-wrap .pop-up').hide();
+        function positionPopup(popup, trigger) {
+            popup.removeClass('fastpixel-popup-above');
+            popup.css({
+                display: 'block',
+                visibility: 'hidden'
+            });
+
+            const triggerRect = trigger.get(0).getBoundingClientRect();
+            const popupWidth = popup.outerWidth();
+            const popupHeight = popup.outerHeight();
+            const viewportWidth = jQuery(window).width();
+            const viewportHeight = jQuery(window).height();
+
+            let left = triggerRect.left + (triggerRect.width / 2) - (popupWidth / 2);
+            left = Math.max(
+                popupViewportPadding,
+                Math.min(left, viewportWidth - popupWidth - popupViewportPadding)
+            );
+
+            let top = triggerRect.bottom + popupSpacing;
+            const hasRoomBelow = top + popupHeight <= viewportHeight - popupViewportPadding;
+            const topPosition = triggerRect.top - popupHeight - popupSpacing;
+            if (!hasRoomBelow && topPosition >= popupViewportPadding) {
+                top = topPosition;
+                popup.addClass('fastpixel-popup-above');
+            }
+
+            const arrowLeft = Math.max(
+                18,
+                Math.min(triggerRect.left + (triggerRect.width / 2) - left, popupWidth - 18)
+            );
+
+            popup.css({
+                '--fastpixel-popup-arrow-left': `${arrowLeft}px`,
+                top: Math.max(popupViewportPadding, top),
+                left: left,
+                visibility: 'visible'
+            });
         }
-        $('.fastpixel-website-accelerator-wrap').on('click', 'span.have-popup', function (e) {
-            e.preventDefault();
-            e.stopPropagation();
-            const popup = getPopup(this);
+        function hidePopup(popup) {
+            if (!popup || popup.length < 1) {
+                return;
+            }
+            popup.hide().removeClass('fastpixel-popup-above');
+        }
+        function hideAllPopups() {
+            jQuery('.fastpixel-website-accelerator-wrap .pop-up').each(function () {
+                hidePopup(jQuery(this));
+            });
+        }
+        function showPopupForTrigger(trigger) {
+            const popup = getPopup(trigger);
+            if (!popup || popup.length < 1) {
+                return;
+            }
             const isVisible = popup.is(':visible');
             hideAllPopups();
             if (!isVisible) {
-                popup.css('top', e.pageY + moveDown).css('left', e.pageX + moveLeft).show();
+                positionPopup(popup, jQuery(trigger));
             }
+        }
+        $('.fastpixel-website-accelerator-wrap').on('click', popupTriggerSelector, function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            showPopupForTrigger(this);
         });
         $(document).on('click', function (e) {
             const target = jQuery(e.target);
-            if (!target.closest('.pop-up').length && !target.closest('span.have-popup').length) {
+            if (!target.closest('.pop-up').length && !target.closest(popupTriggerSelector).length) {
                 hideAllPopups();
             }
+        });
+        $('.fastpixel-website-accelerator-wrap').on('keydown', popupTriggerSelector, function (e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                showPopupForTrigger(this);
+            } else if (e.key === 'Escape') {
+                hideAllPopups();
+            }
+        });
+        $(window).on('scroll resize', function () {
+            hideAllPopups();
         });
     });
 
     //global variables
     let fastpixel_cache_request_in_progress = false;
     let fastpixel_delete_cached_request_in_progress = false;
+    document.addEventListener('submit', function(e) {
+        const form = e.target;
+        if (!form || !form.closest('.fastpixel-website-accelerator-wrap')) {
+            return;
+        }
+
+        const submitter = e.submitter || document.activeElement;
+        if (!submitter || ['doaction', 'doaction2'].indexOf(submitter.id) === -1) {
+            return;
+        }
+
+        const action = form.querySelector('select[name="action"]');
+        const action2 = form.querySelector('select[name="action2"]');
+        const actionValue = action ? action.value : '';
+        const action2Value = action2 ? action2.value : '';
+        const selectedAction = submitter.id === 'doaction2'
+            ? (action2Value !== '-1' ? action2Value : actionValue)
+            : (actionValue !== '-1' ? actionValue : action2Value);
+
+        if (['purge', 'request', 'exclude', 'include'].indexOf(selectedAction) === -1) {
+            e.preventDefault();
+            fastpixelDisplayMessage(fastpixel_backend.bulk_action_text, 'warning');
+            return;
+        }
+
+        if (form.querySelector('input[name="rid[]"]:checked')) {
+            return;
+        }
+
+        e.preventDefault();
+        fastpixelDisplayMessage(fastpixel_backend.bulk_select_text, 'warning');
+    }, true);
 
     //ajax cache reset
     jQuery('.fastpixel-website-accelerator-wrap').on('click', 'a.fastpixel-purge-single', function (e) {
@@ -193,7 +293,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 original = updatePostRow({id: id, display_loader: true});
             },
             success: function (response) {
-                if (response.status == 'success' && !jQuery.isEmptyObject(response.item)) {
+                if (!jQuery.isEmptyObject(response.item)) {
                     const row = { ...{ id: id }, ...response.item};
                     updatePostRow(row);
                 } else {
@@ -298,8 +398,16 @@ document.addEventListener("DOMContentLoaded", function() {
         }, 30000);
     }
 
-    let msgTimeout;
     function fastpixelDisplayMessage(message, type) {
+        if (window.fastpixelNoticeCenter && typeof window.fastpixelNoticeCenter.show === 'function') {
+            window.fastpixelNoticeCenter.show({
+                message: message,
+                type: type || 'error',
+                autoDismiss: true
+            });
+            return;
+        }
+
         let notice_type;
         switch(type) {
             case 'warning':
@@ -308,17 +416,22 @@ document.addEventListener("DOMContentLoaded", function() {
             case 'success':
                 notice_type = 'notice-success';
                 break;
+            case 'notice':
+                notice_type = 'notice-info';
+                break;
             case 'error':
             default:
                 notice_type = 'notice-error';
         }
+
         if (jQuery('#fastpixel-js-notice').length > 0) {
             jQuery('#fastpixel-js-notice').remove();
         }
+
         const msg = jQuery('<div id="fastpixel-js-notice" class="notice ' + notice_type + '"><p><strong>FastPixel Website Accelerator:</strong> ' + message + '</p></div>');
         jQuery('hr.wp-header-end').after(msg);
-        clearTimeout(msgTimeout);
-        msgTimeout = setTimeout(function () {
+
+        window.setTimeout(function () {
             if (jQuery('#fastpixel-js-notice').length > 0) {
                 jQuery('#fastpixel-js-notice').fadeOut(500);
             }
@@ -580,9 +693,9 @@ document.addEventListener("DOMContentLoaded", function() {
     //Speculation Rules
     function fastpixelOnSpeculationRulesChange(disable = true) {
         if (disable) {
-            jQuery('#fastpixel_speculation_rules-container').find('.fastpixel-fadein-options').slideUp(1000);
+            jQuery('#fastpixel_speculation_rules-container').find('.fastpixel-fadein-options').slideUp(300);
         } else {
-            jQuery('#fastpixel_speculation_rules-container').find('.fastpixel-fadein-options').slideDown(1000);
+            jQuery('#fastpixel_speculation_rules-container').find('.fastpixel-fadein-options').slideDown(300);
         }
     }
     const fastpixel_speculation_rules_checkbox = jQuery('#fastpixel_speculation_rules');
@@ -596,7 +709,26 @@ document.addEventListener("DOMContentLoaded", function() {
         fastpixel_speculation_rules_checkbox.trigger('fastpixelChange');
     }
 
-    //Params exclusions
+    //EXPIRED auto delete
+    function fastpixelOnExpiredCleanupChange(disable = true) {
+        if (disable) {
+            jQuery('#fastpixel_expired_cleanup-container').find('.fastpixel-fadein-options').slideUp(300);
+        } else {
+            jQuery('#fastpixel_expired_cleanup-container').find('.fastpixel-fadein-options').slideDown(300);
+        }
+    }
+    const fastpixel_expired_cleanup_checkbox = jQuery('#fastpixel_expired_cleanup');
+    if (fastpixel_expired_cleanup_checkbox.length > 0) {
+        fastpixel_expired_cleanup_checkbox.on('fastpixelChange', function () {
+            fastpixelOnExpiredCleanupChange(jQuery(this).prop('checked') ? false : true);
+        });
+        fastpixel_expired_cleanup_checkbox.on('change', function () {
+            jQuery(this).trigger('fastpixelChange');
+        });
+        fastpixel_expired_cleanup_checkbox.trigger('fastpixelChange');
+    }
+
+    //Params exclusions & registered parameters
     function fastpixelOnParamsExcludeAllChange(disable = true) {
         if (disable) {
             jQuery('[data-depends-on="fastpixel-exclude-all-params"]').attr('readonly', 'readonly');
@@ -604,10 +736,24 @@ document.addEventListener("DOMContentLoaded", function() {
             jQuery('[data-depends-on="fastpixel-exclude-all-params"]').removeAttr('readonly');
         }
     }
+
+    function fastpixelOnRegisteredParamsToggle(ignoreUnregisteredChecked) {
+        const group = jQuery('#fastpixel_exclude_all_params-container .fastpixel-registered-params-group');
+        if (!group.length) {
+            return;
+        }
+        if (ignoreUnregisteredChecked) {
+            group.stop(true, true).slideDown(300);
+        } else {
+            group.stop(true, true).slideUp(300);
+        }
+    }
     const fastpixel_exclude_all_params_checkbox = jQuery('#fastpixel_exclude_all_params');
     if (fastpixel_exclude_all_params_checkbox.length > 0) {
         fastpixel_exclude_all_params_checkbox.on('fastpixelChange', function () {
-            fastpixelOnParamsExcludeAllChange(jQuery(this).prop('checked') ? true : false, jQuery(this).data('depends-action') == "readonly" ? false : true);
+            const checked = jQuery(this).prop('checked');
+            fastpixelOnParamsExcludeAllChange(checked ? true : false, jQuery(this).data('depends-action') == "readonly" ? false : true);
+            fastpixelOnRegisteredParamsToggle(checked);
         });
         fastpixel_exclude_all_params_checkbox.on('change', function () {
             jQuery(this).trigger('fastpixelChange');

@@ -16,11 +16,16 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Api_Key')) {
         public function __construct() {
             self::$instance = $this;
             $this->functions = FASTPIXEL_Functions::get_instance();
+            // to remember for any other use cases: had problems with apikey init that either gave eror either ran too early and ddid not load options
+            //so... run slightly later than constructor, but still early
+            //here seems to be the sweet-spot :D
+            add_action('init', [$this, 'init'], 1);
             //this is for wp_verify_nonce and other wp functions
             add_action('admin_init', [$this, 'init']);
         }
 
         public function init() {
+            $this->maybe_set_hoster_api_key();
             //getting api_key
             if (!empty($this->functions->get_option('fastpixel_api_key'))) {
                 $this->api_key = $this->functions->get_option('fastpixel_api_key');
@@ -130,6 +135,27 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Api_Key')) {
             $expiration = $this->get_temp_key_expiration();
             $time_elapsed = time() - $timestamp;
             return $time_elapsed >= $expiration;
+        }
+
+        private function maybe_set_hoster_api_key()
+        {
+            $current_api_key = (string) $this->functions->get_option('fastpixel_api_key', '');
+            if ($current_api_key !== '') {
+                return;
+            }
+
+            $hoster_api_key = '';
+            if (defined('FASTPIXEL_DISABLE_ONBOARDING') && FASTPIXEL_DISABLE_ONBOARDING) {
+                $hoster_api_key = 'hoster_';
+            } elseif (defined('RB_DASHBOARD_BASE_URL')) {
+                $hoster_api_key = 'raidbox_';
+            }
+
+            if ($hoster_api_key !== '') {
+                $this->api_key = $hoster_api_key;
+                $this->save_key();
+                FASTPIXEL_Debug::log('[ApiKey] hoster API key auto-set from constants', $hoster_api_key);
+            }
         }
     }
     new FASTPIXEL_Api_Key();

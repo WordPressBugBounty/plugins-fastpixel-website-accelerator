@@ -3,7 +3,7 @@
         'name' => 'fastpixel-website-accelerator/fastpixel',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => '21bd1e855a8b311b0eb10af5e3d83dc60ea18b2e',
+        'reference' => '91efebba011111f29e576d2734ae1bf34bf616cf',
         'type' => 'wordpress-plugin',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -13,7 +13,7 @@
         'fastpixel-website-accelerator/fastpixel' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => '21bd1e855a8b311b0eb10af5e3d83dc60ea18b2e',
+            'reference' => '91efebba011111f29e576d2734ae1bf34bf616cf',
             'type' => 'wordpress-plugin',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

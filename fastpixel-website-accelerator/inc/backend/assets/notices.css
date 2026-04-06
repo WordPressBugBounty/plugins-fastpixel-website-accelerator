@@ -1,0 +1,549 @@
+body.wp-admin {
+    --fastpixel-notice-accent: #1abecb;
+    --fastpixel-notice-accent-dark: #116c7e;
+    --fastpixel-notice-surface: #f4fbfc;
+    --fastpixel-notice-text: #333333;
+    --fastpixel-notice-muted: #5d7a84;
+    --fastpixel-notice-red: #da4537;
+    --fastpixel-notice-info: #72aee6;
+    --fastpixel-notice-success: #1abecb;
+    --fastpixel-notice-success-text: #116c7e;
+    --fastpixel-notice-success-button-text: #ffffff;
+    --fastpixel-notice-warning: #e7c54a;
+    --fastpixel-notice-warning-text: #7a5d00;
+    --fastpixel-notice-warning-hover: #d9b941;
+    --fastpixel-notice-warning-button-text: #ffffff;
+    --fastpixel-notice-warning-surface: #fffcef;
+    --fastpixel-notice-warning-track: rgba(122, 93, 0, 0.12);
+    --fastpixel-notice-error: #d63638;
+    --fastpixel-notice-error-text: #8f1d21;
+    --fastpixel-notice-error-hover: #b32d2e;
+    --fastpixel-notice-error-button-text: #ffffff;
+    --fastpixel-notice-error-surface: #fcf0f1;
+    --fastpixel-notice-error-track: rgba(143, 29, 33, 0.12);
+    --fastpixel-notice-success-surface: #f4fbfc;
+    --fastpixel-notice-success-hover: #17a9b5;
+    --fastpixel-notice-success-track: rgba(17, 108, 126, 0.08);
+}
+
+.fastpixel-notice-source[data-fastpixel-notice-source="1"] {
+    display: none;
+}
+
+.fastpixel-wp-notices-group {
+    display: block;
+    width: auto;
+    max-width: none;
+    min-width: 0;
+    clear: both;
+    align-self: stretch;
+}
+
+.notice.fastpixel-wp-notice {
+    position: relative;
+    max-width: none;
+    min-width: 0;
+    display: block;
+    float: none;
+    margin: 16px 20px 0 2px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    box-sizing: border-box;
+}
+
+.fastpixel-wp-notices-group .notice.fastpixel-wp-notice:first-child {
+    margin-top: 0;
+}
+
+.notice.fastpixel-wp-notice.is-dismissible {
+    padding-right: 0;
+}
+
+.fastpixel-wp-notice__inner {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 14px 52px 14px 14px;
+    border-radius: 16px;
+    background: #ffffff;
+    box-shadow: 0 -4px 0 0 #1ABDCA;
+    color: var(--fastpixel-notice-text);
+    --fastpixel-notice-button-bg: var(--fastpixel-notice-success);
+    --fastpixel-notice-button-hover: var(--fastpixel-notice-success-hover);
+    --fastpixel-notice-button-text: var(--fastpixel-notice-success-button-text);
+}
+
+.notice.notice-success.fastpixel-wp-notice .fastpixel-wp-notice__inner {
+    box-shadow: 0 -4px 0 0 var(--fastpixel-notice-success);
+    color: var(--fastpixel-notice-success-text);
+}
+
+.notice.notice-warning.fastpixel-wp-notice .fastpixel-wp-notice__inner {
+    box-shadow: 0 -4px 0 0 var(--fastpixel-notice-warning);
+    color: var(--fastpixel-notice-warning-text);
+    --fastpixel-notice-button-bg: var(--fastpixel-notice-warning);
+    --fastpixel-notice-button-hover: var(--fastpixel-notice-warning-hover);
+    --fastpixel-notice-button-text: var(--fastpixel-notice-warning-button-text);
+}
+
+.notice.notice-error.fastpixel-wp-notice .fastpixel-wp-notice__inner {
+    box-shadow: 0 -4px 0 0 var(--fastpixel-notice-error);
+    color: var(--fastpixel-notice-error-text);
+    --fastpixel-notice-button-bg: var(--fastpixel-notice-error);
+    --fastpixel-notice-button-hover: var(--fastpixel-notice-error-hover);
+    --fastpixel-notice-button-text: var(--fastpixel-notice-error-button-text);
+}
+
+.notice.fastpixel-wp-notice .fastpixel-notification__message a {
+    color: inherit;
+}
+
+.notice.fastpixel-wp-notice .fastpixel-notification__message a.button,
+.notice.fastpixel-wp-notice .fastpixel-notification__message a.button-primary,
+.notice.fastpixel-wp-notice .fastpixel-notification__message a.button-secondary,
+.notice.fastpixel-wp-notice .fastpixel-notification__message a.plugin-deactivation-btn {
+    color: var(--fastpixel-notice-button-text, #ffffff);
+}
+
+.notice.fastpixel-wp-notice .fastpixel-notification__message {
+    color: inherit;
+}
+
+.notice.fastpixel-wp-notice p {
+    margin: 0;
+    padding: 0;
+}
+
+.notice.fastpixel-wp-notice .fastpixel-notification__avatar {
+    flex: 0 0 56px;
+    width: 56px;
+    margin: 0;
+    align-self: flex-start;
+}
+
+.notice.fastpixel-wp-notice .fastpixel-notification__content {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    min-width: 0;
+    padding-right: 0;
+}
+
+.notice.fastpixel-wp-notice .fastpixel-notification__app-meta {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    margin: 0;
+}
+
+.notice.fastpixel-wp-notice .fastpixel-notification__brand {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-start;
+    width: auto;
+    gap: 0;
+    color: var(--fastpixel-notice-accent-dark);
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    line-height: 1.1;
+    text-align: left;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.notice.fastpixel-wp-notice .fastpixel-notification__message {
+    text-align: left;
+    color: inherit;
+}
+
+.notice.fastpixel-wp-notice.is-dismissible .notice-dismiss {
+    top: 14px;
+    right: 14px;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.9);
+    color: var(--fastpixel-notice-muted);
+    transition: background 0.18s ease, color 0.18s ease;
+}
+
+.notice.fastpixel-wp-notice.is-dismissible .notice-dismiss:before {
+    content: "\00d7";
+    display: block;
+    font-family: Arial, sans-serif;
+    font-size: 18px;
+    line-height: 1;
+    margin: 0;
+    color: currentColor;
+    transform-origin: center center;
+    transition: transform 0.18s ease;
+}
+
+.notice.fastpixel-wp-notice.is-dismissible .notice-dismiss:hover,
+.notice.fastpixel-wp-notice.is-dismissible .notice-dismiss:focus {
+    background: #ffffff;
+    color: var(--fastpixel-notice-text);
+}
+
+.notice.fastpixel-wp-notice.is-dismissible .notice-dismiss:hover:before,
+.notice.fastpixel-wp-notice.is-dismissible .notice-dismiss:focus:before {
+    transform: rotate(90deg);
+}
+
+#fastpixel-notification-center {
+    position: fixed;
+    top: 46px;
+    left: 50%;
+    z-index: 100100;
+    transform: translateX(-50%);
+    width: min(620px, calc(100vw - 24px));
+    max-height: calc(100vh - 64px);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    pointer-events: none;
+    padding: 12px 22px 36px;
+    box-sizing: border-box;
+}
+
+.fastpixel-notification {
+    position: relative;
+    display: grid;
+    grid-template-columns: 56px 1fr auto;
+    grid-template-areas: "avatar message close";
+    column-gap: 10px;
+    row-gap: 0;
+    align-items: start;
+    padding: 14px;
+    border-radius: 16px;
+    border: 0;
+    background: var(--fastpixel-notice-surface);
+    box-shadow: 0 -4px 0 0 #1ABDCA, 0 10px 20px rgba(0, 0, 0, 0.28);
+    color: var(--fastpixel-notice-text);
+    --fastpixel-notice-button-bg: var(--fastpixel-notice-success);
+    --fastpixel-notice-button-hover: var(--fastpixel-notice-success-hover);
+    --fastpixel-notice-button-text: var(--fastpixel-notice-success-button-text);
+    --fastpixel-notice-progress-fill: var(--fastpixel-notice-success);
+    --fastpixel-notice-progress-track: var(--fastpixel-notice-success-track);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+    overflow: visible;
+    pointer-events: auto;
+    opacity: 0;
+    transform: translate3d(18px, 0, 0) scale(0.98);
+    transition: opacity 0.24s ease, transform 0.24s ease;
+}
+
+.fastpixel-notification--success {
+    background: var(--fastpixel-notice-success-surface);
+    box-shadow: 0 -4px 0 0 var(--fastpixel-notice-success), 0 10px 20px rgba(0, 0, 0, 0.28);
+    color: var(--fastpixel-notice-success-text);
+}
+
+.fastpixel-notification--warning {
+    background: var(--fastpixel-notice-warning-surface);
+    box-shadow: 0 -4px 0 0 var(--fastpixel-notice-warning), 0 10px 20px rgba(0, 0, 0, 0.28);
+    color: var(--fastpixel-notice-warning-text);
+    --fastpixel-notice-button-bg: var(--fastpixel-notice-warning);
+    --fastpixel-notice-button-hover: var(--fastpixel-notice-warning-hover);
+    --fastpixel-notice-button-text: var(--fastpixel-notice-warning-button-text);
+    --fastpixel-notice-progress-fill: var(--fastpixel-notice-warning);
+    --fastpixel-notice-progress-track: var(--fastpixel-notice-warning-track);
+}
+
+.fastpixel-notification--error {
+    background: var(--fastpixel-notice-error-surface);
+    box-shadow: 0 -4px 0 0 var(--fastpixel-notice-error), 0 10px 20px rgba(0, 0, 0, 0.28);
+    color: var(--fastpixel-notice-error-text);
+    --fastpixel-notice-button-bg: var(--fastpixel-notice-error);
+    --fastpixel-notice-button-hover: var(--fastpixel-notice-error-hover);
+    --fastpixel-notice-button-text: var(--fastpixel-notice-error-button-text);
+    --fastpixel-notice-progress-fill: var(--fastpixel-notice-error);
+    --fastpixel-notice-progress-track: var(--fastpixel-notice-error-track);
+}
+
+.fastpixel-notification::after {
+    display: none;
+}
+
+.fastpixel-notification.is-visible {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+}
+
+.fastpixel-notification.is-leaving {
+    opacity: 0;
+    transform: translate3d(26px, 0, 0) scale(0.98);
+}
+
+.fastpixel-notification__avatar {
+    grid-area: avatar;
+    width: 56px;
+    display: flex;
+    align-items: center;
+    align-self: flex-start;
+    justify-content: center;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+}
+
+.fastpixel-notification__avatar-image {
+    width: 46px;
+    height: 46px;
+    display: block;
+}
+
+.fastpixel-notification__content {
+    grid-area: message;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-self: center;
+    gap: 4px;
+}
+
+.fastpixel-notification__app-meta {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+}
+
+.fastpixel-notification__title {
+    display: none;
+}
+
+.fastpixel-notification__brand {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-start;
+    width: auto;
+    gap: 0;
+    color: var(--fastpixel-notice-accent-dark);
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    line-height: 1.1;
+    text-align: left;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.fastpixel-notification__brand-fast {
+    color: #1abecb;
+}
+
+.fastpixel-notification__brand-pixel {
+    color: #ed332b;
+}
+
+.fastpixel-notification__message {
+    align-self: stretch;
+    font-size: 14px;
+    line-height: 1.45;
+    color: var(--fastpixel-notice-accent-dark);
+    padding-left: 0;
+}
+
+.fastpixel-notification--success .fastpixel-notification__message,
+.fastpixel-notification--success .fastpixel-notification__message a {
+    color: var(--fastpixel-notice-success-text);
+}
+
+.fastpixel-notification--warning .fastpixel-notification__message,
+.fastpixel-notification--warning .fastpixel-notification__message a {
+    color: var(--fastpixel-notice-warning-text);
+}
+
+.fastpixel-notification--error .fastpixel-notification__message,
+.fastpixel-notification--error .fastpixel-notification__message a {
+    color: var(--fastpixel-notice-error-text);
+}
+
+.fastpixel-notification__message p {
+    margin: 0;
+}
+
+.fastpixel-notification__message .button,
+.fastpixel-notification__message .button-primary,
+.fastpixel-notification__message .button-secondary,
+.fastpixel-notification__message .plugin-deactivation-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 28px;
+    padding: 0 12px;
+    margin: -1px 0 0 8px;
+    border-radius: 3px;
+    border: 0;
+    background: var(--fastpixel-notice-button-bg, #1ABDCA);
+    box-shadow: none;
+    line-height: 1;
+    vertical-align: middle;
+    white-space: nowrap;
+    font-size: 12px;
+}
+
+.fastpixel-notification__message a {
+    color: var(--fastpixel-notice-accent-dark);
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.fastpixel-notification__message a.button,
+.fastpixel-notification__message a.button-primary,
+.fastpixel-notification__message a.button-secondary,
+.fastpixel-notification__message a.plugin-deactivation-btn {
+    color: var(--fastpixel-notice-button-text, #ffffff);
+    text-decoration: none;
+}
+
+.fastpixel-notification__message a:hover,
+.fastpixel-notification__message a:focus {
+    text-decoration: underline;
+}
+
+.fastpixel-notification__message a.button:hover,
+.fastpixel-notification__message a.button:focus,
+.fastpixel-notification__message a.button-primary:hover,
+.fastpixel-notification__message a.button-primary:focus,
+.fastpixel-notification__message a.button-secondary:hover,
+.fastpixel-notification__message a.button-secondary:focus,
+.fastpixel-notification__message a.plugin-deactivation-btn:hover,
+.fastpixel-notification__message a.plugin-deactivation-btn:focus {
+    background: var(--fastpixel-notice-button-hover, #32d7e5);
+    border-radius: 3px;
+    color: var(--fastpixel-notice-button-text, #ffffff);
+    text-decoration: none;
+}
+
+.notice.fastpixel-wp-notice .fastpixel-notification__message a.button:hover,
+.notice.fastpixel-wp-notice .fastpixel-notification__message a.button:focus,
+.notice.fastpixel-wp-notice .fastpixel-notification__message a.button-primary:hover,
+.notice.fastpixel-wp-notice .fastpixel-notification__message a.button-primary:focus,
+.notice.fastpixel-wp-notice .fastpixel-notification__message a.button-secondary:hover,
+.notice.fastpixel-wp-notice .fastpixel-notification__message a.button-secondary:focus,
+.notice.fastpixel-wp-notice .fastpixel-notification__message a.plugin-deactivation-btn:hover,
+.notice.fastpixel-wp-notice .fastpixel-notification__message a.plugin-deactivation-btn:focus {
+    color: var(--fastpixel-notice-button-text, #ffffff);
+}
+
+.fastpixel-notification__close {
+    grid-area: close;
+    width: 30px;
+    height: 30px;
+    border: 0;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.9);
+    color: var(--fastpixel-notice-muted);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.18s ease, color 0.18s ease, transform 0.18s ease;
+}
+
+.fastpixel-notification__close span {
+    font-size: 18px;
+    line-height: 1;
+    margin-top: -2px;
+}
+
+.fastpixel-notification__close:hover,
+.fastpixel-notification__close:focus {
+    background: #ffffff;
+    color: var(--fastpixel-notice-text);
+    transform: rotate(90deg);
+    outline: none;
+}
+
+.fastpixel-notification__progress {
+    position: absolute;
+    left: 14px;
+    right: 14px;
+    bottom: 8px;
+    height: 2px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: var(--fastpixel-notice-progress-track, rgba(17, 108, 126, 0.08));
+}
+
+.fastpixel-notification__progress-fill {
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: var(--fastpixel-notice-progress-fill, var(--fastpixel-notice-accent));
+    transform-origin: left center;
+    animation-name: fastpixelNoticeCountdown;
+    animation-timing-function: linear;
+    animation-fill-mode: forwards;
+}
+
+@keyframes fastpixelNoticeCountdown {
+    from {
+        transform: scaleX(1);
+    }
+
+    to {
+        transform: scaleX(0);
+    }
+}
+
+@media screen and (max-width: 782px) {
+    .notice.fastpixel-wp-notice {
+        margin-right: 12px;
+    }
+
+    .fastpixel-wp-notice__inner {
+        gap: 10px;
+        padding: 12px 46px 12px 12px;
+    }
+
+    .notice.fastpixel-wp-notice .fastpixel-notification__avatar {
+        flex-basis: 48px;
+        width: 48px;
+    }
+
+    #fastpixel-notification-center {
+        top: 58px;
+        left: 50%;
+        width: calc(100vw - 24px);
+        max-height: calc(100vh - 74px);
+        padding: 10px 16px 28px;
+    }
+
+    .fastpixel-notification {
+        grid-template-columns: 48px 1fr auto;
+        column-gap: 10px;
+        row-gap: 0;
+        padding: 12px;
+    }
+
+    .fastpixel-notification__avatar {
+        width: 48px;
+        gap: 0;
+    }
+
+    .fastpixel-notification__avatar-image {
+        width: 34px;
+        height: 34px;
+    }
+
+    .fastpixel-notification__message .button,
+    .fastpixel-notification__message .button-primary,
+    .fastpixel-notification__message .button-secondary,
+    .fastpixel-notification__message .plugin-deactivation-btn {
+        margin: 8px 0 0;
+    }
+}

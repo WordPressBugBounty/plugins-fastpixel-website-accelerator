@@ -169,15 +169,19 @@ gwIDAQAB
             //need to remove error if it was stored
             $this->functions->error_file($parameters['url'], 'delete');
 
-            //need to update request time if it was deleted previously to display page as cached, instead page will be displayed as stale
+            //keep cache metadata in sync with the optimized file we just saved
             $meta_file = $cache_dir . DIRECTORY_SEPARATOR . $url->get_url_path() . DIRECTORY_SEPARATOR . 'meta';
-            if (!file_exists($meta_file)) {
-                //adding meta info
-                $meta = ['invalidated_time' => false, 'cache_request_time' => $modified_time - 1];
-                if (!$wp_filesystem->put_contents($meta_file, wp_json_encode($meta))) {
-                    if ($this->debug) {
-                        FASTPIXEL_Debug::log('REST API: error occured while saving meta file');
-                    }
+            $meta = ['invalidated_time' => false, 'cache_request_time' => $modified_time - 1, 'last_access_time' => $modified_time];
+            if (file_exists($meta_file)) {
+                $loaded_meta = json_decode($wp_filesystem->get_contents($meta_file), true);
+                if (!empty($loaded_meta) && is_array($loaded_meta)) {
+                    $meta = array_merge($meta, $loaded_meta);
+                }
+            }
+            $meta['last_access_time'] = $modified_time;
+            if (!$wp_filesystem->put_contents($meta_file, wp_json_encode($meta))) {
+                if ($this->debug) {
+                    FASTPIXEL_Debug::log('REST API: error occured while saving meta file');
                 }
             }
 

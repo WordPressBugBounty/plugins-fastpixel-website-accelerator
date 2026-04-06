@@ -231,15 +231,58 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Posts_Table')) {
         {
             $action = array(
                 'purge' => esc_html__('Purge Cache', 'fastpixel-website-accelerator'),
-                'request' => esc_html__('Cache Pages', 'fastpixel-website-accelerator')
+                'request' => esc_html__('Cache Pages', 'fastpixel-website-accelerator'),
+                'exclude' => esc_html__('Exclude Pages', 'fastpixel-website-accelerator'),
+                'include' => esc_html__('Include Pages', 'fastpixel-website-accelerator')
             );
             return $action;
+        }
+
+        protected function get_exclusions_list()
+        {
+            $exclusions = $this->functions->get_option('fastpixel_exclusions');
+            $exclusions = is_string($exclusions) ? preg_split('/\r\n|\r|\n/', $exclusions) : [];
+            $exclusions = array_filter(array_map(function ($item) {
+                $item = trim(strtolower($item));
+                if ($item === '/') {
+                    return '/';
+                }
+                return !empty($item) ? $item : null;
+            }, $exclusions));
+            return array_values($exclusions);
+        }
+
+        protected function save_exclusions_list($exclusions = [])
+        {
+            $exclusions = array_values(array_unique(array_filter($exclusions)));
+            $this->functions->update_option('fastpixel_exclusions', implode("\r\n", $exclusions));
+        }
+
+        protected function get_bulk_action_paths($rids = [], $statuses_type = false)
+        {
+            $paths = [];
+            foreach ($rids as $rid) {
+                $filter_args = ['id' => $rid, 'selected_of_type' => $this->selected_post_type, 'type' => $statuses_type];
+                $permalink_to_reset = apply_filters('fastpixel/backend/bulk/purge_single', '', $filter_args);
+                if (!empty($permalink_to_reset) && !is_wp_error($permalink_to_reset)) {
+                    $url_obj = new FASTPIXEL_Url($permalink_to_reset);
+                    $path = $url_obj->get_path();
+                    if ($path !== '/') {
+                        $path = untrailingslashit($path) . '/';
+                    }
+                    if (!empty($path)) {
+                        $paths[] = strtolower($path);
+                    }
+                }
+            }
+            return array_values(array_unique(array_filter($paths)));
         }
 
         public function process_bulk_action()
         {
             // If the reset bulk action is triggered
             $action = $this->current_action();
+            $supported_actions = ['purge', 'request', 'exclude', 'include'];
             $rids = [];
             // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- wordpress page is accessed without any nonces, no data is posted.
             if (isset($_GET['rid']) && is_array($_GET['rid']) && count($_GET['rid']) > 0) {
@@ -247,9 +290,48 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Posts_Table')) {
                     $rids[] = sanitize_key($rid);
                 }
             }
-            if (in_array($action, ['purge', 'request']) && !empty($rids)) {
-                $statuses_type = apply_filters('fastpixel/backend/bulk/type', false, ['selected_of_type' => $this->selected_post_type]);
+            if (in_array($action, $supported_actions, true)) {
+                $args = array(
+                    'page'    => FASTPIXEL_TEXTDOMAIN . '-settings',
+                    'paged'   => $this->get_pagenum(), 
+                    'ptype'   => $this->selected_post_type,
+                    'order'   => $this->posts_order,
+                    'orderby' => $this->posts_orderby,
+                    's'       => $this->search
+                );
+                if (empty($rids)) {
+                    wp_redirect(esc_url_raw(add_query_arg($args, admin_url('admin.php'))) . '#cache-status');
+                    exit;
+                }
                 $notices = FASTPIXEL_Notices::get_instance();
+                $statuses_type = apply_filters('fastpixel/backend/bulk/type', false, ['selected_of_type' => $this->selected_post_type]);
+                if ($action == 'exclude' || $action == 'include') {
+                    $exclusions = $this->get_exclusions_list();
+                    $target_paths = $this->get_bulk_action_paths($rids, $statuses_type);
+                    $before_count = count($exclusions);
+                    if ($action == 'exclude') {
+                        $exclusions = array_values(array_unique(array_merge($exclusions, $target_paths)));
+                        $r_count = count($exclusions) - $before_count;
+                    } else {
+                        $exclusions = array_values(array_diff($exclusions, $target_paths));
+                        $r_count = $before_count - count($exclusions);
+                    }
+                    if ($r_count > 0) {
+                        $this->save_exclusions_list($exclusions);
+                        $post_type_name = apply_filters('fastpixel/backend/bulk/post_type_name', '', ['selected_of_type' => $this->selected_post_type, 'count' => $r_count]);
+                        if ($action == 'exclude') {
+                            /* translators: %1 should be a posts count, %2 post type name */
+                            $notices->add_flash_notice(sprintf(esc_html__('Excluded %1$d %2$s from cache', 'fastpixel-website-accelerator'), esc_html($r_count), esc_html($post_type_name)), 'success', false);
+                        } else {
+                            /* translators: %1 should be a posts count, %2 post type name */
+                            $notices->add_flash_notice(sprintf(esc_html__('Included %1$d %2$s in cache', 'fastpixel-website-accelerator'), esc_html($r_count), esc_html($post_type_name)), 'success', false);
+                        }
+                    } else {
+                        $notices->add_flash_notice(esc_html__('No changes were needed.', 'fastpixel-website-accelerator'), 'notice', false);
+                    }
+                    wp_redirect(esc_url_raw(add_query_arg($args, admin_url('admin.php'))) . '#cache-status');
+                    exit;
+                }
                 $k = 20;
                 if (count($rids) <= $k) {
                     $k = count($rids);
@@ -278,14 +360,6 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Posts_Table')) {
                         $r_count++;
                     }
                 }
-                $args = array(
-                    'page'    => FASTPIXEL_TEXTDOMAIN . '-settings',
-                    'paged'   => $this->get_pagenum(), 
-                    'ptype'   => $this->selected_post_type,
-                    'order'   => $this->posts_order,
-                    'orderby' => $this->posts_orderby,
-                    's'       => $this->search
-                );
                 $filter_args['count'] = $r_count;
                 $post_type_name = apply_filters('fastpixel/backend/bulk/post_type_name', '', $filter_args);
                 

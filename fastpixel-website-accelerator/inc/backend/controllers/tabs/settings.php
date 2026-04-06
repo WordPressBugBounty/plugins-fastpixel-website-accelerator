@@ -28,6 +28,8 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Settings')) {
             // Register a new setting for "settings" page.
             register_setting(FASTPIXEL_TEXTDOMAIN, 'fastpixel_serve_stale', ['type' => 'boolean']);
             register_setting(FASTPIXEL_TEXTDOMAIN, 'fastpixel_display_cached_for_logged', ['type' => 'boolean']);
+            register_setting(FASTPIXEL_TEXTDOMAIN, 'fastpixel_expired_cleanup', ['type' => 'boolean', 'default' => false]);
+            register_setting(FASTPIXEL_TEXTDOMAIN, 'fastpixel_expired_cleanup_limit_gb', ['type' => 'string', 'sanitize_callback' => [$this, 'sanitize_cache_limit_gb'], 'default' => (float) FASTPIXEL_DEFAULT_CACHE_LIMIT_GB]);
             register_setting(FASTPIXEL_TEXTDOMAIN, 'fastpixel_speculation_rules', ['type' => 'boolean']);
             register_setting(FASTPIXEL_TEXTDOMAIN, 'fastpixel_speculation_mode', [
                 'type'              => 'string',
@@ -40,8 +42,10 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Settings')) {
                 'default'           => 'moderate'
             ]);
             register_setting(FASTPIXEL_TEXTDOMAIN, 'fastpixel_exclusions', ['type' => 'array']);
+            register_setting(FASTPIXEL_TEXTDOMAIN, 'fastpixel_cookie_exclusions', ['type' => 'string']);
             register_setting(FASTPIXEL_TEXTDOMAIN, 'fastpixel_exclude_all_params', ['type' => 'array']);
             register_setting(FASTPIXEL_TEXTDOMAIN, 'fastpixel_params_exclusions', ['type' => 'array']);
+            register_setting(FASTPIXEL_TEXTDOMAIN, 'fastpixel_registered_params_custom', ['type' => 'string']);
             register_setting(FASTPIXEL_TEXTDOMAIN, 'fastpixel_excluded_post_types', ['type' => 'array', 'sanitize_callback' => [$this, 'sanitize_fastpixel_post_types_exclusion_cb']]);
             register_setting(FASTPIXEL_TEXTDOMAIN, 'fastpixel_always_purge_urls', ['type' => 'array']);
             // Register a new section in the "settings" page.
@@ -68,6 +72,18 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Settings')) {
                 'fastpixel_display_cached_for_logged',
                 $field_title,
                 [$this, 'fastpixel_display_cached_for_logged_cb'],
+                FASTPIXEL_TEXTDOMAIN,
+                'fastpixel_settings_section',
+                [
+                    'class' => 'fastpixel-settings-form-row',
+                    'label' => $field_title
+                ]
+            );
+            $field_title = esc_html__('Cache Size Limit', 'fastpixel-website-accelerator');
+            add_settings_field(
+                'fastpixel_expired_cleanup',
+                $field_title,
+                [$this, 'field_expired_cleanup_cb'],
                 FASTPIXEL_TEXTDOMAIN,
                 'fastpixel_settings_section',
                 [
@@ -125,6 +141,18 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Settings')) {
                     'label' => $field_title
                 ]
             );
+            $field_title = esc_html__('Cookie Exclusions', 'fastpixel-website-accelerator');
+            add_settings_field(
+                'fastpixel_cookie_exclusions',
+                $field_title,
+                [$this, 'field_cookie_exclusions_cb'],
+                FASTPIXEL_TEXTDOMAIN,
+                'fastpixel_settings_section',
+                [
+                    'class' => 'fastpixel-settings-form-row',
+                    'label' => $field_title
+                ]
+            );
             $field_title = esc_html__('Parameter Exclusions', 'fastpixel-website-accelerator');
             add_settings_field(
                 'fastpixel_params_exclusions',
@@ -137,7 +165,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Settings')) {
                     'label' => $field_title
                 ]
             );
-            $field_title = esc_html__('Disable All Parameters', 'fastpixel-website-accelerator');
+            $field_title = esc_html__('Ignore Unregistered Parameters', 'fastpixel-website-accelerator');
             add_settings_field(
                 'fastpixel_exclude_all_params',
                 $field_title,
@@ -201,6 +229,69 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Settings')) {
             ], true);
         }
 
+        public function field_expired_cleanup_cb($args)
+        {
+            $enabled = (bool) $this->functions->get_option('fastpixel_expired_cleanup', false);
+            $cache_limit_gb = $this->functions->get_option('fastpixel_expired_cleanup_limit_gb', false);
+            if ($cache_limit_gb === false) {
+                $cache_limit_gb = $this->functions->get_option('fastpixel_expired_cleanup_days', (float) FASTPIXEL_DEFAULT_CACHE_LIMIT_GB);
+            }
+            $cache_limit_gb = $this->sanitize_cache_limit_gb($cache_limit_gb);
+            $description = esc_html__('Choose the maximum cache size you want FastPixel to maintain. As the cache approaches this limit, cleanup becomes more aggressive, purging cache for the least recently accessed pages first.', 'fastpixel-website-accelerator');
+            $cron_warning = '';
+            if ($this->is_wp_cron_disabled()) {
+                $cron_warning = '<div class="fastpixel-cache-size-warning">' . esc_html__('WP-Cron is currently disabled. To make sure the Cache Size Limit works correctly, please enable WP-Cron.', 'fastpixel-website-accelerator') . '</div>';
+            }
+            $checked = checked($enabled, true, false);
+            $switch = sprintf('<switch>
+            <label>
+                <input type="checkbox" class="fastpixel-switch" id="fastpixel_expired_cleanup" name="fastpixel_expired_cleanup" value="1" %1$s>
+                <div class="the_switch">&nbsp;</div>
+                %2$s
+            </label>
+            </switch>',
+                $checked,
+                esc_html($args['label'])
+            );
+            $cache_limit_input = sprintf('<span class="fastpixel-input-row">
+                <label class="fastpixel-input-label">%1$s</label>
+                <input type="number" class="fastpixel-input small-text" step="any" name="fastpixel_expired_cleanup_limit_gb" value="%2$s" />
+            </span>',
+                esc_html__('Cache Limit (GB)', 'fastpixel-website-accelerator'),
+                esc_attr($cache_limit_gb)
+            );
+            $output = '<setting id="fastpixel_expired_cleanup-container" class="switch"><content>' .
+                $switch .
+                '<span class="fastpixel-switch-description fastpixel-setting-description">' . $description . '</span>' .
+                $cron_warning .
+                '<div class="fastpixel-fadein-options"' . ($enabled ? '' : ' style="display:none"') . '>' . $cache_limit_input . '</div>' .
+                '</content></setting>';
+            echo $output; //phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+        }
+
+        public function sanitize_cache_limit_gb($value): float
+        {
+            if (is_string($value)) {
+                $value = str_replace(',', '.', trim($value));
+            }
+
+            if (!is_numeric($value)) {
+                return (float) FASTPIXEL_DEFAULT_CACHE_LIMIT_GB;
+            }
+
+            $value = (float) $value;
+            if ($value <= 0) {
+                return (float) FASTPIXEL_DEFAULT_CACHE_LIMIT_GB;
+            }
+
+            return $value;
+        }
+
+        protected function is_wp_cron_disabled(): bool
+        {
+            return defined('DISABLE_WP_CRON') && DISABLE_WP_CRON;
+        }
+
         public function field_speculation_rules_cb($args)
         {
             // Get the value of the setting we've registered with register_setting()
@@ -261,16 +352,90 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Settings')) {
             ], true);
         }
 
+        public function field_cookie_exclusions_cb($args)
+        {
+            $cookie_exclusions = (string) $this->functions->get_option('fastpixel_cookie_exclusions', '');
+            $description = esc_html__('Cookies that should bypass the cache for the current request. Add one cookie per line.', 'fastpixel-website-accelerator');
+            $this->be_functions->print_textarea([
+                'field_name'  => 'fastpixel_cookie_exclusions',
+                'field_value' => $cookie_exclusions,
+                'label'       => $args['label'],
+                'description' => $description,
+                'placeholder' => "woocommerce_items_in_cart\nwp_woocommerce_session_1"
+            ], true);
+        }
+
         public function field_exclude_all_params_cb($args)
         {
-            // Get the value of the setting we've registered with register_setting()
-            $enabled = $this->functions->get_option('fastpixel_exclude_all_params');
-            $this->be_functions->print_checkbox([
-                'field_name'  => 'fastpixel_exclude_all_params',
-                'checked'     => $enabled,
-                'label'       => $args['label'],
-                'description' => esc_html__('This option allows you to save disk space. All request parameters are ignored.', 'fastpixel-website-accelerator')
-            ], true);
+            // Get the value of the settings we've registered with register_setting()
+            $enabled_ignore = $this->functions->get_option('fastpixel_exclude_all_params');
+            $custom_params  = $this->functions->get_option('fastpixel_registered_params_custom', '');
+            global $wp;
+            $registered_params = [];
+            if (isset($wp) && is_object($wp) && is_array($wp->query_vars)) {
+                $registered_params = array_keys($wp->query_vars);
+            }
+            // Merge custom params into display list (whitelist view).
+            if (!empty($custom_params) && is_string($custom_params)) {
+                $lines = preg_split('/\r\n|\r|\n/', $custom_params);
+                foreach ($lines as $line) {
+                    $line = trim($line);
+                    if ($line !== '' && !in_array($line, $registered_params, true)) {
+                        $registered_params[] = $line;
+                    }
+                }
+            }
+            if (!empty($registered_params)) {
+                sort($registered_params);
+            }
+
+            $ignore_description = esc_html__(
+                'When enabled, the system serves cached pages while ignoring any unregistered request parameters. Pages are cached using URLs where only allowed parameters affect the cache key, reducing disk usage, lowering unnecessary pageviews, and improving the cache hit ratio',
+                'fastpixel-website-accelerator'
+            );
+
+            ?>
+            <setting id="fastpixel_exclude_all_params-container" class="switch">
+                <content>
+                    <switch>
+                        <label>
+                            <input type="checkbox"
+                                   class="fastpixel-switch"
+                                   id="fastpixel_exclude_all_params"
+                                   name="fastpixel_exclude_all_params"
+                                   value="1" <?php checked((bool) $enabled_ignore, true); ?>>
+                            <div class="the_switch">&nbsp;</div>
+                            <?php echo esc_html($args['label']); ?>
+                        </label>
+                    </switch>
+                    <span class="fastpixel-switch-description">
+                        <?php echo wp_kses_post($ignore_description); ?>
+                    </span>
+
+                    <div class="fastpixel-registered-params-group"<?php echo $enabled_ignore ? '' : ' style="display:none"'; ?>>
+                        <?php
+                        $custom_description = sprintf(
+                            esc_html__(
+                                'These registered query parameters are taken into account when caching the page. They are registered by the theme or various plugins. If any other query parameter which is not registered (so it doesn\'t appear here) modifies the contents of the page, you can manually add it here.
+                                 %1$sExample: param_name=param_value, another_param_name%2$s%3$s',
+                                'fastpixel-website-accelerator'
+                            ),
+                            '<br/>',
+                            '<br/>',
+                            '<span class="fastpixel-registered-params-example-indent">third_param_name</span>'
+                        );
+                        $this->be_functions->print_textarea([
+                            'field_name'  => 'fastpixel_registered_params_custom',
+                            'field_value' => $custom_params,
+                            'label'       => esc_html__('Registered Parameters', 'fastpixel-website-accelerator'),
+                            'description' => $custom_description,
+                            'data'        => []
+                        ], true);
+                        ?>
+                    </div>
+                </content>
+            </setting>
+            <?php
         }
 
         public function field_params_exclusions_cb($args) {
@@ -361,6 +526,11 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Settings')) {
             $this->functions->update_option('fastpixel_serve_stale', $stale);
             $dcflin = isset($_POST['fastpixel_display_cached_for_logged']) && 1 == sanitize_text_field($_POST['fastpixel_display_cached_for_logged']) ? 1 : 0;
             $this->functions->update_option('fastpixel_display_cached_for_logged', $dcflin);
+            $expired_cleanup = isset($_POST['fastpixel_expired_cleanup']) && 1 == sanitize_text_field($_POST['fastpixel_expired_cleanup']) ? 1 : 0;
+            $this->functions->update_option('fastpixel_expired_cleanup', $expired_cleanup);
+            $expired_cleanup_limit_gb = isset($_POST['fastpixel_expired_cleanup_limit_gb']) ? $this->sanitize_cache_limit_gb($_POST['fastpixel_expired_cleanup_limit_gb']) : (float) FASTPIXEL_DEFAULT_CACHE_LIMIT_GB;
+            $this->functions->update_option('fastpixel_expired_cleanup_limit_gb', $expired_cleanup_limit_gb);
+            $this->functions->delete_option('fastpixel_expired_cleanup_days');
             //speculation rules
             $sp_rules = isset($_POST['fastpixel_speculation_rules']) && 1 == sanitize_text_field($_POST['fastpixel_speculation_rules']) ? 1 : 0;
             $this->functions->update_option('fastpixel_speculation_rules', $sp_rules);
@@ -374,6 +544,9 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Settings')) {
             $this->save_purge_urls();
             $exclude_all_params = isset($_POST['fastpixel_exclude_all_params']) && 1 == sanitize_text_field($_POST['fastpixel_exclude_all_params']) ? 1 : 0;
             $this->functions->update_option('fastpixel_exclude_all_params', $exclude_all_params);
+            $this->functions->update_option('fastpixel_cookie_exclusions', sanitize_textarea_field($_POST['fastpixel_cookie_exclusions'] ?? ''));
+            $registered_params_custom = isset($_POST['fastpixel_registered_params_custom']) ? sanitize_textarea_field($_POST['fastpixel_registered_params_custom']) : '';
+            $this->functions->update_option('fastpixel_registered_params_custom', $registered_params_custom);
             $this->functions->update_option('fastpixel_params_exclusions', sanitize_textarea_field($_POST['fastpixel_params_exclusions']));
             $excluded_post_types = [];
             if (!empty($_POST['fastpixel_excluded_post_types']) && is_array($_POST['fastpixel_excluded_post_types'])) {
@@ -395,6 +568,9 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Settings')) {
             }
             /* translators: for %1$s text is used which tells that cache was cleared and pages are being generated. This text is translated separately. */
             $notices->add_flash_notice(sprintf(esc_html__('Settings saved successfully. %1$s', 'fastpixel-website-accelerator'), $text_cleared), 'success', false);
+            if ($expired_cleanup && $this->is_wp_cron_disabled()) {
+                $notices->add_flash_notice(esc_html__('FastPixel Website Accelerator: Cache Size Limit is enabled, but WP-Cron is disabled. Please enable WP-Cron for automatic cleanup to run.', 'fastpixel-website-accelerator'), 'warning', false);
+            }
         }
 
         protected function save_excludes() {

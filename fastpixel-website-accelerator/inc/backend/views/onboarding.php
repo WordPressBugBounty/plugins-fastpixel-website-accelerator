@@ -122,7 +122,10 @@ $disabled = $is_editable ? '' : 'disabled';
 
     <settinglist class='onboard-submit'>
         <button type="button" name="add-key" id="fastpixel-onboard-continue"><?php esc_html_e('Continue', 'fastpixel-website-accelerator'); ?></button>
-        <button type="button" name="skip-onboarding" id="fastpixel-onboard-skip" class="fastpixel-onboard-link"><?php esc_html_e('Remind me later', 'fastpixel-website-accelerator'); ?></button>
+        <?php // teemporary disabled for some testing...  switch condition to true to restore "Remind me later" ?>
+        <?php if (false): ?>
+            <button type="button" name="skip-onboarding" id="fastpixel-onboard-skip" class="fastpixel-onboard-link"><?php esc_html_e('Remind me later', 'fastpixel-website-accelerator'); ?></button>
+        <?php endif; ?>
     </settinglist>
 </section>
 

@@ -702,6 +702,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Cache')) {
                 }
             }
             $status = $this->functions->check_post_cache_status($permalink_to_reset);
+            $this->functions->error_file($permalink_to_reset, 'delete');
             $cache_requested = false;
             if ($cache_reset_type == 'url') {
                 $cache_requested = $this->purge_cache_by_url($args);
@@ -732,11 +733,22 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Cache')) {
                     wp_redirect(wp_get_referer());
                 }
             } 
+            $status_message = esc_html__('Error occured while requesting cache', 'fastpixel-website-accelerator');
+            $post_status = $this->be_functions->cache_status_display($permalink_to_reset, $args);
+            if (empty($post_status['status']) || $post_status['status'] !== 'error') {
+                $this->functions->error_file($permalink_to_reset, 'add', ['error' => $status_message]);
+                $post_status = $this->be_functions->cache_status_display($permalink_to_reset, $args);
+            }
             if ($ajax) {
-                echo wp_json_encode(['status' => 'error', 'statusText' => esc_html__('Error occured while requesting cache', 'fastpixel-website-accelerator')]);
+                echo wp_json_encode([
+                    'id'         => $id,
+                    'status'     => 'error',
+                    'statusText' => $status_message,
+                    'item'       => $post_status
+                ]);
                 wp_die();
             }
-            $this->notices->add_flash_notice(esc_html__('Error occured while requesting cache', 'fastpixel-website-accelerator'), 'success');
+            $this->notices->add_flash_notice($status_message, 'success');
             wp_redirect(wp_get_referer());
         }
 

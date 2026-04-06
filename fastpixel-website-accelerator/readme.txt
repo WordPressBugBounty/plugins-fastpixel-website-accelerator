@@ -4,7 +4,7 @@ Tags: speed, cache, caching, performance, web vitals
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 5.6
-Stable tag: 1.4.1
+Stable tag: 1.5.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -221,6 +221,30 @@ For more detailed information on how to use the plugin or the API, troubleshooti
 
 
 == Changelog ==
+
+= 1.5.0 =
+
+⭐ The Smarter Cache & Control Update
+
+Release Date: April 6, 2026
+
+✨ New Features
+
+* Cache Size Limit: Set a maximum cache size and automatically purge pages that haven’t been accessed lately when nearing that limit.
+* Cookie Exclusions: You can now exclude requests from caching based on specific cookies, perfect for handling logged-in users, personalized content, or dynamic sessions.
+* Bulk Exclusions: You can now exclude multiple pages at once directly from the Bulk Actions menu.
+* Ignore Unregistered Parameters: When unregistered parameters are detected, the cached page is served without those parameteres. This option helps reduce disk usage, increase cache efficiency, and improve the cache hit ratio.
+* One-Click Cleanup on Disable: When disabling the plugin, you can now remove all settings with a single click for a clean reset.
+
+⚙️ Improvements
+
+* Revamped Notifications UI: Notifications have been redesigned for better clarity, improved layout, and a cleaner experience.
+* Better Onboarding Experience: A smoother and more intuitive setup flow for new users.
+* Enhanced Error Display: Improved UI and error messages to make issues easier to spot and understand.
+* MailPoet Compatibility: Improved compatibility for MailPoet newsletters to ensure proper behavior with caching and optimization.
+* General Compatibility Fixes: Various under-the-hood improvements for better integration across different environments and plugins.
+
+Update now for smarter cache management, improved compatibility, and a more streamlined experience! 🚀
 
 = 1.4.1 =
 
@@ -498,17 +522,25 @@ Release Date: December 17, 2024
 
 = 1.0.36 =
 The Holiday Update 🎄
+
 Release Date: December 17, 2024
+
 Celebrate the season with a smoother, more feature-packed experience! Here's what's new in this festive update:
+
 🆕 New Features
+
 * Exclude WooCommerce Items: Now you can exclude specific WooCommerce products, categories, and tags from optimization, giving you more control over your store's behavior.
 * Post Type Exclusions: Added the ability to exclude custom post types, ensuring your site performs just the way you want it.
 * Automatic Homepage Cache Refresh: The homepage cache is automatically refreshed whenever a new post is added, ensuring that the displayed content is always up to date.
 * WordPress Taxonomies: You can now view cached pages on the Cache Status page filtered by your taxonomies.
+
 🛠️ Improvements
+
 * Updated Plugin Compatibility: We've refreshed the list of conflicting plugins to improve compatibility and avoid potential issues.
 * Bricks Builder Compatibility: We've added new built-in parameter exclusions to improve compatibility with Bricks Builder.
+
 🐞 Bug Fixes
+
 * Squashed several pesky bugs to ensure a more stable and reliable experience.
 Thank you for being part of our journey! Your feedback helps us make every update better. 🎁 
 

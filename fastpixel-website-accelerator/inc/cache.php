@@ -63,7 +63,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Cache')) {
             register_shutdown_function([$this, 'on_shutdown']);
 
             //initializing url
-            $this->url = new FASTPIXEL_Url(null, $this->config->get_option('fastpixel_exclude_all_params'));
+            $this->url = new FASTPIXEL_Url();
             if ($this->debug) FASTPIXEL_Debug::log('Class FASTPIXEL_Cache: URL ' . $this->url->get_original_url());
 
             if (!$this->check_request_agent()) {

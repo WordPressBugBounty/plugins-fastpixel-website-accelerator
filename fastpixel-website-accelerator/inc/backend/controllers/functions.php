@@ -60,9 +60,10 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Functions')) {
             //checking page status
             if ($check_result['error'] != false && $check_result['error_time'] > $check_result['last_cache_request_time']) {
                 $cache_status['status_display'] = '<span class="have-popup error"><strong>' . esc_html__('Error', 'fastpixel-website-accelerator') . '</strong></span>';
+                $cache_status['status_display'] .= '<span class="have-popup dashicons dashicons-editor-help" tabindex="0" role="button" aria-label="' . esc_attr__('Error details', 'fastpixel-website-accelerator') . '"></span>';
                 $cache_status['status'] = 'error';
                 /* translators: %s should be an error text */
-                $cache_status['status_display'] .= '<div class="pop-up">' . sprintf(esc_html__('Error: %s', 'fastpixel-website-accelerator'), $check_result['error']) . '</div>';
+                $cache_status['status_display'] .= '<div class="pop-up fastpixel-error-popup">' . sprintf(esc_html__('Error: %s', 'fastpixel-website-accelerator'), $check_result['error']) . '</div>';
             } else {
                 if ($check_result['have_cache'] && !$check_result['need_cache']) {
                     $cache_status['status_display'] = '<span class="have-popup cached"><strong>' . esc_html__('Cached', 'fastpixel-website-accelerator') . '</strong></span>';
