@@ -619,11 +619,14 @@
     margin-right: 20px;
 }
 .fastpixel-website-accelerator-wrap .column-cache_status .queued-loader,
-.fastpixel-website-accelerator-wrap .column-cache_status .stale-loader, 
-.fastpixel-website-accelerator-wrap .column-cache_status .queued-loader:before, 
+.fastpixel-website-accelerator-wrap .column-cache_status .stale-loader,
+.fastpixel-diagnostics-container .queued-loader,
+.fastpixel-website-accelerator-wrap .column-cache_status .queued-loader:before,
 .fastpixel-website-accelerator-wrap .column-cache_status .stale-loader:before,
+.fastpixel-diagnostics-container .queued-loader:before,
 .fastpixel-website-accelerator-wrap .column-cache_status .queued-loader:after,
-.fastpixel-website-accelerator-wrap .column-cache_status .stale-loader:after {
+.fastpixel-website-accelerator-wrap .column-cache_status .stale-loader:after,
+.fastpixel-diagnostics-container .queued-loader:after {
     border-radius: 50%;
     width: 1em;
     height: 1em;
@@ -631,7 +634,8 @@
     animation: bblFadInOut 1.8s infinite ease-in-out;
 }
 .fastpixel-website-accelerator-wrap .column-cache_status .queued-loader,
-.fastpixel-website-accelerator-wrap .column-cache_status .stale-loader {
+.fastpixel-website-accelerator-wrap .column-cache_status .stale-loader,
+.fastpixel-diagnostics-container .queued-loader {
     display: inline-block;
     color: #21bbca;
     font-size: 7px;
@@ -644,18 +648,22 @@
 .fastpixel-website-accelerator-wrap .column-cache_status .queued-loader:before,
 .fastpixel-website-accelerator-wrap .column-cache_status .queued-loader:after,
 .fastpixel-website-accelerator-wrap .column-cache_status .stale-loader:before,
-.fastpixel-website-accelerator-wrap .column-cache_status .stale-loader:after {
+.fastpixel-website-accelerator-wrap .column-cache_status .stale-loader:after,
+.fastpixel-diagnostics-container .queued-loader:before,
+.fastpixel-diagnostics-container .queued-loader:after {
     content: '';
     position: absolute;
     top: 0;
 }
 .fastpixel-website-accelerator-wrap .column-cache_status .queued-loader:before,
-.fastpixel-website-accelerator-wrap .column-cache_status .stale-loader:before {
+.fastpixel-website-accelerator-wrap .column-cache_status .stale-loader:before,
+.fastpixel-diagnostics-container .queued-loader:before {
     left: -1.5em;
     animation-delay: -0.32s;
 }
 .fastpixel-website-accelerator-wrap .column-cache_status .queued-loader:after,
-.fastpixel-website-accelerator-wrap .column-cache_status .stale-loader:after {
+.fastpixel-website-accelerator-wrap .column-cache_status .stale-loader:after,
+.fastpixel-diagnostics-container .queued-loader:after {
     left: 1.5em;
 }
 
@@ -1187,7 +1195,7 @@
 .fastpixel-diagnostics-container tr td .failed { color: rgba(255,0,0,1); }
 .fastpixel-diagnostics-container tr td .passed { color: rgba(17,200,17,1); }
 .fastpixel-diagnostics-container .plugin-status-row td { line-height: 30px; }
-.fastpixel-diagnostics-container .spinner-loader { width: 20px; height: 20px; vertical-align: middle; margin-top: -4px; }
+.fastpixel-diagnostics-container .spinner-loader { display: block; margin-left: 1.5em; }
 .fastpixel-diagnostics-container .page-top { display: flex; flex-direction: row; width: 100%; }
 .fastpixel-diagnostics-container .top-column { width: 50%; }
 .fastpixel-diagnostics-container .top-column.right { height: 65px; display: flex; align-items: center; justify-content: end; }
@@ -1435,17 +1443,18 @@
 /* Plugins screen */
 /* Deactivation popup*/
 .fastpixel-deactivate-form-active .fastpixel-deactivate-form-bg {
-    background: rgba( 0, 0, 0, .5 );
+    background: rgba(0, 0, 0, 0.8);
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    z-index: 5;
+    /* above wp-admin content (#wpadminbar is 99999 — modal must sit above bar) */
+    z-index: 100000;
 }
 .fastpixel-deactivate-form-wrapper {
     position: relative;
-    z-index: 999;
+    z-index: 100005;
     display: none;
 }
 .fastpixel-deactivate-form-active .fastpixel-deactivate-form-wrapper {
@@ -1455,27 +1464,170 @@
     display: none;
 }
 .fastpixel-deactivate-form-active .fastpixel-deactivate-form {
+    display: block;
     position: fixed;
-    top: 52px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: min(500px, calc(100vw - 32px));
-    min-width: 360px;
-    max-height: calc(100vh - 72px);
+    top: 20px;
+    right: 0;
+    bottom: 20px;
+    left: 0;
+    width: min(420px, calc(100vw - 32px));
+    min-width: 260px;
+    height: fit-content;
+    max-height: min(calc(100vh - 40px), calc(100dvh - 40px));
+    margin: auto;
+    transform: none;
     overflow-y: auto;
     background: #fff;
     white-space: normal;
     box-sizing: border-box;
-    border-radius: 6px;
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.28);
+    scrollbar-width: thin;
+    scrollbar-color: #1ABDCA rgba(26, 189, 202, 0.18);
+    z-index: 100010;
+}
+.fastpixel-deactivate-form-active .fastpixel-deactivate-form::-webkit-scrollbar {
+    width: 6px;
+}
+.fastpixel-deactivate-form-active .fastpixel-deactivate-form::-webkit-scrollbar-track {
+    background: rgba(26, 189, 202, 0.14);
+    border-radius: 3px;
+}
+.fastpixel-deactivate-form-active .fastpixel-deactivate-form::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #32d7e5 0%, #1ABDCA 45%, #116C7E 100%);
+    border-radius: 3px;
+}
+.fastpixel-deactivate-form-active .fastpixel-deactivate-form::-webkit-scrollbar-thumb:hover {
+    background: #0fa9b4;
+}
+.fastpixel-deactivate-scroll-hint {
+    position: sticky;
+    bottom: 8px;
+    z-index: 3;
+    display: block;
+    width: 40px;
+    height: 50px;
+    margin: 14px auto 4px;
+    padding: 0;
+    border: 0;
+    border-radius: 10px;
+    background: rgba(178, 236, 240, 0.52);
+    box-shadow: 0 1px 4px rgba(17, 108, 126, 0.12);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: opacity 0.35s ease, visibility 0.35s ease, transform 0.35s ease;
+    animation: fastpixel-deactivate-knock-bottom 1.3s ease-in-out 3s infinite;
+}
+.fastpixel-deactivate-scroll-hint:focus {
+    outline: 2px solid rgba(31, 190, 201, 0.65);
+    outline-offset: 2px;
+}
+.fastpixel-deactivate-scroll-hint.hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateY(-14px);
+    animation: none;
+    height: 0;
+    margin: 0;
+    overflow: hidden;
+}
+.fastpixel-deactivate-scroll-hint .fastpixel-deactivate-scroll-mouse {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 26px;
+    height: 40px;
+    border-radius: 12px;
+    border: 2px solid #116C7E;
+    box-sizing: border-box;
+    pointer-events: none;
+}
+.fastpixel-deactivate-scroll-hint .fastpixel-deactivate-scroll-wheel {
+    position: absolute;
+    top: 11px;
+    left: 50%;
+    width: 0;
+    height: 0;
+    margin-left: -5px;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 7px solid #1ABDCA;
+    background: none;
+    pointer-events: none;
+    animation: fastpixel-deactivate-wheel-scroll 2.2s ease-in-out infinite;
 }
 .fastpixel-deactivate-form-head {
-    background: #4bbfcc;
-    color: #fff;
-    padding: 8px 18px;
+    background: transparent;
+    padding: 0;
+    position: relative;
+}
+.fastpixel-deactivate-form-heading {
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.25;
+    color: #1d2327;
+    margin: 0;
+    flex: 1;
+    min-width: 0;
+}
+.fastpixel-deactivate-form-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-right: 44px;
+}
+.fastpixel-deactivate-form-icon {
+    width: 90px;
+    height: 90px;
+    /*max-width: 100px;*/
+    /*max-height: 100px;*/
+    flex: 0 0 64px;
+    display: block;
+    object-fit: contain;
+}
+.fastpixel-deactivate-form-intro {
+    margin: 10px 0 0;
+    padding: 0 44px 0 0;
+    font-size: 14px;
+    line-height: 1.45;
+    font-weight: 400;
+    color: #50575e;
+}
+.fastpixel-deactivate-form-close {
+    cursor: pointer;
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 30px;
+    height: 30px;
+    background: rgba(0, 192, 206, 0.3);
+    border-radius: 10px;
+    border: 0;
+}
+.fastpixel-deactivate-form-close:before,
+.fastpixel-deactivate-form-close:after {
+    content: "";
+    position: absolute;
+    left: 14px;
+    top: 7px;
+    width: 2px;
+    height: 16px;
+    background: #007cba;
+}
+.fastpixel-deactivate-form-close:before {
+    transform: rotate(45deg);
+}
+.fastpixel-deactivate-form-close:after {
+    transform: rotate(-45deg);
+}
+.fastpixel-deactivate-form-close:hover {
+    box-shadow: inset 1px 2px 3px rgba(14, 77, 88, 0.3);
 }
 .fastpixel-deactivate-form-body {
-    padding: 8px 18px 0;
+    padding: 14px 0 0;
     color: #444;
 }
 .fastpixel-deactivate-form .fastpixel-deactivating-spinner {
@@ -1487,23 +1639,97 @@
     vertical-align: bottom;
     visibility: visible;
 }
+.fastpixel-deactivate-details-panel {
+    display: none;
+    margin-top: 12px;
+    padding: 10px;
+    border-radius: 10px;
+    background: #f3f3f3;
+    box-sizing: border-box;
+}
 .fastpixel-deactivation-details-container {
-    min-height: 72px;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.fastpixel-deactivation-details-container label {
+    margin: 0;
+}
+.fastpixel-deactivation-details-container #fastpixel-deactivate-textarea-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #50575e;
 }
 .fastpixel-deactivation-delete-files-container {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
     gap: 8px;
-    padding: 4px 0;
+    padding: 0;
+    background: #f3f3f3;
+    border-radius: 10px;
+    margin-top: 12px;
+    padding: 10px;
 }
 .fastpixel-deactivation-option-row {
     display: flex;
     align-items: center;
     gap: 8px;
 }
+.fastpixel-deactivation-delete-files-container .fastpixel-deactivation-option-row {
+    align-items: flex-start;
+    gap: 10px;
+    padding: 4px 0;
+}
+.fastpixel-deactivation-delete-files-container input[type="checkbox"],
+#fastpixel-deactivation-send-anonymous-container input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    width: 17px;
+    height: 17px;
+    margin: 3px 0 0;
+    flex-shrink: 0;
+    border: 2px solid #b7bcc0;
+    border-radius: 5px;
+    background: #fff;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+    box-sizing: border-box;
+}
+.fastpixel-deactivation-delete-files-container input[type="checkbox"]:hover,
+#fastpixel-deactivation-send-anonymous-container input[type="checkbox"]:hover {
+    border-color: #1fbec9;
+}
+.fastpixel-deactivation-delete-files-container input[type="checkbox"]:focus,
+#fastpixel-deactivation-send-anonymous-container input[type="checkbox"]:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(31, 190, 201, 0.35);
+}
+.fastpixel-deactivation-delete-files-container input[type="checkbox"]:checked,
+#fastpixel-deactivation-send-anonymous-container input[type="checkbox"]:checked {
+    background-color: #1ABDCA;
+    border-color: #116C7E;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 10'%3E%3Cpath fill='none' stroke='%23ffffff' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round' d='M1 5.2l3.1 3 6.9-6.8'/%3E%3C/svg%3E");
+    background-size: 11px 9px;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+.fastpixel-deactivation-delete-files-container .fastpixel-deactivation-option-row label,
+#fastpixel-deactivation-send-anonymous-container label {
+    flex: 1;
+    min-width: 0;
+    margin: 0;
+    padding: 1px 0 0;
+    line-height: 1.35;
+    font-size: 14px;
+    font-weight: 500;
+    color: #2c3338;
+    cursor: pointer;
+}
 .fastpixel-deactivate-form-footer {
-    padding: 0 18px 8px;
+    padding: 12px 0 0;
     display: flex;
     align-items: center;
     flex-direction: row;
@@ -1521,17 +1747,130 @@
     display: flex;
     justify-content: flex-end;
 }
-#fastpixel-deactivation-send-anonymous-container {
-    display: none;
-}
-.fastpixel-deactivate-form-footer label[for="fastpixel-deactivation-send-anonymous"] {
-    color: #444;
+#fastpixel-deactivation-send-anonymous-container.fastpixel-deactivation-send-anonymous-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 2px 0;
+    max-width: 100%;
 }
 .fastpixel-deactivate-form-footer p {
     display: flex;
     align-items: center;
     justify-content: space-between;
     margin: 0;
+}
+.fastpixel-deactivate-reasons-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.fastpixel-deactivate-reason-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin: 0;
+    padding: 4px 0;
+}
+.fastpixel-deactivate-reason-row label {
+    flex: 1;
+    min-width: 0;
+    margin: 0;
+    padding: 1px 0 0;
+    line-height: 1.35;
+    font-size: 14px;
+    font-weight: 400;
+    color: #2c3338;
+    cursor: pointer;
+}
+.fastpixel-deactivate-options {
+    padding: 10px;
+    border-radius: 10px;
+    background: #f3f3f3;
+}
+.fastpixel-deactivate-options input[type="radio"] {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    width: 17px;
+    height: 17px;
+    margin: 3px 0 0;
+    padding: 0;
+    flex-shrink: 0;
+    border: 2px solid #b7bcc0;
+    border-radius: 50%;
+    background: #fff;
+    cursor: pointer;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    box-sizing: border-box;
+    vertical-align: top;
+}
+.fastpixel-deactivate-options input[type="radio"]:hover {
+    border-color: #1fbec9;
+}
+.fastpixel-deactivate-options input[type="radio"]:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(31, 190, 201, 0.35);
+}
+/* bad old ugly habits :) .. wp-admin => .wp-core-ui paints its own "::before" on radios so....  it hided our inner dot — turned it off here */
+body.fastpixel-deactivate-form-active .fastpixel-deactivate-options input[type="radio"]::before,
+body.fastpixel-deactivate-form-active .fastpixel-deactivate-options input[type="radio"]:checked::before {
+    content: none !important;
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    float: none !important;
+    line-height: 0 !important;
+    box-shadow: none !important;
+    background: none !important;
+    clip-path: none !important;
+}
+/* inner dot via SVG  */
+.fastpixel-deactivate-options input[type="radio"]:checked {
+    border-color: #1fbec9;
+    background-color: #fff;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Ccircle cx='5' cy='5' r='3.6' fill='%231fbec9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: 50% 50%;
+    background-size: 9px 9px;
+    background-origin: border-box;
+}
+.fastpixel-deactivate-options input[type="radio"]:checked:hover {
+    border-color: #1fbec9;
+    background-color: #fff;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Ccircle cx='5' cy='5' r='3.6' fill='%231fbec9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: 50% 50%;
+    background-size: 9px 9px;
+    background-origin: border-box;
+}
+.fastpixel-deactivate-form-body hr {
+    margin: 12px 0;
+}
+.fastpixel-deactivate-details-panel textarea,
+.fastpixel-deactivation-details-container textarea {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    border: 1px solid #dddddd;
+    border-radius: 3px;
+}
+#fastpixel-deactivate-submit-form.button.button-primary {
+    background: #1fbec9;
+    border: 0;
+    box-shadow: 0 1px 1px #16858c;
+}
+#fastpixel-deactivate-submit-form.button.button-primary:hover,
+#fastpixel-deactivate-submit-form.button.button-primary:focus {
+    background: #0fa9b4;
+}
+.fastpixel-deactivate-details-panel textarea:focus,
+.fastpixel-deactivation-details-container textarea:focus {
+    border-color: #1fbec9;
+    box-shadow: 0 0 2px 1px rgba(31, 190, 201, 0.15), inset 0 0 2px 1px rgba(31, 190, 201, 0.15);
+    outline: none;
 }
 #fastpixel-deactivate-submit-form span {
     display: none;
@@ -1556,25 +1895,88 @@
     display: none;
 }
 
+@keyframes fastpixel-deactivate-wheel-scroll {
+    0% {
+        opacity: 0;
+        transform: translateY(0);
+    }
+    20% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    40% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(16px);
+    }
+}
+
+@keyframes fastpixel-deactivate-knock-bottom {
+    0% {
+        transform: translateY(0);
+    }
+    35% {
+        transform: translateY(5px);
+    }
+    50% {
+        transform: translateY(3px);
+    }
+    65% {
+        transform: translateY(5px);
+    }
+    100% {
+        transform: translateY(0);
+    }
+}
+
 body.admin-bar .fastpixel-deactivate-form-active .fastpixel-deactivate-form {
-    top: 64px;
-    max-height: calc(100vh - 84px);
+    top: 52px;
+    max-height: min(calc(100vh - 72px), calc(100dvh - 72px));
+}
+
+@media screen and (max-width: 782px) {
+    body.admin-bar .fastpixel-deactivate-form-active .fastpixel-deactivate-form {
+        top: 66px;
+        max-height: min(calc(100vh - 86px), calc(100dvh - 86px));
+    }
 }
 
 @media screen and (max-width: 600px) {
     .fastpixel-deactivate-form-active .fastpixel-deactivate-form {
         top: 16px;
+        bottom: 16px;
         left: 16px;
         right: 16px;
         transform: none;
         width: auto;
         min-width: 0;
-        max-height: calc(100vh - 32px);
+        padding: 16px;
+    }
+    .fastpixel-deactivate-form-title-wrap {
+        gap: 6px;
+        padding-right: 38px;
+    }
+    .fastpixel-deactivate-form-heading {
+        font-size: 18px;
+    }
+    .fastpixel-deactivate-form-icon {
+        width: 56px;
+        height: 56px;
+        max-width: 56px;
+        max-height: 56px;
+        flex: 0 0 56px;
+    }
+    .fastpixel-deactivate-form-intro {
+        padding-right: 38px;
+        font-size: 13px;
     }
 
     body.admin-bar .fastpixel-deactivate-form-active .fastpixel-deactivate-form {
         top: 62px;
-        max-height: calc(100vh - 78px);
+        bottom: 16px;
     }
 }
 

@@ -16,6 +16,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_WooCommerce_Compatibility')) {
         protected $checkout_page_id;
         protected $account_page_id;
         protected $is_thanks_page = false;
+        protected $scheduled_sale_product_ids = [];
 
         public function __construct() {
             $this->functions              = FASTPIXEL_Functions::get_instance();
@@ -29,6 +30,14 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_WooCommerce_Compatibility')) {
             add_action('woocommerce_thankyou', function () {
                 $this->is_thanks_page = true;
             }, 0, 1);
+            //purge product page cache when stock quantity changes (e.g. after purchase)
+            add_action('woocommerce_product_set_stock', [$this, 'purge_cache_on_stock_change'], 10, 1);
+            add_action('woocommerce_variation_set_stock', [$this, 'purge_cache_on_stock_change'], 10, 1);
+            //purge product page cache when scheduled sale price starts or ends via cron
+            //priority 5 runs before WooCommerce processes sales (default priority 10) to capture affected product IDs
+            add_action('wc_scheduled_sales', [$this, 'capture_scheduled_sale_products'], 5);
+            //priority 15 runs after WooCommerce has processed the sales to purge the cached pages
+            add_action('wc_scheduled_sales', [$this, 'purge_cache_on_scheduled_sales'], 15);
             if (is_admin()) {
                 add_action('woocommerce_new_product', [$this, 'purge_cache'], 10, 2); //resetting cache on product creation
                 add_action('woocommerce_update_product', [$this, 'purge_cache'], 10, 2);
@@ -57,12 +66,72 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_WooCommerce_Compatibility')) {
         public function purge_cache($id, $product): void
         {
             if (class_exists('FASTPIXEL\FASTPIXEL_Backend_Cache')) {
-                FASTPIXEL_Backend_Cache::get_instance()->purge_cache_by_id($id); //doing cache request
+                $cache = FASTPIXEL_Backend_Cache::get_instance();
+                $cache->purge_cache_by_id($id); //doing cache request
                 $shop_page_id = get_option('woocommerce_shop_page_id');
                 if (!empty($shop_page_id)) {
-                    FASTPIXEL_Backend_Cache::get_instance()->purge_cache_by_id($shop_page_id); //doing cache request for shop page
+                    $cache->purge_cache_by_id($shop_page_id); //doing cache request for shop page
+                }
+                //purge homepage in case the product is displayed there
+                $front_page_id = get_option('page_on_front');
+                if (!empty($front_page_id)) {
+                    $cache->purge_cache_by_id($front_page_id);
+                } else {
+                    $cache->purge_cache_by_url(home_url('/'));
                 }
             }
+        }
+
+        public function purge_cache_on_stock_change($product): void
+        {
+            if (class_exists('FASTPIXEL\FASTPIXEL_Backend_Cache')) {
+                $cache = FASTPIXEL_Backend_Cache::get_instance();
+                //using purge_cache_by_url to bypass capability checks that block purges during frontend purchases
+                //for variations, purge the parent product page
+                if ($product->is_type('variation')) {
+                    $parent_id = $product->get_parent_id();
+                    if (!empty($parent_id)) {
+                        $cache->purge_cache_by_url(get_permalink($parent_id));
+                    }
+                } else {
+                    $cache->purge_cache_by_url(get_permalink($product->get_id()));
+                }
+                $shop_page_id = get_option('woocommerce_shop_page_id');
+                if (!empty($shop_page_id)) {
+                    $cache->purge_cache_by_url(get_permalink($shop_page_id));
+                }
+                //purge homepage in case the product is displayed there
+                $cache->purge_cache_by_url(home_url('/'));
+            }
+        }
+
+        public function capture_scheduled_sale_products(): void
+        {
+            //capture product IDs before WooCommerce processes and clears their sale dates
+            $data_store = \WC_Data_Store::load('product');
+            $starting_sales = $data_store->get_starting_sales();
+            $ending_sales   = $data_store->get_ending_sales();
+            $this->scheduled_sale_product_ids = array_unique(array_merge($starting_sales, $ending_sales));
+        }
+
+        public function purge_cache_on_scheduled_sales(): void
+        {
+            if (empty($this->scheduled_sale_product_ids)) {
+                return;
+            }
+            if (class_exists('FASTPIXEL\FASTPIXEL_Backend_Cache')) {
+                $cache = FASTPIXEL_Backend_Cache::get_instance();
+                foreach ($this->scheduled_sale_product_ids as $product_id) {
+                    $cache->purge_cache_by_url(get_permalink($product_id));
+                }
+                $shop_page_id = get_option('woocommerce_shop_page_id');
+                if (!empty($shop_page_id)) {
+                    $cache->purge_cache_by_url(get_permalink($shop_page_id));
+                }
+                //purge homepage in case the product is displayed there
+                $cache->purge_cache_by_url(home_url('/'));
+            }
+            $this->scheduled_sale_product_ids = [];
         }
 
         public function purge_cache_product_object_updated_props($product, $propertie) {

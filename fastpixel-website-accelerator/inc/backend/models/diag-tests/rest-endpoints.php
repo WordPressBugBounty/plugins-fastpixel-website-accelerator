@@ -23,11 +23,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Diag_Test_Rest_Endpoints')) {
             // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- wordpress admin page is accessed without any nonces, no data is posted.
             $page = isset($_GET['page']) ? sanitize_text_field($_GET['page']) : false; //phpcs:ignore
             if ($pagenow == 'admin.php' && $page && $page == FASTPIXEL_TEXTDOMAIN . '-settings') {
-                if (defined('FASTPIXEL_REST_URL')) {
-                    $this->rest_url = FASTPIXEL_REST_URL;
-                } else if (function_exists('get_rest_url')) {
-                    $this->rest_url = get_rest_url(get_current_blog_id(), FASTPIXEL_TEXTDOMAIN . '/v1/update');
-                }
+                $this->rest_url = $this->functions->get_rest_callback_url();
                 FASTPIXEL_DEBUG::log('Endpoint test: doing self request using WP_REMOTE_POST');
                 if (function_exists('wp_remote_post') && function_exists('get_option')) {
                     $api_key = $this->functions->get_option('fastpixel_api_key');
@@ -93,11 +89,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Diag_Test_Rest_Endpoints')) {
 
         public function l10n_name()
         {
-            if (defined('FASTPIXEL_REST_URL')) {
-                $this->rest_url = FASTPIXEL_REST_URL;
-            } else if (function_exists('get_rest_url') && function_exists('using_index_permalinks')) {
-                $this->rest_url = get_rest_url(get_current_blog_id(), FASTPIXEL_TEXTDOMAIN . '/v1/update');
-            }
+            $this->rest_url = $this->functions->get_rest_callback_url();
             /* translators: %s is used to display rest api endpoint url, nothing to translate */
             $this->name = sprintf(esc_html__('Postback Endpoint: %s', 'fastpixel-website-accelerator'), sprintf('<br/> <b>%1$s</b>', esc_url($this->rest_url)));
         }

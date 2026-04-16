@@ -58,7 +58,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Request')) {
         protected function prepare_request_params(): void {
             $this->request_data = [
                 'url'         => $this->reset_url,
-                'postbackUrl' => FASTPIXEL_REST_URL,
+                'postbackUrl' => $this->functions->get_rest_callback_url(),
                 'settings'    => [
                     'modules' => []
                 ]
@@ -284,13 +284,14 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Request')) {
             //         $this->reset_url = (is_ssl() ? 'https://' : 'http://') . $this->reset_url;
             //     }
             // }
+            $callback_url = $this->functions->get_rest_callback_url();
             //validating if postback url(rest api) is defined
-            if (!defined('FASTPIXEL_REST_URL') || empty(FASTPIXEL_REST_URL)) {
+            if ($callback_url === '') {
                 if ($this->display_notices) {
                     $this->notices->add_flash_notice(__('FASTPIXEL_REST_URL is not defined or is empty', 'fastpixel-website-accelerator'), 'error');
                 }
                 if ($this->debug_request) {
-                    FASTPIXEL_DEBUG::log('REQUEST Class: Error, FASTPIXEL_REST_URL is not defined or is empty');
+                    FASTPIXEL_DEBUG::log('REQUEST Class: Error, REST callback URL is empty');
                 }
                 return false;
             }
@@ -305,14 +306,14 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Request')) {
 
             //comparing reset url domain with rest domain
             $compare_reset_url_domain = wp_parse_url($this->reset_url, PHP_URL_HOST);
-            $compare_rest_url_domain = wp_parse_url(FASTPIXEL_REST_URL, PHP_URL_HOST);
+            $compare_rest_url_domain = wp_parse_url($callback_url, PHP_URL_HOST);
             if (!preg_match('/^' . $compare_rest_url_domain . '/i', $compare_reset_url_domain)) {
                 if ($this->display_notices) {
                     $this->notices->add_flash_notice('Request url domain don\'t match postback domain, request stopped', 'error');
                 }
                 if ($this->debug_request) {
-                    FASTPIXEL_DEBUG::log('REQUEST Class: Error, $reset_url not match FASTPIXEL_REST_URL, request stopped');
-                    FASTPIXEL_DEBUG::log('REQUEST Class: Error, ' . var_export($compare_rest_url_domain, true) . ', ' . var_export($compare_reset_url_domain, true), ', ' . var_export(FASTPIXEL_REST_URL, true));
+                    FASTPIXEL_DEBUG::log('REQUEST Class: Error, $reset_url not match REST callback URL, request stopped');
+                    FASTPIXEL_DEBUG::log('REQUEST Class: Error, ' . var_export($compare_rest_url_domain, true) . ', ' . var_export($compare_reset_url_domain, true), ', ' . var_export($callback_url, true));
                 }
                 return false;
             }

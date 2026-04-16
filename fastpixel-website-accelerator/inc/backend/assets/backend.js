@@ -544,9 +544,9 @@ document.addEventListener("DOMContentLoaded", function() {
             return false;
         }
         if (spinner) {
-            jQuery('.fastpixel-website-accelerator-wrap #plugin-action-' + plugin_id + ' span.deactivate-text').after('<img class="spinner-loader" src="/wp-includes/js/tinymce/skins/lightgray/img/loader.gif" />');
+            jQuery('.fastpixel-website-accelerator-wrap #plugin-action-' + plugin_id + ' span.deactivate-text').after('<span class="spinner-loader queued-loader"></span>');
         } else {
-            jQuery('.fastpixel-website-accelerator-wrap #plugin-action-' + plugin_id + ' img').remove();
+            jQuery('.fastpixel-website-accelerator-wrap #plugin-action-' + plugin_id + ' .spinner-loader').remove();
         }
         if (deactivate_text) {
             jQuery('.fastpixel-website-accelerator-wrap #plugin-action-' + plugin_id + ' span.deactivate-text').show();

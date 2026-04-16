@@ -52,6 +52,63 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Functions')) {
                 // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir -- none available before WordPress is loaded.
                 @mkdir($this->cache_dir); //phpcs:ignore
             }
+            add_action('updated_option', [$this, 'on_site_url_options_changed'], 10, 3);
+        }
+
+        /**
+         * Regenerates advanced-cache.php when WordPress Site Address or Home URL changes
+         * (migration, HTTP→HTTPS, staging→production) so the baked FASTPIXEL_REST_URL stays in sync
+         *
+         * @param string $option    Option name.
+         * @param mixed  $old_value Previous value.
+         * @param mixed  $value     New value.
+         */
+        public function on_site_url_options_changed($option, $old_value, $value): void
+        {
+            if (($option !== 'siteurl' && $option !== 'home') || $old_value === $value) {
+                return;
+            }
+            if (!function_exists('get_rest_url')) {
+                return;
+            }
+            $this->update_ac_file();
+        }
+
+        /**
+         * REST postback URL for FastPixel (purge/update callbacks). Always reflects the current site URL.
+         * The FASTPIXEL_REST_URL constant in advanced-cache.php is written once; after URL changes it can be stale,
+         * so runtime code must use this method instead of the constant when validating or sending postbackUrl
+         */
+        public function get_rest_callback_url(): string
+        {
+            if (!function_exists('get_rest_url')) {
+                return defined('FASTPIXEL_REST_URL') ? (string) FASTPIXEL_REST_URL : '';
+            }
+            $current = get_rest_url(get_current_blog_id(), FASTPIXEL_TEXTDOMAIN . '/v1/update');
+            if (defined('FASTPIXEL_REST_URL') && FASTPIXEL_REST_URL !== '') {
+                $baked_host = wp_parse_url((string) FASTPIXEL_REST_URL, PHP_URL_HOST);
+                $current_host = wp_parse_url($current, PHP_URL_HOST);
+                if ($baked_host !== null && $current_host !== null && $baked_host !== $current_host) {
+                    $this->maybe_sync_advanced_cache_rest_url_if_stale();
+                }
+            }
+            return $current;
+        }
+
+        /**
+         * Writes advanced-cache.php with the current REST URL when the drop-in embeds an outdated host
+         */
+        private function maybe_sync_advanced_cache_rest_url_if_stale(): void
+        {
+            if (!function_exists('get_transient') || !function_exists('set_transient')) {
+                $this->update_ac_file();
+                return;
+            }
+            if (get_transient('fastpixel_ac_rest_sync')) {
+                return;
+            }
+            set_transient('fastpixel_ac_rest_sync', 1, 60);
+            $this->update_ac_file();
         }
 
         public static function get_instance() 

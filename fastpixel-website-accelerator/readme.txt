@@ -4,7 +4,7 @@ Tags: speed, cache, caching, performance, web vitals
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 5.6
-Stable tag: 1.5.0
+Stable tag: 1.6.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -222,6 +222,27 @@ For more detailed information on how to use the plugin or the API, troubleshooti
 
 == Changelog ==
 
+= 1.6.0 =
+
+🌱 The Spring Update
+
+Release Date: April 16, 2026
+
+✨ New Features
+
+* Cache Purge Hooks: Added hooks to clear the entire cache or clear individual pages, giving developers more precise control over cache behavior. For more details on how to use these hooks, please check the documentation here: https://fastpixel.io/docs/fastpixel-hooks/
+* Auto Purge on Stock Changes: Product page cache and some other linked pages are now automatically purged when stock or quantity changes, ensuring customers always see accurate availability.
+* Scheduled Pricing Support: Cache is automatically cleared when scheduled product prices/sales begin or end, keeping pricing up to date.
+
+🛠️ Fixes & Improvements
+
+* Callback Domain Fix: Resolved an error that could occur in certain edge cases when migrating the website under a different URL.
+* CDN URL Encoding: Updated how CDN URLs are encoded for better reliability and compatibility across more unusual setups.
+* Security Enhancements: Applied small security fixes to further strengthen stability and best practices.
+* Deactivation UI Revamp: Improved the plugin deactivation experience with a more intuitive interface.
+
+Some new and very interesting features are coming, so keep an eye out for updates in the coming weeks! 🚀
+
 = 1.5.0 =
 
 ⭐ The Smarter Cache & Control Update
@@ -233,7 +254,7 @@ Release Date: April 6, 2026
 * Cache Size Limit: Set a maximum cache size and automatically purge pages that haven’t been accessed lately when nearing that limit.
 * Cookie Exclusions: You can now exclude requests from caching based on specific cookies, perfect for handling logged-in users, personalized content, or dynamic sessions.
 * Bulk Exclusions: You can now exclude multiple pages at once directly from the Bulk Actions menu.
-* Ignore Unregistered Parameters: When unregistered parameters are detected, the cached page is served without those parameteres. This option helps reduce disk usage, increase cache efficiency, and improve the cache hit ratio.
+* Ignore Unregistered Parameters: When unregistered parameters are detected, the cached page is served without those parameters. This option helps reduce disk usage, increase cache efficiency, and improve the cache hit ratio.
 * One-Click Cleanup on Disable: When disabling the plugin, you can now remove all settings with a single click for a clean reset.
 
 ⚙️ Improvements

@@ -346,6 +346,11 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Cache')) {
             add_action('fastpixel/term/created', [$this, 'run_purge_for_custom_urls'], 10);
             add_action('fastpixel/terms/edited', [$this, 'run_purge_for_custom_urls'], 10);
             add_action('fastpixel/term/deleted', [$this, 'run_purge_for_custom_urls'], 10);
+
+            //public hooks for developers to trigger cache purge programmatically
+            add_action('fastpixel/purge/all', [$this, 'purge_all']);
+            add_action('fastpixel/purge/single', [$this, 'purge_cache_by_id']);
+            add_action('fastpixel/purge/url', [$this, 'purge_cache_by_url']);
         }
 
         public static function get_instance()

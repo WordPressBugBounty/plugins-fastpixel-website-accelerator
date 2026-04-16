@@ -40,12 +40,17 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Cache')) {
                 FASTPIXEL_Debug::log('Class FASTPIXEL_Cache: Modules loaded');
             }
 
-            //define FASTPIXEL_REST_URL for backend actions, using hook because during include rest_url throw error
+            // define FASTPIXEL_REST_URL for backend; sync stale drop-in after site URL changes (see FASTPIXEL_Functions::get_rest_callback_url).
             add_action('init', function () {
-                if (!defined('FASTPIXEL_REST_URL') && function_exists('rest_url')) {
-                    define('FASTPIXEL_REST_URL', get_rest_url(get_current_blog_id(), 'fastpixel-website-accelerator' . '/v1/update'));
+                if (!function_exists('get_rest_url')) {
+                    return;
                 }
-            });
+                $functions = FASTPIXEL_Functions::get_instance();
+                $url = $functions->get_rest_callback_url();
+                if (!defined('FASTPIXEL_REST_URL')) {
+                    define('FASTPIXEL_REST_URL', $url);
+                }
+            }, 0);
             if (!defined('FASTPIXEL_API_URL')) {
                 define('FASTPIXEL_API_URL', FASTPIXEL_API_HOST . '/api/v1/enqueue');
             }

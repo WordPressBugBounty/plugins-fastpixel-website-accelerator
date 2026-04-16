@@ -25,11 +25,8 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Diag_Test_Urls_Match')) {
             } else if ($this->is_wpml()) { //don't check domain match if wpml
                 $this->passed = true;
             } else {
-                if (defined('FASTPIXEL_REST_URL')) {
-                    $this->rest_url = FASTPIXEL_REST_URL;
-                } else if (function_exists('get_rest_url')) {
-                    $this->rest_url = get_rest_url(get_current_blog_id(), FASTPIXEL_TEXTDOMAIN . '/v1/update');
-                }
+                $functions = FASTPIXEL_Functions::get_instance();
+                $this->rest_url = $functions->get_rest_callback_url();
                 $rest_url = wp_parse_url($this->rest_url, PHP_URL_HOST);
                 $siteurl = wp_parse_url(get_site_url(), PHP_URL_HOST);
                 if ($rest_url == $siteurl || preg_match('/^'.$siteurl.'/i', $rest_url)) {

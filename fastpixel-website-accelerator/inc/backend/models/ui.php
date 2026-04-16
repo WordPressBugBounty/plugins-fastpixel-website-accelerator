@@ -677,13 +677,14 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_UI')) {
                     wp_enqueue_script('fastpixel-popup', FASTPIXEL_PLUGIN_URL . 'inc/backend/assets/popup.js', ['jquery'], FASTPIXEL_VERSION, false);
                     wp_localize_script('fastpixel-popup', 'fastpixel_popup', [
                         'nonce'              => wp_create_nonce('fastpixel_deactivate_plugin'),
+                        'icon_url'           => esc_url(FASTPIXEL_PLUGIN_URL . 'icons/FastPixel-Happy.svg'),
                         'deactivate_link_id' => "#fastpixel-deactivate-link",
                         'form_container'     => '#fastpixel-deactivate-form-container',
                         'options'            => [
                             'temporary' => [
-                                'text' => esc_html__('Temporary deactivation', 'fastpixel-website-accelerator'),
-                                'display_textarea' => false,
-                                'textarea_text' => ''
+                                'text'              => esc_html__('Temporary deactivation', 'fastpixel-website-accelerator'),
+                                'display_textarea'  => true,
+                                'textarea_text'     => esc_html__('Waiting you back! Anything we should know?', 'fastpixel-website-accelerator'),
                             ],
                             'not-fast-enough' => [
                                 'text'             => esc_html__('Doesn\'t help with the speed', 'fastpixel-website-accelerator'),
