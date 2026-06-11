@@ -41,6 +41,9 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Plugin')) {
             if (is_multisite() && get_current_blog_id() > 1) {
                 wp_die(esc_html__('Only network activation allowed', 'fastpixel-website-accelerator'));
             }
+            if (class_exists('FASTPIXEL\FASTPIXEL_Request')) {
+                FASTPIXEL_Request::get_instance()->probe_pageviews_status();
+            }
             $diag = FASTPIXEL_Diag::get_instance();
             if ($diag->run_activation_tests() && !defined('WP_CLI')) {
                 $file_updated = $this->functions->update_ac_file();
@@ -122,6 +125,9 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Plugin')) {
 
         public function deactivate()
         {
+            if (class_exists('FASTPIXEL\FASTPIXEL_Request')) {
+                FASTPIXEL_Request::get_instance()->probe_pageviews_status();
+            }
             //checking if user want to delete cached files
             if ($this->should_delete_cached_files_on_deactivate()) {
                 //initializing filesystem

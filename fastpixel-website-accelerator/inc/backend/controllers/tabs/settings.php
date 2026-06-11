@@ -556,6 +556,9 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Settings')) {
             }
             $this->functions->update_option('fastpixel_excluded_post_types', $excluded_post_types);
             do_action('fastpixel/settings_tab/save_options');
+            if (class_exists('FASTPIXEL\FASTPIXEL_Request')) {
+                FASTPIXEL_Request::get_instance()->probe_pageviews_status();
+            }
             //displaying notice
             $notices = FASTPIXEL_Notices::get_instance();
             $purge_all = apply_filters('fastpixel/settings_tab/purge_all', $this->purge_all);

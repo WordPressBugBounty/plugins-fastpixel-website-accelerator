@@ -84,7 +84,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_UI_Tab')) {
             }
             // skip nonce check for onboarding actions - check this BEFORE any nonce verification
             $action = isset($_POST['fastpixel-action']) ? sanitize_key($_POST['fastpixel-action']) : '';
-            if (in_array($action, ['request_new_key', 'validate_key'])) {
+            if ($action === 'validate_key') {
                 return false;
             }
             // check if this is a settings save action (if required)

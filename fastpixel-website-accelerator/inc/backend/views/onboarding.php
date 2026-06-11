@@ -37,7 +37,7 @@ $disabled = $is_editable ? '' : 'disabled';
             <p><?php esc_html_e('If you don\'t have an API Key, you can request one for free. Just enter your email address, agree to the terms and press Continue.', 'fastpixel-website-accelerator'); ?></p>
 
 
-            <form method="POST" action="<?php echo esc_url(admin_url('admin.php?page=' . FASTPIXEL_TEXTDOMAIN . '-settings&fastpixel-action=request_new_key')) ?>" id="fastpixel-form-request-key">
+            <div id="fastpixel-onboarding-signup-fields">
 
                 <setting>
                     <content>
@@ -88,7 +88,7 @@ $disabled = $is_editable ? '' : 'disabled';
                         </info>
                     </content>
                 </setting>
-            </form>
+            </div>
         </settinglist>
 
         <!-- Existing Customer Section -->

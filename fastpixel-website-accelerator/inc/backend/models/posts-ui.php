@@ -70,7 +70,6 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Posts_Table')) {
                 'ID'             => esc_html__('ID', 'fastpixel-website-accelerator'),
                 'post_title'     => esc_html__('Title', 'fastpixel-website-accelerator'),
                 'url'            => esc_html__('URL', 'fastpixel-website-accelerator'),
-                'display_status' => esc_html__('Post Status', 'fastpixel-website-accelerator'),
                 'cache_status'   => esc_html__('Cache Status', 'fastpixel-website-accelerator')
             ];
         }
@@ -141,7 +140,6 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Posts_Table')) {
                     return $item['ID'];
                 case 'post_title':
                 case 'url':
-                case 'display_status':
                 case 'cache_status':
                 default:
                     return $item[$column_name];

@@ -88,6 +88,28 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     });
 
+    function fastpixelToggleUpgradeBanner() {
+        const $upgradeBanner = jQuery('.fastpixel-website-accelerator-wrap .upgrade-banner');
+        if (!$upgradeBanner.length || typeof fastpixel_backend === 'undefined' || !fastpixel_backend.ajax_url || !fastpixel_backend.domain_check_nonce) {
+            return;
+        }
+
+        jQuery.ajax({
+            url: fastpixel_backend.ajax_url,
+            type: 'POST',
+            data: {
+                action: 'fastpixel_check_domain',
+                nonce: fastpixel_backend.domain_check_nonce
+            },
+            success: function(response) {
+                if (response && response.success && response.data && response.data.unlimited === false) {
+                    $upgradeBanner.removeAttr('hidden');
+                }
+            }
+        });
+    }
+    fastpixelToggleUpgradeBanner();
+
     function fastpixelOnOptimizationChange(disable = true) {
         if (disable) {
             jQuery('[data-depends-on="fastpixel-javascript-optimization"]').attr('readonly', 'readonly');
@@ -219,6 +241,138 @@ document.addEventListener("DOMContentLoaded", function() {
     //global variables
     let fastpixel_cache_request_in_progress = false;
     let fastpixel_delete_cached_request_in_progress = false;
+    let fastpixel_performance_request_in_progress = false;
+    let fastpixel_performance_refresh_in_progress = false;
+
+    function fastpixelClampPerformanceScore(score) {
+        const numericScore = parseFloat(score);
+        if (isNaN(numericScore)) {
+            return 0;
+        }
+
+        return Math.max(0, Math.min(100, numericScore));
+    }
+
+    function fastpixelSetPerformanceCircleState(circle, score) {
+        const currentScore = fastpixelClampPerformanceScore(score);
+        const activeColor = circle.attr('data-active-color') || 'rgb(0, 204, 102)';
+        const trackColor = circle.attr('data-track-color') || '#e3f8ed';
+        const scoreText = circle.find('.score-text').first();
+
+        circle.css('background', 'conic-gradient(' + activeColor + ' 0% ' + currentScore + '%, ' + trackColor + ' ' + currentScore + '% 100%)');
+
+        if (scoreText.length > 0) {
+            scoreText.text(Math.round(currentScore));
+        }
+    }
+
+    function fastpixelGetPerformanceEase(progress) {
+        return 1 - Math.pow(1 - progress, 4);
+    }
+
+    function fastpixelAnimatePerformanceCircle(circle) {
+        const startScore = fastpixelClampPerformanceScore(circle.attr('data-start-score') || 20);
+        const targetScore = fastpixelClampPerformanceScore(circle.attr('data-target-score'));
+        const requestFrame = window.requestAnimationFrame || function (callback) {
+            return window.setTimeout(function () {
+                callback(Date.now());
+            }, 16);
+        };
+        const duration = 950;
+        const animationDelay = 90;
+
+        if (circle.attr('data-animated') === '1') {
+            return;
+        }
+
+        circle.attr('data-animated', '1');
+        fastpixelSetPerformanceCircleState(circle, startScore);
+
+        if (startScore === targetScore) {
+            return;
+        }
+
+        window.setTimeout(function () {
+            requestFrame(function (startTime) {
+                function step(currentTime) {
+                    const progress = Math.min((currentTime - startTime) / duration, 1);
+                    const easedProgress = fastpixelGetPerformanceEase(progress);
+                    const nextScore = startScore + ((targetScore - startScore) * easedProgress);
+
+                    fastpixelSetPerformanceCircleState(circle, nextScore);
+
+                    if (progress < 1) {
+                        requestFrame(step);
+                        return;
+                    }
+
+                    fastpixelSetPerformanceCircleState(circle, targetScore);
+                }
+
+                step(startTime);
+            });
+        }, animationDelay);
+    }
+
+    function fastpixelAnimateHomepagePerformance(container) {
+        if (!container || container.length < 1) {
+            return;
+        }
+
+        container.find('.circle[data-target-score]').each(function () {
+            fastpixelAnimatePerformanceCircle(jQuery(this));
+        });
+    }
+
+    function fastpixelGetHomepagePerformanceSignature(container) {
+        if (!container || container.length < 1) {
+            return '';
+        }
+
+        const circles = container.find('.circle[data-target-score]');
+        if (circles.length < 1) {
+            return '';
+        }
+
+        return circles.map(function () {
+            const circle = jQuery(this);
+            return [
+                circle.attr('data-start-score') || '',
+                circle.attr('data-target-score') || '',
+                circle.attr('data-active-color') || '',
+                circle.attr('data-track-color') || ''
+            ].join(':');
+        }).get().join('|');
+    }
+
+    function fastpixelGetHomepagePerformanceSignatureFromHtml(performanceDisplay) {
+        if (typeof performanceDisplay !== 'string' || performanceDisplay.trim() === '') {
+            return '';
+        }
+
+        return fastpixelGetHomepagePerformanceSignature(jQuery('<div>').html(performanceDisplay));
+    }
+
+    function fastpixelSyncHomepagePerformanceState(container, performanceDisplay) {
+        const currentCell = container.find('.fastpixel-performance-cell').first();
+        const nextCell = jQuery('<div>').html(performanceDisplay).find('.fastpixel-performance-cell').first();
+
+        if (currentCell.length < 1 || nextCell.length < 1) {
+            return;
+        }
+
+        ['data-state', 'data-url', 'data-html-created-time'].forEach(function (attributeName) {
+            const nextValue = nextCell.attr(attributeName);
+
+            if (typeof nextValue === 'undefined') {
+                currentCell.removeAttr(attributeName);
+                return;
+            }
+
+            currentCell.attr(attributeName, nextValue);
+        });
+    }
+
     document.addEventListener('submit', function(e) {
         const form = e.target;
         if (!form || !form.closest('.fastpixel-website-accelerator-wrap')) {
@@ -387,6 +541,135 @@ document.addEventListener("DOMContentLoaded", function() {
         });
         return true;
     }
+
+    function fastpixelUpdateHomepagePerformance(performanceDisplay) {
+        const container = jQuery('.fastpixel-homepage-performance-result').first();
+        const panel = jQuery('#fastpixel-speedometer-panel');
+        const topPanels = jQuery('.fastpixel-top-panels');
+        if (container.length < 1 || typeof performanceDisplay === 'undefined') {
+            return false;
+        }
+
+        const currentSignature = fastpixelGetHomepagePerformanceSignature(container);
+        const nextSignature = fastpixelGetHomepagePerformanceSignatureFromHtml(performanceDisplay);
+
+        if (nextSignature !== '' && currentSignature !== '' && currentSignature === nextSignature) {
+            fastpixelSyncHomepagePerformanceState(container, performanceDisplay);
+            return true;
+        }
+
+        if (typeof performanceDisplay === 'string' && typeof container.html() === 'string' && container.html().trim() === performanceDisplay.trim()) {
+            return true;
+        }
+
+        container.html(performanceDisplay);
+
+        if (panel.length > 0) {
+            // The cell wrapper is always present, so checking for a non-empty string would
+            // always be true. Use the signature, which is empty when there is no actual
+            // speedometer widget (no .circle[data-target-score]) inside the response.
+            const hasContent = nextSignature !== '';
+            if (hasContent) {
+                panel.show();
+                topPanels.removeClass('fastpixel-no-speedometer');
+            } else {
+                panel.hide();
+                topPanels.addClass('fastpixel-no-speedometer');
+            }
+        }
+
+        fastpixelAnimateHomepagePerformance(container);
+        return true;
+    }
+
+    function fastpixelRefreshHomepagePerformance(triggerPendingTest = true) {
+        const container = jQuery('.fastpixel-homepage-performance-result').first();
+        if (container.length < 1 || fastpixel_performance_request_in_progress || fastpixel_performance_refresh_in_progress) {
+            return false;
+        }
+
+        jQuery.ajax({
+            url: fastpixel_backend.ajax_url,
+            method: 'POST',
+            dataType: 'JSON',
+            data: {
+                action: 'fastpixel_get_homepage_performance',
+                nonce: fastpixel_backend.nonce
+            },
+            beforeSend: function () {
+                fastpixel_performance_refresh_in_progress = true;
+            },
+            success: function (response) {
+                if (response.status === 'success' && response.performance_display) {
+                    fastpixelUpdateHomepagePerformance(response.performance_display);
+                    if (triggerPendingTest) {
+                        window.setTimeout(function () {
+                            fastpixelMaybeRunPendingPerformanceTests();
+                        }, 300);
+                    }
+                }
+            },
+            complete: function () {
+                fastpixel_performance_refresh_in_progress = false;
+            }
+        });
+        return true;
+    }
+
+    function fastpixelMaybeRunPendingPerformanceTests() {
+        if (fastpixel_performance_request_in_progress || fastpixel_performance_refresh_in_progress) {
+            return;
+        }
+
+        const container = jQuery('.fastpixel-homepage-performance-result').first();
+        if (container.length < 1) {
+            return;
+        }
+
+        const cell = container.find('.fastpixel-performance-cell').filter(function () {
+            return jQuery(this).data('state') === 'pending';
+        }).first();
+
+        if (cell.length < 1) {
+            return;
+        }
+
+        const url = cell.data('url');
+        if (!url) {
+            return;
+        }
+
+        jQuery.ajax({
+            url: fastpixel_backend.ajax_url,
+            method: 'POST',
+            dataType: 'JSON',
+            data: {
+                action: 'fastpixel_run_performance_test',
+                nonce: fastpixel_backend.nonce,
+                url: url
+            },
+            beforeSend: function () {
+                fastpixel_performance_request_in_progress = true;
+                cell.attr('data-state', 'running');
+            },
+            success: function (response) {
+                if (response.status === 'success' && response.performance_display) {
+                    fastpixelUpdateHomepagePerformance(response.performance_display);
+                } else if (response.statusText) {
+                    fastpixelDisplayMessage(response.statusText, response.status);
+                }
+            },
+            error: function (err) {
+                fastpixelDisplayMessage(err.statusText);
+            },
+            complete: function () {
+                fastpixel_performance_request_in_progress = false;
+                window.setTimeout(function () {
+                    fastpixelRefreshHomepagePerformance();
+                }, 1000);
+            }
+        });
+    }
     
     //checking cache status 30 secs
     if (jQuery('.fastpixel-website-accelerator-wrap input[name="rid[]"').length > 0) {
@@ -397,6 +680,82 @@ document.addEventListener("DOMContentLoaded", function() {
             }
         }, 30000);
     }
+
+    if (jQuery('.fastpixel-homepage-performance-result').length > 0) {
+        fastpixelAnimateHomepagePerformance(jQuery('.fastpixel-homepage-performance-result').first());
+        setTimeout(function () {
+            fastpixelRefreshHomepagePerformance(false);
+        }, 1000);
+        setInterval(function () {
+            const container = jQuery('.fastpixel-homepage-performance-result').first();
+            const cell = container.find('.fastpixel-performance-cell').first();
+            const state = cell.length ? cell.data('state') : '';
+            if (state === 'pending' || state === 'running') {
+                fastpixelRefreshHomepagePerformance(false);
+            }
+        }, 30000);
+    }
+
+    // API key change handling
+    jQuery('.fastpixel-website-accelerator-wrap').on('click', '.fastpixel-change-key-btn', function () {
+        const wrapper = jQuery(this).closest('.fastpixel-account-panel-content');
+        wrapper.find('.fastpixel-api-key-display').hide();
+        wrapper.find('.fastpixel-api-key-edit').show();
+        wrapper.find('.fastpixel-api-key-input').val('').focus();
+        wrapper.find('.fastpixel-api-key-message').hide().text('');
+    });
+
+    jQuery('.fastpixel-website-accelerator-wrap').on('click', '.fastpixel-cancel-key-btn', function () {
+        const wrapper = jQuery(this).closest('.fastpixel-account-panel-content');
+        wrapper.find('.fastpixel-api-key-edit').hide();
+        wrapper.find('.fastpixel-api-key-display').show();
+        wrapper.find('.fastpixel-api-key-message').hide().text('');
+    });
+
+    jQuery('.fastpixel-website-accelerator-wrap').on('click', '.fastpixel-save-key-btn', function () {
+        const btn = jQuery(this);
+        const wrapper = btn.closest('.fastpixel-account-panel-content');
+        const input = wrapper.find('.fastpixel-api-key-input');
+        const msg = wrapper.find('.fastpixel-api-key-message');
+        const apiKey = input.val();
+
+        if (!apiKey || apiKey.trim() === '') {
+            msg.show().text(fastpixel_backend.api_key_empty_text);
+            return;
+        }
+
+        btn.prop('disabled', true);
+        msg.hide().text('');
+
+        jQuery.ajax({
+            url: fastpixel_backend.ajax_url,
+            method: 'POST',
+            dataType: 'JSON',
+            data: {
+                action: 'fastpixel_validate_key',
+                nonce: fastpixel_backend.validate_key_nonce,
+                api_key: apiKey,
+            },
+            success: function (response) {
+                if (response.success) {
+                    window.location.reload();
+                } else {
+                    wrapper.find('.fastpixel-api-key-edit').hide();
+                    wrapper.find('.fastpixel-api-key-display').show();
+                    const errorMsg = response.data && response.data.message ? response.data.message : fastpixel_backend.api_key_invalid_text;
+                    fastpixelDisplayMessage(errorMsg, 'error');
+                }
+            },
+            error: function () {
+                wrapper.find('.fastpixel-api-key-edit').hide();
+                wrapper.find('.fastpixel-api-key-display').show();
+                fastpixelDisplayMessage(fastpixel_backend.api_key_error_text, 'error');
+            },
+            complete: function () {
+                btn.prop('disabled', false);
+            }
+        });
+    });
 
     function fastpixelDisplayMessage(message, type) {
         if (window.fastpixelNoticeCenter && typeof window.fastpixelNoticeCenter.show === 'function') {

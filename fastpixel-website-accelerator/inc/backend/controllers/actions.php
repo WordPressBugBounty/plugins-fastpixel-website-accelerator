@@ -107,6 +107,10 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Actions')) {
             $body .= 'Content-Disposition: form-data; name="email"' . "\r\n\r\n";
             $body .= $email . "\r\n";
             
+            $body .= '--' . $boundary . "\r\n";
+            $body .= 'Content-Disposition: form-data; name="domain"' . "\r\n\r\n";
+            $body .= wp_parse_url(get_site_url(), PHP_URL_HOST) . "\r\n";
+
             // Close boundary
             $body .= '--' . $boundary . '--' . "\r\n";
 
@@ -268,7 +272,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Actions')) {
             }
 
             // get API key
-            $api_key = isset($_POST['api_key']) ? sanitize_text_field($_POST['api_key']) : '';
+            $api_key = isset($_POST['api_key']) ? sanitize_text_field(wp_unslash($_POST['api_key'])) : '';
             
             // Validate API key
             $validation_result = FASTPIXEL_Action_Validate_Key::validate_api_key($api_key);

@@ -37,6 +37,8 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Response_Handler')) {
                     if ($free_limit_reached) {
                         $functions->update_option('fastpixel_free_limit_reached', false);
                     }
+                    FASTPIXEL_Notices::get_instance()->remove_flash_notice('diag-free-limit');
+                    FASTPIXEL_DEBUG::log('Pageviews status: available (request queued successfully)');
                     return true;
                 } else {
                     if (self::$debug_response_handler) {
@@ -47,6 +49,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Response_Handler')) {
                 //handling limit error
                 if ($http_code == 429) {
                     $functions->update_option('fastpixel_free_limit_reached', true);
+                    FASTPIXEL_DEBUG::log('Pageviews status: exhausted (API returned 429)');
                     if (self::$debug_response_handler) {
                         FASTPIXEL_DEBUG::log('Default Handle Api Response: FREE LIMIT REACHED response recieved');
                     }

@@ -526,8 +526,8 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Cache')) {
                     if ($this->debug) {
                         FASTPIXEL_DEBUG::log('Class FASTPIXEL_Backend_Cache: Action purge_post_object, Success: cache request ended successfully', $url->get_url());
                     }
-                    //purging categories/tags/taxonomies pages
-                    $this->admin_purge_taxonomies($post->ID);
+                    //purging categories/tags/taxonomies pages, skipping the path we just requested cache for
+                    $this->admin_purge_taxonomies($post->ID, $path);
                     return true;
                 } else {
                     if ($this->debug) {
@@ -625,6 +625,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Cache')) {
 
                     $request = FASTPIXEL_Request::get_instance();
                     $request->purge_all_request();
+                    $request->probe_pageviews_status();
                 } else {
                     if ($this->debug) {
                         FASTPIXEL_DEBUG::log('Class FASTPIXEL_Backend_Cache: ACTION purge_all, Error: Class FASTPIXEL_CACHE is not available in "purge all" action');
@@ -934,7 +935,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Cache')) {
             }
         }
 
-        public function admin_purge_taxonomies($post_id = null)
+        public function admin_purge_taxonomies($post_id = null, $skip_path = false)
         {
             if (empty($post_id) || !is_numeric($post_id)) {
                 return;
@@ -943,14 +944,23 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Cache')) {
             if (!empty($taxonomies)) {
                 foreach ($taxonomies as $taxonomy_name) {
                     $taxonomy = get_taxonomy($taxonomy_name);
+                    //skipping internal taxonomies registered by Polylang (language, post_translations etc.),
+                    //their term links resolve to the site/language homepage instead of a taxonomy archive,
+                    //so purging them deletes the homepage meta (including cache_request_time written by the purge that called us)
+                    if (!empty($taxonomy->_pll)) {
+                        continue;
+                    }
                     if ($taxonomy->public || $taxonomy->publicly_queryable) {
                         $terms = get_the_terms($post_id, $taxonomy_name);
                         if (!empty($terms)) {
                             foreach ($terms as $term) {
                                 $term_link = get_term_link($term);
-                                if (!empty($term_link)) {
+                                if (!empty($term_link) && !is_wp_error($term_link)) {
                                     $url = new FASTPIXEL_Url($term_link);
                                     $path = untrailingslashit($url->get_url_path());
+                                    if ($skip_path !== false && $path === $skip_path) {
+                                        continue;
+                                    }
                                     //TODO: check if we need to delete cached files for taxonomies
                                     $this->delete_url_cache($url);
                                     $this->functions->update_post_cache($path, true);

@@ -14,7 +14,6 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Cache_Status')) {
             parent::__construct();
             $this->name = esc_html__('Dashboard', 'fastpixel-website-accelerator');
             $this->table = new FASTPIXEL_Posts_Table();
-            // hook to auto-request cache for uncached pages on first dashboard load
             add_action('fastpixel/tabs/loaded', [$this, 'maybe_auto_request_cache'], 5);
         }
 
@@ -23,6 +22,161 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Cache_Status')) {
         public function get_table() {
             return $this->table;
         }
+
+        public function get_homepage_performance_box_html()
+        {
+            if (!class_exists('FASTPIXEL\FASTPIXEL_Performance_Score')) {
+                return '';
+            }
+
+            return FASTPIXEL_Performance_Score::get_instance()->get_dashboard_widget_html();
+        }
+
+        public function get_view_html()
+        {
+            $table = $this->get_table();
+            $table->prepare_items();
+
+            ob_start();
+
+            // Render the speedometer content first, then decide visibility from the actual
+            // rendered widget. This avoids the container showing empty when the result state
+            // changes (e.g. flips to "pending") between the visibility check and the render.
+            $performance_box = $this->get_homepage_performance_box_html();
+            $show_speedometer = strpos($performance_box, 'fastpixel-performance-widget') !== false;
+
+            $panel_style = $show_speedometer ? '' : ' style="display:none;"';
+            $top_class = $show_speedometer ? 'fastpixel-top-panels' : 'fastpixel-top-panels fastpixel-no-speedometer';
+
+            echo '<div class="' . esc_attr($top_class) . '">';
+            echo '<div class="fastpixel-top-panel fastpixel-pageviews-panel">';
+            echo $this->get_pageviews_panel_html(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+            echo '</div>';
+            echo '<div class="fastpixel-top-panel fastpixel-speedometer-panel" id="fastpixel-speedometer-panel"' . $panel_style . '>';
+            echo $performance_box; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+            echo '</div>';
+            echo '<div class="fastpixel-top-panel fastpixel-account-panel">';
+            echo $this->get_account_panel_html(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+            echo '</div>';
+            echo '</div>';
+
+            $table->display();
+
+            return (string) ob_get_clean();
+        }
+
+        protected function get_pageviews_data()
+        {
+            $functions = FASTPIXEL_Functions::get_instance();
+            $api_key   = (string) $functions->get_option('fastpixel_api_key', '');
+            if (empty($api_key)) {
+                return null;
+            }
+
+            $domain   = (string) parse_url(get_site_url(), PHP_URL_HOST);
+            $transient_key = 'fastpixel_pageviews_data_' . md5($api_key . '|' . $domain);
+            $cached = get_transient($transient_key);
+            if ($cached !== false) {
+                return $cached;
+            }
+
+            $response = wp_remote_post('https://dash.fastpixel.io/api/get-associated-domain', [
+                'headers' => [
+                    'Accept'       => 'application/json',
+                    'Content-Type' => 'text/plain',
+                ],
+                'body'    => wp_json_encode(['apikey' => $api_key, 'domain' => $domain]),
+                'timeout' => 10,
+            ]);
+
+            if (is_wp_error($response)) {
+                return null;
+            }
+
+            $response_code = (int) wp_remote_retrieve_response_code($response);
+            if (200 !== $response_code) {
+                FASTPIXEL_Debug::log('[PAGEVIEWS] No data available: unexpected response code', $response_code);
+                FASTPIXEL_Debug::log('[PAGEVIEWS] Response body', substr(wp_remote_retrieve_body($response), 0, 1000));
+                return null;
+            }
+
+            $response_body = wp_remote_retrieve_body($response);
+            $data = json_decode($response_body, true);
+            if (!is_array($data)) {
+                return null;
+            }
+
+            FASTPIXEL_Debug::log('[PAGEVIEWS] Request successful', $domain);
+            set_transient($transient_key, $data, 5 * MINUTE_IN_SECONDS);
+            return $data;
+        }
+
+        protected function get_pageviews_panel_html()
+        {
+            $html = '<h3 class="fastpixel-panel-title">' . esc_html__('Pageviews Usage', 'fastpixel-website-accelerator') . '</h3>';
+
+            $data = $this->get_pageviews_data();
+            if (!is_array($data)) {
+                $html .= '<p class="fastpixel-panel-placeholder">' . esc_html__('No data available.', 'fastpixel-website-accelerator') . '</p>';
+                return $html;
+            }
+
+            $used  = isset($data['used'])      ? (int) $data['used']      : 0;
+            $total = isset($data['pageviews']) ? (int) $data['pageviews'] : 0;
+
+            $percent = $total > 0 ? min(100, max(0, ($used / $total) * 100)) : 0;
+            $visual_percent = $percent > 0 ? max(2, round($percent, 2)) : 0;
+
+            $html .= '<p class="fastpixel-pageviews-numbers">';
+            $html .= '<span class="fastpixel-pageviews-used">' . number_format_i18n($used) . '</span>';
+            if ($total > 0) {
+                $html .= ' / ';
+                $html .= '<span class="fastpixel-pageviews-total">' . number_format_i18n($total) . '</span>';
+            }
+            $html .= '</p>';
+            if ($total > 0) {
+                $html .= '<div class="fastpixel-pageviews-bar"><div class="fastpixel-pageviews-bar-fill" style="width:' . esc_attr($visual_percent) . '%"></div></div>';
+            }
+            return $html;
+        }
+
+        protected function get_account_panel_html()
+        {
+            $functions = FASTPIXEL_Functions::get_instance();
+            $api_key   = (string) $functions->get_option('fastpixel_api_key', '');
+            $masked    = $this->mask_api_key($api_key);
+
+            $html  = '<h3 class="fastpixel-panel-title">' . esc_html__('FastPixel Account Area', 'fastpixel-website-accelerator') . '</h3>';
+            $html .= '<div class="fastpixel-account-panel-content">';
+            $html .= '<p class="fastpixel-account-key-label">' . esc_html__('API Key', 'fastpixel-website-accelerator') . '</p>';
+            $html .= '<div class="fastpixel-api-key-display">';
+            $html .= '<span class="fastpixel-api-key-masked">' . esc_html($masked) . '</span>';
+            $html .= '<button type="button" class="button fastpixel-change-key-btn">' . esc_html__('Change', 'fastpixel-website-accelerator') . '</button>';
+            $html .= '</div>';
+            $html .= '<div class="fastpixel-api-key-edit" style="display:none;">';
+            $html .= '<input type="text" class="fastpixel-api-key-input regular-text" placeholder="' . esc_attr__('Enter new API key…', 'fastpixel-website-accelerator') . '" autocomplete="off" />';
+            $html .= '<div class="fastpixel-api-key-edit-actions">';
+            $html .= '<button type="button" class="button button-primary fastpixel-save-key-btn">' . esc_html__('Save', 'fastpixel-website-accelerator') . '</button>';
+            $html .= '<button type="button" class="button fastpixel-cancel-key-btn">' . esc_html__('Cancel', 'fastpixel-website-accelerator') . '</button>';
+            $html .= '</div>';
+            $html .= '<div class="fastpixel-api-key-message" style="display:none;" aria-live="polite"></div>';
+            $html .= '</div>';
+            $html .= '</div>';
+            return $html;
+        }
+
+        protected function mask_api_key($key)
+        {
+            if (empty($key)) {
+                return esc_html__('(not set)', 'fastpixel-website-accelerator');
+            }
+
+            $visible_chars = 4;
+            $hidden_chars = max(0, strlen($key) - $visible_chars);
+
+            return substr($key, 0, $visible_chars) . str_repeat("\xe2\x80\xa2", $hidden_chars);
+        }
+
         public function get_link()
         {
             return esc_url(admin_url('admin.php?page=' . FASTPIXEL_TEXTDOMAIN . '-settings#cache-status'));
@@ -96,12 +250,6 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Cache_Status')) {
                     $skipped_count++;
                     continue;
                 }
-                // skip if post_status is private
-                if (isset($item['post_status']) && $item['post_status'] === 'private') {
-                    $skipped_count++;
-                    continue;
-                }
-
                 if (empty($item['url'])) {
                     continue;
                 }

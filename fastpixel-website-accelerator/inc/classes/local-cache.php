@@ -13,6 +13,12 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Local_Cache')) {
         protected $page_content = '';
         protected $is_html_content = true;
         protected $response_code = 200;
+        /** Snapshot of $wp_styles->done captured at the end of wp_head, used to detect late-enqueued styles. */
+        protected $head_styles_done = [];
+        /** Output buffer level recorded immediately after FastPixel calls ob_start(). Used to detect nested
+         *  WP buffers (e.g. wp_start_template_enhancement_output_buffer in WP 6.9+) that must be flushed
+         *  before we read our own buffer, so their callbacks run first and replace placeholder styles. */
+        protected $ob_level = 0;
 
         public function __construct() {
             self::$instance = $this;
@@ -31,8 +37,12 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Local_Cache')) {
                         return false;
                     }
                     ob_start(); //starting buffering output
+                    $this->ob_level = ob_get_level(); // record our level so we can detect nested WP buffers
                     add_action('fastpixel/shutdown', [$this, 'get_buffer'], 10); //getting buffer into variable
                     add_action('fastpixel/shutdown/request/before', [$this, 'save'], 10, 1); //saving buffer to file, if page passed validation
+                    // Snapshot which styles are already done at the end of wp_head so we can detect
+                    // styles that were enqueued late (from block render_callbacks) and are absent from the HTML.
+                    //add_action('wp_head', [$this, 'snapshot_head_styles'], 9999);
                 });
             }
             add_action('fastpixel/cachefiles/saved', [$this, 'delete_file_on_api_request'], 10, 1);
@@ -53,7 +63,37 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Local_Cache')) {
             return self::$instance;
         }
 
+        // Not used. Keeping it as an example of how to capture late-enqueued styles that are missing from the HTML due to WP quirks or filters.
+        /**
+         * Captures $wp_styles->done at the very end of wp_head so we can later identify
+         * styles that were enqueued after wp_head (from block render_callbacks, etc.).
+         */
+        public function snapshot_head_styles() {
+            global $wp_styles;
+            if ($wp_styles instanceof \WP_Styles) {
+                $this->head_styles_done = $wp_styles->done;
+            }
+        }
+
         public function get_buffer() {
+            if (ob_get_level() == 0) {
+                return false;
+            }
+            // WordPress 6.9+ opens a template-enhancement output buffer (wp_start_template_enhancement_output_buffer)
+            // ABOVE FastPixel's own buffer. Its ob_end callback replaces placeholder <style> tags with actual
+            // block/global styles. If FastPixel reads ob_get_contents() before that callback fires, the saved
+            // HTML contains only the placeholder stubs and is missing all block/global styles.
+            // Flushing every ob level above our own triggers each pending callback in turn (including WP's
+            // wp_finalize_template_enhancement_output_buffer), so their processed output flows into our buffer.
+            
+            // After each ob_end_flush(), ob_get_level() decrements by 1. That's why successive calls return different values — the stack is shrinking in real time. 
+            // A single ob_end_flush() would only collapse one level and could miss deeper nested buffers.
+            
+            if ($this->ob_level > 0) {
+                while (ob_get_level() > $this->ob_level) {
+                    ob_end_flush();
+                }
+            }
             if (ob_get_level() == 0) {
                 return false;
             }
@@ -82,6 +122,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Local_Cache')) {
             }
             //if content is not empty, save it to file
             if (strlen($this->page_content) > 0 && $this->is_html_content) {
+                //$this->file($url, 'add', $this->move_late_styles_to_head($this->page_content));
                 $this->file($url, 'add', $this->page_content);
                 ob_end_flush();
             } else {
@@ -89,6 +130,86 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Local_Cache')) {
                     FASTPIXEL_Debug::log('Class FASTPIXEL_Local_Cache: Buffer is empty');
                 }
             }
+        }
+
+        // Only keep this here as an example on how to enumerate late styles and inject them if needed.     
+        /**
+         * Ensures late-enqueued styles (enqueued after wp_head, e.g. from block render_callbacks)
+         * appear as <link> tags in <head> in the local cache HTML.
+         *
+         * Two strategies are combined:
+         * 1. Move any <link rel="stylesheet"> tags already present in <body> to <head>.
+         * 2. Inject <link> tags for styles that entered $wp_styles->done after wp_head
+         *    but whose src URL is absent from the HTML (e.g. when WordPress marks a style
+         *    as done without producing output due to a filter or internal quirk).
+         */
+        protected function move_late_styles_to_head($html)
+        {
+            $head_close_pos = stripos($html, '</head>');
+            if ($head_close_pos === false) {
+                return $html;
+            }
+
+            // --- Strategy 1: move <link rel="stylesheet"> tags from <body> to <head> ---
+            // This is just hipotethical.
+            $body_part = substr($html, $head_close_pos);
+            $late_links = [];
+            $body_part_cleaned = preg_replace_callback(
+                '/<link\b[^>]+rel=["\']stylesheet["\'][^>]*>|<link\b[^>]+href=[^>]+rel=["\']stylesheet["\'][^>]*>/i',
+                function ($matches) use (&$late_links) {
+                    $late_links[] = $matches[0];
+                    return '';
+                },
+                $body_part
+            );
+
+            // --- Strategy 2: inject styles that WP marked done after wp_head but never output ---
+            $inject_links = [];
+            if (!empty($this->head_styles_done)) {
+                global $wp_styles;
+                if ($wp_styles instanceof \WP_Styles) {
+                    $late_done = array_diff($wp_styles->done, $this->head_styles_done);
+                    foreach ($late_done as $handle) {
+                        if (!isset($wp_styles->registered[$handle])) {
+                            continue;
+                        }
+                        $dep = $wp_styles->registered[$handle];
+                        if (empty($dep->src)) {
+                            continue;
+                        }
+                        $src = $dep->src;
+                        // Make absolute if protocol-relative or path-relative
+                        if (strncmp($src, '//', 2) === 0) {
+                            $src = 'https:' . $src;
+                        } elseif ($src[0] === '/') {
+                            $src = rtrim(site_url(), '/') . $src;
+                        }
+                        // Skip core WordPress styles (wp-includes)
+                        if (strpos($src, '/wp-includes/') !== false) {
+                            continue;
+                        }
+                        $filename = basename(parse_url($src, PHP_URL_PATH));
+                        // Only inject if neither the filename nor the CSS id attribute is already in the HTML
+                        if (!empty($filename)
+                            && strpos($html, $filename) === false
+                            && strpos($html, $handle . '-css') === false
+                        ) {
+                            $ver   = !empty($dep->ver) ? $dep->ver : false;
+                            $media = !empty($dep->args) ? $dep->args : 'all';
+                            $href  = $ver ? add_query_arg('ver', $ver, $src) : $src;
+                            $inject_links[] = '<link rel="stylesheet" id="' . esc_attr($handle) . '-css" href="' . esc_url($href) . '" media="' . esc_attr($media) . '" />';
+                        }
+                    }
+                }
+            }
+
+            if (empty($late_links) && empty($inject_links)) {
+                return $html;
+            }
+
+            $head_part = substr($html, 0, $head_close_pos);
+            $all_links = array_merge($late_links, $inject_links);
+            return $head_part . implode("\n", $all_links) . "\n" . '</head>' . $body_part_cleaned;
         }
 
         protected function file($url, $action = 'add', $data = '')

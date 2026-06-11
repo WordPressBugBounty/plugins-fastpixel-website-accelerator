@@ -2,9 +2,9 @@
 Contributors: shortpixel
 Tags: speed, cache, caching, performance, web vitals
 Requires at least: 6.0
-Tested up to: 6.9
+Tested up to: 7.0
 Requires PHP: 5.6
-Stable tag: 1.6.0
+Stable tag: 1.7.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -194,7 +194,16 @@ We prioritize your security and privacy. All communications between the plugin a
 Support and Documentation
 For more detailed information on how to use the plugin or the API, troubleshooting tips, or if you need assistance, please check our [docs](https://fastpixel.io/docs/) or [contact us](https://fastpixel.io/#contact). 
 
+== Hooks == 
 
+FastPixel provides WordPress action hooks that allow developers to programmatically trigger cache purges and react to cache events. This is useful when integrating FastPixel with custom plugins, WooCommerce, ACF, or any workflow that modifies content outside the standard WordPress editor.
+
+Example hooks:
+do_action('fastpixel/purge/all'); - Purges the entire site cache.
+do_action('fastpixel/purge/single', ['id' => 123]); - Purges the cache for a single post, page, or taxonomy term.
+do_action('fastpixel/purge/url', 'https://example.com/my-landing-page/'); - Purges the cache for a specific URL.
+
+For a detailed documentation about the hooks, please see this page: https://fastpixel.io/docs/fastpixel-hooks/
 
 == Screenshots ==
 
@@ -221,6 +230,26 @@ For more detailed information on how to use the plugin or the API, troubleshooti
 
 
 == Changelog ==
+
+= 1.7.0 =
+
+📊 The Dashboard Insights Update
+
+Release Date: June 11, 2026
+
+✨ New & Improved Dashboard
+
+* Enhanced Dashboard Experience: The Dashboard area has been improved to provide clearer insights into your website's performance. You can now easily track pageview usage and view the latest performance scores at a glance.
+
+🛠️ Fixes & Improvements
+
+* Local Cache Fixes: Resolved several issues related to local cache handling for improved reliability.
+* Notification Improvements: Fixed various notification-related issues to ensure messages are displayed correctly and at the right time.
+* Compatibility Updates: Added several small compatibility improvements to ensure smoother integration with different WordPress environments.
+
+🚀 What's Next?
+
+This may look like a small update, but it's an important foundation for several major features and improvements that are coming very soon. Stay tuned, exciting things are on the way! 🎉⚡
 
 = 1.6.0 =
 

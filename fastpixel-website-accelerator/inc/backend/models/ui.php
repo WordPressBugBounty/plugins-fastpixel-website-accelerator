@@ -101,10 +101,13 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_UI')) {
             }
             //adding scripts only when page is opened
             add_action('admin_enqueue_scripts', function () {
-                wp_register_script('fastpixel-backend', FASTPIXEL_PLUGIN_URL . 'inc/backend/assets/backend.js?' . time(), array('jquery-ui-core', 'jquery-ui-tabs'), FASTPIXEL_VERSION, false);
+                // Load notices.js first so the branded notice center exists before backend.js uses it.
+                wp_register_script('fastpixel-backend', FASTPIXEL_PLUGIN_URL . 'inc/backend/assets/backend.js?' . time(), array('jquery-ui-core', 'jquery-ui-tabs', 'fastpixel-notices'), FASTPIXEL_VERSION, false);
                 wp_localize_script('fastpixel-backend', 'fastpixel_backend', [
                     'ajax_url'                 => admin_url('admin-ajax.php'),
                     'nonce'                    => wp_create_nonce('cache_status_nonce'),
+                    'domain_check_nonce'       => wp_create_nonce('fastpixel-onboarding'),
+                    'validate_key_nonce'       => wp_create_nonce('fastpixel-onboarding'),
                     'deactivate_plugin_nonce'  => wp_create_nonce("fastpixel_deactivate_plugin"),
                     'delete_cached_files_text' => esc_html__('Delete Cached Files', 'fastpixel-website-accelerator'),
                     'delete_cached_files_link' => sprintf('admin-post.php?action=%1$s&nonce=%2$s&post_id=', 'fastpixel_admin_delete_cached', wp_create_nonce('cache_status_nonce')),
@@ -117,7 +120,9 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_UI')) {
                     'stats_url'                => rest_url(FASTPIXEL_TEXTDOMAIN . '/v1/stats'),
                     'stats_reset_url'          => rest_url(FASTPIXEL_TEXTDOMAIN . '/v1/stats/reset'),
                     'stats_nonce'              => wp_create_nonce('wp_rest'),
-
+                    'api_key_empty_text'       => esc_html__('Please enter an API key.', 'fastpixel-website-accelerator'),
+                    'api_key_error_text'       => esc_html__('That API key doesn\'t look right — we\'ll keep your current one active.', 'fastpixel-website-accelerator'),
+                    'api_key_invalid_text'     => esc_html__('That API key doesn\'t look right — we\'ll keep your current one active.', 'fastpixel-website-accelerator'),
                 ]);
                 global $pagenow;
                 // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- wordpress page is accessed without any nonces, no data is posted.
@@ -326,51 +331,11 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_UI')) {
                     <span class="close"><img src="' . (FASTPIXEL_PLUGIN_URL) . 'icons/close.svg" class="icon"></span>
                 </div>';
 
-            // build FastPixel account URL / Create account URL
-            $account_url   = FASTPIXEL_DASHBOARD_HOST . '/';
+            $account_url   = FASTPIXEL_DASHBOARD_HOST . '/login';
             $button_label  = __('FastPixel Account', 'fastpixel-website-accelerator');
             $button_target = '_blank';
             $rate_us_url   = 'https://wordpress.org/support/plugin/fastpixel-website-accelerator/reviews/#new-post';
             $rate_us_label = __('Rate Us', 'fastpixel-website-accelerator');
-
-            if (class_exists('FASTPIXEL\FASTPIXEL_Functions')) {
-                $functions = FASTPIXEL_Functions::get_instance();
-                $api_key   = $functions->get_option('fastpixel_api_key', '');
-                $api_key_model = FASTPIXEL_Api_Key::get_instance();
-                $is_temp = $api_key_model->is_temp_key($api_key);
-                
-                if (!empty($api_key) && !$is_temp) {
-                    // Normal API key - direct login URL
-                    $account_url = rtrim(FASTPIXEL_DASHBOARD_HOST, '/') . '/login/' . rawurlencode($api_key);
-                } else {
-                    // No API key or temp key: show "Create account" button to return to onboarding
-                    $show_create_account = false;
-                    
-                    if ($is_temp) {
-                        // Check if temp key is not expired
-                        $skip_timestamp = (int) $functions->get_option('fastpixel_skip_onboarding_timestamp', 0);
-                        if (!$api_key_model->is_temp_key_expired($skip_timestamp)) {
-                            $show_create_account = true;
-                        }
-                    } else {
-                        //  if user has recently skipped onboarding, show "Create account" button
-                        $skip_timestamp = (int) $functions->get_option('fastpixel_skip_onboarding_timestamp', 0);
-                        if ($skip_timestamp > 0) {
-                            $time_elapsed = time() - $skip_timestamp;
-                            $two_weeks    = 14 * 24 * 60 * 60;
-                            if ($time_elapsed < $two_weeks) {
-                                $show_create_account = true;
-                            }
-                        }
-                    }
-                    
-                    if ($show_create_account) {
-                        $account_url   = admin_url('admin.php?page=' . FASTPIXEL_TEXTDOMAIN . '-settings&force_onboarding=1');
-                        $button_label  = __('Create account', 'fastpixel-website-accelerator');
-                        $button_target = '_self';
-                    }
-                }
-            }
 
             $header .= '<h1><a class="fastpixel-logo-link" href="https://fastpixel.io/" target="_blank" rel="noopener noreferrer"><img src="'.(FASTPIXEL_PLUGIN_URL).'icons/fastpixel-logo.png" class="icon"></a></h1>
             <div class="top-buttons">
@@ -628,7 +593,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_UI')) {
                 $slug = $tab->get_slug();
                 echo '<li data-slug="' . esc_attr($slug) . '"><a class="fastpixel-tab" href="#' . esc_attr($slug) . '"><i class="fastpixel-icon '. esc_attr(strtolower($slug)) .'"></i>' . wp_kses_post($tab->get_name()) . '</a></li>';
             }
-            echo '</ul>';
+            echo '</ul><div class="upgrade-banner" hidden><div class="robo-container"><div class="robo-from-banner"><img src="' . esc_url(FASTPIXEL_PLUGIN_URL . 'icons/upgrade-banner-robot.svg') . '" alt="" width="56" height="56" /></div><h2>' . esc_html__('Need More Speed?', 'fastpixel-website-accelerator') . '</h2></div><div class="banner-line-container"><span class="spbr-icon ok" aria-hidden="true"></span><p>' . esc_html__('Unlimited CDN Traffic', 'fastpixel-website-accelerator') . '</p></div><div class="banner-line-container"><span class="spbr-icon ok" aria-hidden="true"></span><p>' . esc_html__('More Pageviews', 'fastpixel-website-accelerator') . '</p></div><div class="banner-line-container"><span class="spbr-icon ok" aria-hidden="true"></span><p>' . esc_html__('More Websites', 'fastpixel-website-accelerator') . '</p></div><div class="banner-line-container"><span class="spbr-icon ok" aria-hidden="true"></span><p>' . esc_html__('Priority Caching Speed', 'fastpixel-website-accelerator') . '</p></div><div class="banner-upgrade-button"><button type="button" class="button button-primary" id="upgrade" onclick="window.open(\'https://fastpixel.io/af/5E9CDPW78\', \'_blank\');"><i class="shortpixel-icon cart" aria-hidden="true"><svg width="14" height="13" viewBox="0 0 14 13" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M0.25 1.0625C0.25 0.757812 0.484375 0.5 0.8125 0.5H1.86719C2.38281 0.5 2.85156 0.804688 3.0625 1.25H12.6953C13.3047 1.25 13.75 1.83594 13.5859 2.44531L12.625 6.00781C12.4375 6.75781 11.7578 7.25 11.0078 7.25H4.23438L4.375 7.92969C4.42188 8.1875 4.65625 8.375 4.91406 8.375H11.6875C11.9922 8.375 12.25 8.63281 12.25 8.9375C12.25 9.26562 11.9922 9.5 11.6875 9.5H4.91406C4.11719 9.5 3.41406 8.9375 3.27344 8.14062L2.05469 1.78906C2.03125 1.69531 1.96094 1.625 1.86719 1.625H0.8125C0.484375 1.625 0.25 1.39062 0.25 1.0625ZM3.25 11.375C3.25 10.9766 3.46094 10.625 3.8125 10.4141C4.14062 10.2031 4.58594 10.2031 4.9375 10.4141C5.26562 10.625 5.5 10.9766 5.5 11.375C5.5 11.7969 5.26562 12.1484 4.9375 12.3594C4.58594 12.5703 4.14062 12.5703 3.8125 12.3594C3.46094 12.1484 3.25 11.7969 3.25 11.375ZM11.125 10.25C11.5234 10.25 11.875 10.4844 12.0859 10.8125C12.2969 11.1641 12.2969 11.6094 12.0859 11.9375C11.875 12.2891 11.5234 12.5 11.125 12.5C10.7031 12.5 10.3516 12.2891 10.1406 11.9375C9.92969 11.6094 9.92969 11.1641 10.1406 10.8125C10.3516 10.4844 10.7031 10.25 11.125 10.25Z" fill="white"/></svg></i>' . esc_html__('Upgrade Now', 'fastpixel-website-accelerator') . '</button></div></div>';
             echo '</menu><section class="wrapper">';
             $form_open = false;
             foreach ($this->tabs as $tab) {

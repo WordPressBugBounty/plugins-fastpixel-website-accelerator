@@ -14,11 +14,11 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Notices')) {
             self::$instance = $this;
             $this->functions = FASTPIXEL_Functions::get_instance(); 
             // We add our display_flash_notices function to the admin_notices
-            add_action('admin_notices', [$this, 'display_flash_notices'], 12);
-            add_action('admin_notices', [$this, 'check_diag_tests'], 11);
+            add_action('admin_notices', [$this, 'display_flash_notices'], 10);
+            add_action('admin_notices', [$this, 'check_diag_tests'], 9);
             if (is_multisite()) {
-                add_action('network_admin_notices', [$this, 'display_flash_notices'], 12);
-                add_action('network_admin_notices', [$this, 'check_diag_tests'], 11);
+                add_action('network_admin_notices', [$this, 'display_flash_notices'], 10);
+                add_action('network_admin_notices', [$this, 'check_diag_tests'], 9);
             }
             add_action('admin_enqueue_scripts', [$this, 'enqueue_scripts']);
             add_action('wp_ajax_fastpixel_dismiss_notice', [$this, 'dismiss_notice']);
@@ -59,6 +59,13 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Notices')) {
             return is_array($notices) ? $notices : [];
         }
 
+        protected function is_dashboard_screen()
+        {
+            global $pagenow;
+
+            return is_admin() && !is_network_admin() && $pagenow === 'index.php';
+        }
+
         protected function save_flash_notices($notices)
         {
             $notices = array_values(array_filter($notices, 'is_array'));
@@ -67,6 +74,25 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Notices')) {
             } else {
                 $this->functions->delete_option("fastpixel_flash_notices");
             }
+        }
+
+        public function remove_flash_notice($notice_id)
+        {
+            $notice_id = sanitize_key($notice_id);
+            if (empty($notice_id)) {
+                return;
+            }
+
+            $notices = $this->get_flash_notices();
+            if (empty($notices)) {
+                return;
+            }
+
+            $filtered_notices = array_filter($notices, function ($notice) use ($notice_id) {
+                return empty($notice['id']) || sanitize_key($notice['id']) !== $notice_id;
+            });
+
+            $this->save_flash_notices($filtered_notices);
         }
 
         protected function clear_diag_flash_notices()
@@ -241,7 +267,8 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Notices')) {
             }
 
             if (!empty($rendered_notices)) {
-                echo '<div class="fastpixel-wp-notices-group">' . implode('', $rendered_notices) . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+                $group_class = $this->is_dashboard_screen() ? 'fastpixel-wp-notices-group wp-header-end' : 'fastpixel-wp-notices-group';
+                echo '<div class="' . esc_attr($group_class) . '">' . implode('', $rendered_notices) . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
             }
 
             // Now we reset our options to prevent notices being displayed forever.

@@ -24,7 +24,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Diag_Test_Free_Limit')) {
                 $free_limit_reached = $functions->get_option('fastpixel_free_limit_reached');
                 if ($free_limit_reached) {
                     /* translators: $1 displays 2 br tags(nothing to translate), $2 is link to pricing page ("pricing page" text should be translated separately) */
-                    $this->add_notification_message(sprintf(esc_html__('Unfortunately, you have reached your pageviews limit. FastPixel is no longer optimizing new pages:-( %1$s Please check our %2$s or increase the pageviews limit for this domain if your plan allows it.', 'fastpixel-website-accelerator'), '<br/>', '<a href="https://fastpixel.io/pricing/" target="_blank">' . esc_html__('pricing page', 'fastpixel-website-accelerator') .'</a>' ), 'error', false);
+                    $this->add_notification_message(sprintf(esc_html__('Unfortunately, you have reached your pageviews limit. FastPixel is no longer optimizing new pages:-( %1$s Please check our %2$s or increase the pageviews limit for this domain if your plan allows it.', 'fastpixel-website-accelerator'), '<br/>', '<a href="https://fastpixel.io/pricing/" target="_blank">' . esc_html__('pricing page', 'fastpixel-website-accelerator') .'</a>' ), 'error', true, 'diag-free-limit');
                 }
             }        
         }

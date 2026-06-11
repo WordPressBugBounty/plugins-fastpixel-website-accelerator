@@ -74,7 +74,10 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Action_Validate_Key')) {
             $user = isset($response_data['user']) ? sanitize_text_field($response_data['user']) : '';
 
             if ($status !== 1) {
-                $error_message = !empty($reason) ? esc_html($reason) : esc_html__('Invalid API Key. Please check your Key and try again.', 'fastpixel-website-accelerator');
+                if (strtolower($reason) === 'invalid credentials') {
+                    $reason = esc_html__('That API key does not look right. Please check it and try again.', 'fastpixel-website-accelerator');
+                }
+                $error_message = !empty($reason) ? esc_html($reason) : esc_html__('That API key does not look right. Please check it and try again.', 'fastpixel-website-accelerator');
                 return [
                     'valid' => false,
                     'error' => $error_message,
@@ -97,7 +100,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Action_Validate_Key')) {
             }
 
             // get API key
-            $api_key = isset($_POST['login_apiKey']) ? sanitize_text_field($_POST['login_apiKey']) : '';
+            $api_key = isset($_POST['login_apiKey']) ? sanitize_text_field(wp_unslash($_POST['login_apiKey'])) : '';
             
             // Validate API key
             $validation_result = self::validate_api_key($api_key);

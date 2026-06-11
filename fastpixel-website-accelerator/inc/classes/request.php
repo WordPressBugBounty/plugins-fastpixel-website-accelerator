@@ -130,6 +130,16 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Request')) {
             return $result;
         }
 
+        public function probe_pageviews_status(): bool
+        {
+            $probe_url = is_multisite() ? network_home_url('/') : home_url('/');
+            FASTPIXEL_Debug::log('[REQUEST] probe_pageviews_status: probing URL', $probe_url);
+
+            return $this->cache_request($probe_url, [
+                'X-FastPixel-Pageviews-Probe' => '1',
+            ]);
+        }
+
         public function purge_all_request(): bool
         {
             $this->api_url = FASTPIXEL_API_HOST . '/api/v1/purge_all';

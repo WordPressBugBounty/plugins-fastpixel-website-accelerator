@@ -101,7 +101,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Post_Types_Statuses')) {
         }
 
         public function get_posts_list($posts_list, $args) {
-            $args['post_status'] = ['publish', 'private'];
+            $args['post_status'] = ['publish'];
             $search_filter = null;
             if (!empty($args['s'])) {
                 $original_search = $args['s'];
@@ -143,7 +143,6 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Post_Types_Statuses')) {
                     'url'               => urldecode($url),
                     'cache_status'      => $cache_status['status_display'],
                     'cachestatus'       => $cache_status['status'],
-                    'display_status'    => $post->post_status == 'publish' ? '<b>' . __('published', 'fastpixel-website-accelerator') . '</b>' : '<b>' . $post->post_status .'</b>',
                     'html_created_time' => $cache_status['html_created_time'],
                     'post_status'       => $post->post_status
                 ];
@@ -164,7 +163,6 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Post_Types_Statuses')) {
                         'url'               => $url,
                         'cache_status'      => $cache_status['status_display'],
                         'cachestatus'       => $cache_status['status'],
-                        'display_status'    => '<b>published</b>',
                         'html_created_time' => $cache_status['html_created_time'],
                         'post_status'       => 'publish'
                     ];
@@ -248,7 +246,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Post_Types_Statuses')) {
             if ($purge_id == 'homepage') {
                 unset($actions['edit']);
             }
-            if ($item['post_status'] == 'private' || $item['cachestatus'] == 'excluded') {
+            if ($item['cachestatus'] == 'excluded') {
                 unset($actions['purge_cache']);
             }
             return $actions;
