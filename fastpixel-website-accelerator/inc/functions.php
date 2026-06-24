@@ -133,8 +133,392 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Functions')) {
             return $this->match_regexp;
         }
 
-        /* 
-         * this function uses default php functions(unlink, rmdir, fopen, fclose, file_get_contents, file_put_contents etc...) 
+        protected function get_cached_option_value($option_name, $default = false)
+        {
+            $is_multisite = function_exists('is_multisite') && is_multisite();
+            if (($is_multisite && function_exists('get_site_option')) || function_exists('get_option')) {
+                return $this->get_option($option_name, $default);
+            }
+            if (class_exists('FASTPIXEL\FASTPIXEL_Config_Model')) {
+                $config = FASTPIXEL_Config_Model::get_instance();
+                $value = $config->get_option($option_name);
+                if ($value !== false) {
+                    return $value;
+                }
+            }
+            return $default;
+        }
+
+        public function validate_vary_key($vary_key): string
+        {
+            if (!is_scalar($vary_key)) {
+                return '';
+            }
+            $vary_key = trim((string) $vary_key);
+            if ($vary_key === '') {
+                return '';
+            }
+            if (preg_match('/^[a-fA-F0-9]{64}$/', $vary_key)) {
+                return strtolower($vary_key);
+            }
+            return '';
+        }
+
+        public function get_vary_cache_directory_name($vary_key): string
+        {
+            $vary_key = $this->validate_vary_key($vary_key);
+            if ($vary_key === '') {
+                return '';
+            }
+            return '_vary_' . $vary_key;
+        }
+
+        public function get_cache_relative_path($url, $vary_key = ''): string
+        {
+            if (!is_a($url, 'FASTPIXEL\FASTPIXEL_Url')) {
+                $url = new FASTPIXEL_Url($url);
+            }
+            $path = rtrim($url->get_url_path(), DIRECTORY_SEPARATOR);
+            $vary_dir = $this->get_vary_cache_directory_name($vary_key);
+            if ($vary_dir !== '') {
+                $path .= DIRECTORY_SEPARATOR . $vary_dir;
+            }
+            return trim($path, DIRECTORY_SEPARATOR);
+        }
+
+        public function has_vary_cache_configuration(): bool
+        {
+            $vary_cache_enabled = (bool) $this->get_cached_option_value('fastpixel_vary_cache', false);
+            if (!$vary_cache_enabled) {
+                return false;
+            }
+
+            $vary_cache_cookies_raw = $this->get_cached_option_value('fastpixel_vary_cache_cookies', '');
+            if (!is_string($vary_cache_cookies_raw) || trim($vary_cache_cookies_raw) === '') {
+                return false;
+            }
+
+            return true;
+        }
+
+        public function get_configured_vary_cache_cookie_names(): array
+        {
+            if (!$this->has_vary_cache_configuration()) {
+                return [];
+            }
+
+            $vary_cache_cookies_raw = $this->get_cached_option_value('fastpixel_vary_cache_cookies', '');
+            $rows = preg_split('/\r\n|\r|\n/', $vary_cache_cookies_raw);
+            if (!is_array($rows)) {
+                return [];
+            }
+
+            $cookie_names = [];
+            foreach ($rows as $row) {
+                $cookie_name = trim((string) $row);
+                if ($cookie_name === '') {
+                    continue;
+                }
+                $cookie_names[$cookie_name] = $cookie_name;
+            }
+
+            ksort($cookie_names);
+            return array_values($cookie_names);
+        }
+
+        public function get_current_vary_cache_cookies(bool $include_missing = false): array
+        {
+            $cookie_names = $this->get_configured_vary_cache_cookie_names();
+            if (empty($cookie_names)) {
+                return [];
+            }
+
+            $cookies = [];
+            foreach ($cookie_names as $cookie_name) {
+                if (!isset($_COOKIE[$cookie_name]) || !is_scalar($_COOKIE[$cookie_name])) {
+                    if ($include_missing) {
+                        $cookies[$cookie_name] = null;
+                    }
+                    continue;
+                }
+
+                $cookie_value = function_exists('wp_unslash')
+                    ? wp_unslash($_COOKIE[$cookie_name])
+                    : $_COOKIE[$cookie_name];
+
+                if ((string) $cookie_value === '') {
+                    if ($include_missing) {
+                        $cookies[$cookie_name] = null;
+                    }
+                    continue;
+                }
+
+                $cookies[$cookie_name] = (string) $cookie_value;
+            }
+
+            ksort($cookies);
+            return $cookies;
+        }
+
+        public function get_empty_vary_cache_cookies(): array
+        {
+            $cookies = [];
+            foreach ($this->get_configured_vary_cache_cookie_names() as $cookie_name) {
+                $cookies[$cookie_name] = null;
+            }
+            ksort($cookies);
+            return $cookies;
+        }
+
+        public function build_vary_cache_key(array $cookies): string
+        {
+            ksort($cookies);
+            if (function_exists('wp_json_encode')) {
+                $encoded = wp_json_encode($cookies);
+            } else {
+                $encoded = json_encode($cookies);
+            }
+            return hash('sha256', is_string($encoded) ? $encoded : '');
+        }
+
+        public function get_current_vary_cache_key(): string
+        {
+            if (!$this->has_vary_cache_configuration()) {
+                return '';
+            }
+            return $this->build_vary_cache_key($this->get_current_vary_cache_cookies(true));
+        }
+
+        public function get_vary_cache_variants($url): array
+        {
+            if (empty($url)) {
+                return [];
+            }
+
+            $base_relative_path = $this->get_cache_relative_path($url);
+            $base_path = $this->get_cache_dir();
+            if ($base_relative_path !== '') {
+                $base_path .= DIRECTORY_SEPARATOR . rtrim($base_relative_path, DIRECTORY_SEPARATOR);
+            }
+
+            if (!@is_dir($base_path) || !@is_readable($base_path)) {
+                return [];
+            }
+
+            $entries = @scandir($base_path);
+            if (!is_array($entries)) {
+                return [];
+            }
+
+            $variants = [];
+            foreach ($entries as $entry) {
+                if (!preg_match('/^_vary_([a-f0-9]{64})$/', $entry, $matches)) {
+                    continue;
+                }
+
+                $vary_key = $matches[1];
+                $status = $this->check_post_cache_status($url, $vary_key);
+                if (empty($status['have_cache'])) {
+                    continue;
+                }
+
+                $meta = [];
+                $meta_file = $base_path . DIRECTORY_SEPARATOR . $entry . DIRECTORY_SEPARATOR . 'meta';
+                if (@file_exists($meta_file) && @is_readable($meta_file)) {
+                    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- cache metadata is stored on disk.
+                    $loaded_meta = json_decode(file_get_contents($meta_file), true); //phpcs:ignore
+                    if (is_array($loaded_meta)) {
+                        $meta = $loaded_meta;
+                    }
+                }
+
+                $variants[] = [
+                    'key'               => $vary_key,
+                    'cookies'           => isset($meta['vary_cache']['cookies']) && is_array($meta['vary_cache']['cookies']) ? $meta['vary_cache']['cookies'] : [],
+                    'html_created_time' => $status['html_created_time'],
+                    'need_cache'        => $status['need_cache'],
+                ];
+            }
+
+            return $variants;
+        }
+
+        protected function get_vary_key_from_headers($headers): string
+        {
+            if (!is_array($headers)) {
+                return '';
+            }
+
+            foreach ($headers as $header_name => $header_value) {
+                if (is_string($header_name) && strtolower($header_name) === 'x-fastpixel-vary-key') {
+                    return $this->validate_vary_key($header_value);
+                }
+                if (is_array($header_value)) {
+                    if (!empty($header_value['name']) && strtolower((string) $header_value['name']) === 'x-fastpixel-vary-key') {
+                        return $this->validate_vary_key($header_value['value'] ?? '');
+                    }
+                    continue;
+                }
+                if (is_string($header_value) && preg_match('/^x-fastpixel-vary-key\s*:\s*(.+)$/i', $header_value, $matches)) {
+                    return $this->validate_vary_key($matches[1]);
+                }
+            }
+
+            return '';
+        }
+
+        public function extract_vary_key_from_response(array $parameters): string
+        {
+            $candidates = [
+                $parameters['varyKey'] ?? null,
+                $parameters['vary_key'] ?? null,
+                $parameters['VaryKey'] ?? null,
+                $parameters['settings']['VaryCache']['varyKey'] ?? null,
+                $parameters['settings']['VaryCache']['key'] ?? null,
+            ];
+
+            foreach ($candidates as $candidate) {
+                $vary_key = $this->validate_vary_key($candidate);
+                if ($vary_key !== '') {
+                    return $vary_key;
+                }
+            }
+
+            if (!empty($parameters['headers'])) {
+                $vary_key_from_headers = $this->get_vary_key_from_headers($parameters['headers']);
+                if ($vary_key_from_headers !== '') {
+                    return $vary_key_from_headers;
+                }
+            }
+
+            //the service echoes the original enqueue request back under 'body' (a JSON string); the varyKey
+            //we sent lives there even when it is not surfaced as a top-level field on the postback params.
+            if (!empty($parameters['body']) && is_string($parameters['body'])) {
+                $body = json_decode($parameters['body'], true);
+                if (is_array($body)) {
+                    $body_candidates = [
+                        $body['varyKey'] ?? null,
+                        $body['settings']['VaryCache']['varyKey'] ?? null,
+                        $body['settings']['VaryCache']['key'] ?? null,
+                    ];
+                    foreach ($body_candidates as $candidate) {
+                        $vary_key = $this->validate_vary_key($candidate);
+                        if ($vary_key !== '') {
+                            return $vary_key;
+                        }
+                    }
+                }
+            }
+
+            //the service does not always echo the varyKey back in the postback; recover it from the
+            //pending variant we recorded for this URL at enqueue time so the postback still lands in
+            //the correct _vary_ directory instead of being dropped by the save gate
+            if (!empty($parameters['url'])) {
+                $pending_vary_key = $this->infer_vary_key_from_pending_request($parameters['url']);
+                if ($pending_vary_key !== '') {
+                    return $pending_vary_key;
+                }
+            }
+
+            return '';
+        }
+
+        /**
+         * Absolute cache directory for a URL (optionally for a specific vary variant).
+         */
+        public function get_cache_path($url, $vary_key = ''): string
+        {
+            $relative_path = $this->get_cache_relative_path($url, $vary_key);
+            if ($relative_path === '') {
+                return $this->get_cache_dir();
+            }
+            return $this->get_cache_dir() . DIRECTORY_SEPARATOR . $relative_path;
+        }
+
+        /**
+         * When the service omits the varyKey from the postback, recover it from the single pending
+         * variant recorded at enqueue time. Returns '' when vary cache is off or it cannot be resolved
+         * unambiguously (0 or >1 pending variants).
+         */
+        public function infer_vary_key_from_pending_request($url): string
+        {
+            if (!$this->has_vary_cache_configuration()) {
+                return '';
+            }
+            if (!is_a($url, 'FASTPIXEL\FASTPIXEL_Url')) {
+                $url = new FASTPIXEL_Url($url);
+            }
+            return $this->get_pending_vary_key_from_cache_path($this->get_cache_path($url));
+        }
+
+        /**
+         * Scans a URL's base cache path for _vary_ variants that were requested (enqueued) but not yet
+         * fulfilled (no index.html/error.json newer than cache_request_time). Returns the key only when
+         * exactly one such pending variant exists, otherwise '' to avoid guessing the wrong variant.
+         */
+        protected function get_pending_vary_key_from_cache_path($base_path): string
+        {
+            if (!is_string($base_path) || $base_path === '' || !is_dir($base_path)) {
+                return '';
+            }
+
+            $entries = @scandir($base_path);
+            if (!is_array($entries)) {
+                return '';
+            }
+
+            $pending_candidates = [];
+            foreach ($entries as $entry) {
+                if (!is_string($entry) || strpos($entry, '_vary_') !== 0) {
+                    continue;
+                }
+
+                $vary_key = $this->validate_vary_key(substr($entry, strlen('_vary_')));
+                if ($vary_key === '') {
+                    continue;
+                }
+
+                $variant_path = $base_path . DIRECTORY_SEPARATOR . $entry;
+                if (!is_dir($variant_path)) {
+                    continue;
+                }
+
+                $meta_path = $variant_path . DIRECTORY_SEPARATOR . 'meta';
+                if (!@file_exists($meta_path) || !@is_readable($meta_path)) {
+                    continue;
+                }
+
+                // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- early cache bootstrap compatibility.
+                $meta = json_decode(file_get_contents($meta_path), true); //phpcs:ignore
+                if (!is_array($meta)) {
+                    continue;
+                }
+
+                $cache_request_time = isset($meta['cache_request_time']) ? (int) $meta['cache_request_time'] : 0;
+                if ($cache_request_time <= 0) {
+                    continue;
+                }
+
+                $index_path = $variant_path . DIRECTORY_SEPARATOR . 'index.html';
+                $error_path = $variant_path . DIRECTORY_SEPARATOR . 'error.json';
+                $index_time = @file_exists($index_path) ? (int) @filemtime($index_path) : 0;
+                $error_time = @file_exists($error_path) ? (int) @filemtime($error_path) : 0;
+                if (max($index_time, $error_time) >= $cache_request_time) {
+                    continue;
+                }
+
+                $pending_candidates[$vary_key] = $cache_request_time;
+            }
+
+            if (count($pending_candidates) !== 1) {
+                return '';
+            }
+
+            return (string) array_key_first($pending_candidates);
+        }
+
+        /*
+         * this function uses default php functions(unlink, rmdir, fopen, fclose, file_get_contents, file_put_contents etc...)
          * because this function is used early in advanced-cache.php and native WP functions(WP_Filesystem) are not available
          */
         public function delete_cached_files($path)
@@ -212,12 +596,18 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Functions')) {
          * this function uses default php functions(unlink, rmdir, fopen, fclose, file_get_contents, file_put_contents etc...) 
          * because this function is used early in advanced-cache.php and native WP functions(WP_Filesystem) are not available
          */
-        public function check_post_cache_status($post_url)
+        public function check_post_cache_status($post_url, $vary_key = '')
         {
             if (empty($post_url)) {
                 return false;
             } else {
                 $url = new FASTPIXEL_Url($post_url);
+            }
+            $normalized_vary_key = $this->validate_vary_key($vary_key);
+            $resolved_relative_path = $this->get_cache_relative_path($url, $normalized_vary_key);
+            $resolved_path = $this->get_cache_dir();
+            if ($resolved_relative_path !== '') {
+                $resolved_path .= DIRECTORY_SEPARATOR . rtrim($resolved_relative_path, DIRECTORY_SEPARATOR);
             }
             $data = [
                 'have_cache'               => false,
@@ -230,18 +620,26 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Functions')) {
                 'last_cache_request_time'  => false,
                 'last_access_time'         => false,
                 'error'                    => false,
-                'error_time'               => false
+                'error_time'               => false,
+                'resolved_relative_path'   => $resolved_relative_path,
+                'resolved_cache_dir'       => $resolved_path,
+                'vary_key'                 => $normalized_vary_key,
             ];
-            $path = $this->get_cache_dir() . DIRECTORY_SEPARATOR . rtrim($url->get_url_path(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'index.html';
-            $meta_file = $this->get_cache_dir() . DIRECTORY_SEPARATOR . rtrim($url->get_url_path(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'meta';
+            $path = $resolved_path . DIRECTORY_SEPARATOR . 'index.html';
+            $meta_file = $resolved_path . DIRECTORY_SEPARATOR . 'meta';
+            //When vary cache is active, the base (non-variant) cache files must be ignored: every visitor
+            //is served from a _vary_<key> variant (build_vary_cache_key always returns a hash, so the base
+            //path is never a serve target), and a leftover base index.html would otherwise report a false
+            //"cached" status. For the base query the variant aggregate below is the sole source of truth.
+            $ignore_base_cache_files = $normalized_vary_key === '' && $this->has_vary_cache_configuration();
             //checking for file and its create time
             $html_created_time = false;
-            if (@file_exists($path) && @is_readable($path)) {
+            if (!$ignore_base_cache_files && @file_exists($path) && @is_readable($path)) {
                 $data['html_created_time'] = $html_created_time = filemtime($path);
                 $data['have_cache'] = true;
             }
-            $local_path = $this->get_cache_dir() . DIRECTORY_SEPARATOR . rtrim($url->get_url_path(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'index_local.html';
-            if (@file_exists($local_path) && @is_readable($local_path)) {
+            $local_path = $resolved_path . DIRECTORY_SEPARATOR . 'index_local.html';
+            if (!$ignore_base_cache_files && @file_exists($local_path) && @is_readable($local_path)) {
                 $data['have_local_cache'] = true;
                 $data['local_html_created_time'] = filemtime($local_path);
             }
@@ -292,7 +690,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Functions')) {
             }
 
             //checking for error file
-            $error_path = $this->get_cache_dir() . DIRECTORY_SEPARATOR . rtrim($url->get_url_path(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'error.json';
+            $error_path = $resolved_path . DIRECTORY_SEPARATOR . 'error.json';
             if (@file_exists($error_path) && @is_readable($error_path)) {
                 //can't use native WP functions because file is included early in advanced-cache.php
                 // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- none available before WordPress is loaded.
@@ -303,14 +701,64 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Functions')) {
                     $data['error_time'] = filemtime($error_path);
                 }
             }
+            if ($normalized_vary_key === '' && !$data['have_cache']) {
+                $vary_cache_status = $this->get_vary_cache_aggregate_status($url);
+                if (!empty($vary_cache_status['have_cache'])) {
+                    $data = array_merge($data, $vary_cache_status);
+                }
+            }
             return $data;
         }
 
-        /* 
-         * this function uses default php functions(unlink, rmdir, fopen, fclose, file_get_contents, file_put_contents etc...) 
+        protected function get_vary_cache_aggregate_status($url): array
+        {
+            $base_path = $this->get_cache_dir() . DIRECTORY_SEPARATOR . rtrim($this->get_cache_relative_path($url), DIRECTORY_SEPARATOR);
+            $post_url = is_a($url, 'FASTPIXEL\FASTPIXEL_Url') ? $url->get_url() : $url;
+            if (!@is_dir($base_path) || !@is_readable($base_path)) {
+                return ['have_cache' => false];
+            }
+
+            $entries = @scandir($base_path);
+            if (!is_array($entries)) {
+                return ['have_cache' => false];
+            }
+
+            $aggregate = [
+                'have_cache'              => false,
+                'need_cache'              => true,
+                'html_created_time'       => false,
+                'last_cache_request_time' => false,
+                'last_access_time'        => false,
+                'error'                   => false,
+                'error_time'              => false,
+            ];
+            foreach ($entries as $entry) {
+                if (!preg_match('/^_vary_([a-f0-9]{64})$/', $entry, $matches)) {
+                    continue;
+                }
+
+                $status = $this->check_post_cache_status($post_url, $matches[1]);
+                if (empty($status['have_cache'])) {
+                    continue;
+                }
+
+                $aggregate['have_cache'] = true;
+                $aggregate['need_cache'] = $aggregate['need_cache'] && !empty($status['need_cache']);
+                foreach (['html_created_time', 'last_cache_request_time', 'last_access_time'] as $time_key) {
+                    if (!empty($status[$time_key]) && $status[$time_key] > $aggregate[$time_key]) {
+                        $aggregate[$time_key] = $status[$time_key];
+                    }
+                }
+            }
+
+            return $aggregate;
+        }
+
+        /*
+         * this function uses default php functions(unlink, rmdir, fopen, fclose, file_get_contents, file_put_contents etc...)
          * because this function is used early in advanced-cache.php and native WP functions(WP_Filesystem) are not available
          */
-        public function update_post_cache($path, $invalidated = true, $requested = false, $accessed = false) 
+        public function update_post_cache($path, $invalidated = true, $requested = false, $accessed = false, $vary_cache = null)
         {
             if (empty($path)) {
                 return false;
@@ -329,9 +777,18 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Functions')) {
             }
             if ($invalidated) {
                 $meta['invalidated_time'] = time();
-            } 
+            }
             if ($requested) {
                 $meta['cache_request_time'] = time();
+            }
+            //the frontend (where the vary key is generated from the live $_COOKIE) is the source of
+            //truth for this variant's cookie values; persist and mark them as request-sourced
+            if (is_array($vary_cache) && !empty($vary_cache['key'])) {
+                $meta['vary_cache'] = [
+                    'key'     => $vary_cache['key'],
+                    'cookies' => isset($vary_cache['cookies']) && is_array($vary_cache['cookies']) ? $vary_cache['cookies'] : [],
+                    'source'  => 'request',
+                ];
             }
             if ($accessed && (empty($meta['last_access_time']) || ((int) $meta['last_access_time'] < (time() - 3600)))) {
                 $meta['last_access_time'] = time();
@@ -888,7 +1345,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Functions')) {
             return false;
         }
 
-        public function check_path($url) {
+        public function check_path($url, $vary_key = '') {
             //initializing filesystem
             global $wp_filesystem;
             if (empty($wp_filesystem) && file_exists(ABSPATH . '/wp-admin/includes/file.php')) {
@@ -913,7 +1370,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Functions')) {
             if (!is_a($url, 'FASTPIXEL\FASTPIXEL_Url')) {
                 $url = new FASTPIXEL_Url($url);
             }
-            $dirs = explode(DIRECTORY_SEPARATOR, $url->get_url_path());
+            $dirs = explode(DIRECTORY_SEPARATOR, $this->get_cache_relative_path($url, $vary_key));
             $path = $cache_dir;
             foreach ($dirs as $dir) {
                 if (!empty($dir)) {
@@ -928,14 +1385,14 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Functions')) {
             }
             return $path;
         }
-        public function error_file($url, $action = 'add', $data = []) {
+        public function error_file($url, $action = 'add', $data = [], $vary_key = '') {
             //initializing filesystem
             global $wp_filesystem;
             if (empty($wp_filesystem) && file_exists(ABSPATH . '/wp-admin/includes/file.php')) {
                 require_once ABSPATH . '/wp-admin/includes/file.php';
                 WP_Filesystem();
             }
-            $path = $this->check_path($url);
+            $path = $this->check_path($url, $vary_key);
             if (!$path) {
                 return false;
             }

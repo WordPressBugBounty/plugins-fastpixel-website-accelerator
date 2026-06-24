@@ -21,7 +21,8 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Rest_Api')) {
         {
             self::$instance = $this;
             $this->functions = FASTPIXEL_functions::get_instance();
-            register_rest_route(FASTPIXEL_TEXTDOMAIN . '/v1', '/update', 
+            $this->debug = defined('FASTPIXEL_DEBUG') && FASTPIXEL_DEBUG !== false;
+            register_rest_route(FASTPIXEL_TEXTDOMAIN . '/v1', '/update',
                 array(
                     'methods'             => 'POST',
                     'callback'            => [$this, 'check_request'],
@@ -89,9 +90,18 @@ gwIDAQAB
 
         protected function save_files($parameters) // $url, $html, $headers, $css
         {
+            //internal /__fastpixel/ connectivity check: ack before any gate so it can't 400.
+            if (strpos($parameters['url'], '/__fastpixel') !== false) {
+                if ($this->debug) {
+                    FASTPIXEL_Debug::log('REST API: skipping files save for /__fastpixel/ path');
+                }
+                return true;
+            }
+
             //exclusion check moved here to have less duplicate code
             $cache_dir = $this->functions->get_cache_dir();
             $url = new FASTPIXEL_Url($parameters['url']);
+            $vary_key = $this->functions->extract_vary_key_from_response($parameters);
             $is_exclusion = apply_filters('fastpixel/rest-api/excluded', false, $url);
             if ($is_exclusion) {
                 //trying to delete existing files if page is exclusion and for some reason cached page exists
@@ -102,7 +112,14 @@ gwIDAQAB
                 return new WP_REST_Response(['status' => 400, 'response' => 'Bad Request', 'body_response' => 'Page is excluded from cache'], 400);
             }
 
-            $path = $this->functions->check_path($parameters['url']);
+            if ($this->functions->has_vary_cache_configuration() && $vary_key === '') {
+                if ($this->debug) {
+                    FASTPIXEL_Debug::log('REST API: skipping vary cache save because varyKey could not be resolved safely');
+                }
+                return false;
+            }
+
+            $path = $this->functions->check_path($parameters['url'], $vary_key);
             if (!$path) {
                 if ($this->debug) {
                     FASTPIXEL_Debug::log('REST API: skipping files save because no path returned');
@@ -110,13 +127,6 @@ gwIDAQAB
                 return false;
             }
             $modified_time = time(); // Make sure modified time is consistent.
-
-            if (strpos($path, '/__fastpixel') !== false) {
-                if ($this->debug) {
-                    FASTPIXEL_Debug::log('REST API: skipping files save for /__fastpixel/ path');
-                }
-                return true;
-            }
 
             //initializing filesystem
             global $wp_filesystem;
@@ -167,10 +177,10 @@ gwIDAQAB
             }
 
             //need to remove error if it was stored
-            $this->functions->error_file($parameters['url'], 'delete');
+            $this->functions->error_file($parameters['url'], 'delete', [], $vary_key);
 
             //keep cache metadata in sync with the optimized file we just saved
-            $meta_file = $cache_dir . DIRECTORY_SEPARATOR . $url->get_url_path() . DIRECTORY_SEPARATOR . 'meta';
+            $meta_file = $path . DIRECTORY_SEPARATOR . 'meta';
             $meta = ['invalidated_time' => false, 'cache_request_time' => $modified_time - 1, 'last_access_time' => $modified_time];
             if (file_exists($meta_file)) {
                 $loaded_meta = json_decode($wp_filesystem->get_contents($meta_file), true);
@@ -179,14 +189,62 @@ gwIDAQAB
                 }
             }
             $meta['last_access_time'] = $modified_time;
+            if ($vary_key !== '') {
+                //the frontend already recorded the real cookie values for this variant when it generated
+                //the key; prefer those request-sourced cookies and only fall back to whatever the
+                //callback payload carries when the frontend didn't record them
+                $existing_vary = isset($meta['vary_cache']) && is_array($meta['vary_cache']) ? $meta['vary_cache'] : [];
+                if (!empty($existing_vary['source']) && $existing_vary['source'] === 'request' && !empty($existing_vary['cookies'])) {
+                    $meta['vary_cache'] = [
+                        'key'     => $vary_key,
+                        'cookies' => $existing_vary['cookies'],
+                        'source'  => 'request',
+                    ];
+                } else {
+                    $meta['vary_cache'] = [
+                        'key'     => $vary_key,
+                        'cookies' => $this->get_vary_cache_meta_cookies($parameters),
+                        'source'  => 'service',
+                    ];
+                }
+            }
             if (!$wp_filesystem->put_contents($meta_file, wp_json_encode($meta))) {
                 if ($this->debug) {
                     FASTPIXEL_Debug::log('REST API: error occured while saving meta file');
                 }
             }
 
-            do_action('fastpixel/cachefiles/saved', $parameters['url']);
+            do_action('fastpixel/cachefiles/saved', $parameters['url'], $vary_key);
             return true;
+        }
+
+        protected function get_vary_cache_meta_cookies(array $parameters): array
+        {
+            $request_cookies = [];
+            if (isset($parameters['settings']['VaryCache']['cookies'])) {
+                $raw_cookies = $parameters['settings']['VaryCache']['cookies'];
+                if (is_array($raw_cookies)) {
+                    $request_cookies = $raw_cookies;
+                } elseif (is_object($raw_cookies)) {
+                    $request_cookies = get_object_vars($raw_cookies);
+                }
+            }
+
+            $cookies = [];
+            foreach ($this->functions->get_configured_vary_cache_cookie_names() as $cookie_name) {
+                $cookies[$cookie_name] = array_key_exists($cookie_name, $request_cookies) ? $request_cookies[$cookie_name] : null;
+            }
+
+            foreach ($request_cookies as $cookie_name => $cookie_value) {
+                $cookie_name = (string) $cookie_name;
+                if ($cookie_name === '' || array_key_exists($cookie_name, $cookies)) {
+                    continue;
+                }
+                $cookies[$cookie_name] = $cookie_value;
+            }
+
+            ksort($cookies);
+            return $cookies;
         }
 
         public function check_request(WP_REST_Request $request)

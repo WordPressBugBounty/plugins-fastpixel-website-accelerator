@@ -86,6 +86,22 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Request')) {
             $custom_css = $this->functions->get_option('fastpixel_custom_css', '');
             $this->request_data['settings']['enableTwoPhaseLoading'] = true; //(bool)$enable_two_phase_loading;
             $this->request_data['settings']['customCSS'] = (string)$custom_css;
+            $vary_cache_enabled = (bool) $this->functions->get_option('fastpixel_vary_cache', false);
+            if ($vary_cache_enabled) {
+                if (is_admin()) {
+                    $vary_cache_cookies = $this->functions->get_empty_vary_cache_cookies();
+                    $vary_cache_key = $this->functions->has_vary_cache_configuration()
+                        ? $this->functions->build_vary_cache_key($vary_cache_cookies)
+                        : '';
+                } else {
+                    $vary_cache_cookies = $this->functions->get_current_vary_cache_cookies(true);
+                    $vary_cache_key = $this->functions->get_current_vary_cache_key();
+                }
+                $this->request_data['settings']['VaryCache'] = [
+                    'cookies' => (object) $vary_cache_cookies,
+                    'varyKey' => $vary_cache_key
+                ];
+            }
 
             //adding plugin version to all requests
             if (defined('FASTPIXEL_VERSION')) {

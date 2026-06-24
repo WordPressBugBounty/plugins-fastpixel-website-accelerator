@@ -113,7 +113,16 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Cache_Status')) {
 
         protected function get_pageviews_panel_html()
         {
-            $html = '<h3 class="fastpixel-panel-title">' . esc_html__('Pageviews Usage', 'fastpixel-website-accelerator') . '</h3>';
+            $pageviews_tooltip = esc_html__('Pageviews are consumed by both visits and optimizations, each visit to an optimized page uses one pageview, and each page optimized uses one pageview too.', 'fastpixel-website-accelerator');
+            $html  = '<div class="fastpixel-panel-title-row">';
+            $html .= '<h3 class="fastpixel-panel-title">' . esc_html__('Pageviews Usage', 'fastpixel-website-accelerator') . '</h3>';
+            $html .= '<span class="fastpixel-pageviews-help-trigger">';
+            $html .= '<button type="button" class="fastpixel-pageviews-help-button" aria-label="' . esc_attr__('Pageviews usage info', 'fastpixel-website-accelerator') . '">';
+            $html .= '<img src="' . esc_url(FASTPIXEL_PLUGIN_URL . 'icons/info.svg') . '" alt="" class="fastpixel-pageviews-help-icon" />';
+            $html .= '</button>';
+            $html .= '<span class="fastpixel-pageviews-help-tooltip" role="tooltip">' . $pageviews_tooltip . '</span>';
+            $html .= '</span>';
+            $html .= '</div>';
 
             $data = $this->get_pageviews_data();
             if (!is_array($data)) {

@@ -52,6 +52,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Functions')) {
                 $cache_status['status_display'] = '<span class="have-popup"><strong>' . esc_html__('Excluded', 'fastpixel-website-accelerator') . '</strong></span>';
                 $cache_status['status_display'] .= '<span class="have-popup dashicons dashicons-editor-help"></span>';
                 $cache_status['status_display'] .= '<div class="pop-up">' . esc_html__('URL is excluded or has dynamic content.', 'fastpixel-website-accelerator') . '</div>';
+                $cache_status['status_display'] .= $this->get_vary_cache_variants_markup($url, $check_result);
                 $cache_status['status'] = 'excluded';
                 return $cache_status;
             }
@@ -96,7 +97,56 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Functions')) {
                     }
                 }
             }
+            $cache_status['status_display'] .= $this->get_vary_cache_variants_markup($url, $check_result);
             return $cache_status;
+        }
+
+        protected function get_vary_cache_variants_markup($url, $check_result = null): string
+        {
+            if (!$this->is_vary_cache_active()) {
+                return '';
+            }
+
+            $variants = $this->functions->get_vary_cache_variants($url);
+            //only surface the variants icon when there is something to show: either cached variants exist,
+            //or the page itself is already cached. Otherwise (queued/not-cached with no variants) it is noise.
+            $is_cached = is_array($check_result) && !empty($check_result['have_cache']);
+            if (empty($variants) && !$is_cached) {
+                return '';
+            }
+            $content = '<strong>' . esc_html__('Vary cache variants', 'fastpixel-website-accelerator') . '</strong>';
+            if (empty($variants)) {
+                $content .= '<p>' . esc_html__('No cached variants found for this URL.', 'fastpixel-website-accelerator') . '</p>';
+            } else {
+                $content .= '<ul class="fastpixel-vary-cache-variants">';
+                foreach ($variants as $index => $variant) {
+                    $cookies_json = wp_json_encode($variant['cookies'], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+                    if (!is_string($cookies_json) || $cookies_json === '') {
+                        $cookies_json = '{}';
+                    }
+                    $content .= '<li><strong>' . sprintf(esc_html__('Variant %d', 'fastpixel-website-accelerator'), $index + 1) . '</strong>';
+                    if (!empty($variant['need_cache'])) {
+                        $content .= ' <span>' . esc_html__('stale', 'fastpixel-website-accelerator') . '</span>';
+                    }
+                    $content .= $this->get_vary_cache_cookies_json_markup($cookies_json) . '</li>';
+                }
+                $content .= '</ul>';
+            }
+
+            return '<span class="have-popup dashicons dashicons-randomize fastpixel-vary-cache-icon" tabindex="0" role="button" aria-label="' . esc_attr__('Vary cache variants', 'fastpixel-website-accelerator') . '"></span><div class="pop-up fastpixel-vary-cache-popup">' . $content . '</div>';
+        }
+
+        protected function get_vary_cache_cookies_json_markup(string $cookies_json): string
+        {
+            $max_length = 180;
+            $json_length = function_exists('mb_strlen') ? mb_strlen($cookies_json) : strlen($cookies_json);
+            if ($json_length <= $max_length) {
+                return '<pre><code>' . esc_html($cookies_json) . '</code></pre>';
+            }
+
+            $preview = (function_exists('mb_substr') ? mb_substr($cookies_json, 0, $max_length) : substr($cookies_json, 0, $max_length)) . '...';
+            return '<div class="fastpixel-vary-cache-json-preview" tabindex="0"><pre><code>' . esc_html($preview) . '</code></pre>'
+                . '<div class="fastpixel-vary-cache-json-popout" role="tooltip"><pre><code>' . esc_html($cookies_json) . '</code></pre></div></div>';
         }
 
         public function get_home_url() {
@@ -108,6 +158,11 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Functions')) {
                 }
             }
             return false;
+        }
+
+        public function is_vary_cache_active(): bool
+        {
+            return (bool) $this->functions->get_option('fastpixel_vary_cache', false);
         }
 
         //TODO: Check if we need to display paginated urls

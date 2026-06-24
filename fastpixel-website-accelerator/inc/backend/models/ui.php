@@ -115,6 +115,8 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_UI')) {
                     'purge_cache_text'         => esc_html__('Purge Cache', 'fastpixel-website-accelerator'),
                     'bulk_action_text'         => esc_html__('Please select a bulk action first.', 'fastpixel-website-accelerator'),
                     'bulk_select_text'         => esc_html__('Please select at least one item to perform this action on.', 'fastpixel-website-accelerator'),
+                    'vary_cache_active'        => (bool) FASTPIXEL_Functions::get_instance()->get_option('fastpixel_vary_cache', false),
+                    'vary_cache_disabled_text' => esc_html__('Vary cache active, front-end cookies are needed.', 'fastpixel-website-accelerator'),
                     'purge_post_link'          => sprintf('admin-post.php?action=%1$s&nonce=%2$s&post_id=', 'fastpixel_admin_purge_post_cache', wp_create_nonce('cache_status_nonce')),
                     'deactivate_plugin_text'   => esc_html__('DEACTIVATED', 'fastpixel-website-accelerator'),
                     'stats_url'                => rest_url(FASTPIXEL_TEXTDOMAIN . '/v1/stats'),

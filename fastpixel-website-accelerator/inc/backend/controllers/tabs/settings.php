@@ -48,6 +48,8 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Settings')) {
             register_setting(FASTPIXEL_TEXTDOMAIN, 'fastpixel_registered_params_custom', ['type' => 'string']);
             register_setting(FASTPIXEL_TEXTDOMAIN, 'fastpixel_excluded_post_types', ['type' => 'array', 'sanitize_callback' => [$this, 'sanitize_fastpixel_post_types_exclusion_cb']]);
             register_setting(FASTPIXEL_TEXTDOMAIN, 'fastpixel_always_purge_urls', ['type' => 'array']);
+            register_setting(FASTPIXEL_TEXTDOMAIN, 'fastpixel_vary_cache', ['type' => 'boolean']);
+            register_setting(FASTPIXEL_TEXTDOMAIN, 'fastpixel_vary_cache_cookies', ['type' => 'string']);
             // Register a new section in the "settings" page.
             add_settings_section(
                 'fastpixel_settings_section',
@@ -91,6 +93,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Settings')) {
                     'label' => $field_title
                 ]
             );
+            $this->register_vary_cache_settings();
             if (!defined('SPECULATION_RULES_VERSION')) { //displaying speculation rules fields only if speculation rules plugin is not installed/enabled
                 $field_title = esc_html__('Speculation Rules', 'fastpixel-website-accelerator');
                 add_settings_field(
@@ -269,6 +272,81 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Settings')) {
             echo $output; //phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
         }
 
+        protected function register_vary_cache_settings(): void
+        {
+            $field_title = esc_html__('Vary Cache', 'fastpixel-website-accelerator');
+            add_settings_field(
+                'fastpixel_vary_cache',
+                $field_title,
+                [$this, 'field_vary_cache_cb'],
+                FASTPIXEL_TEXTDOMAIN,
+                'fastpixel_settings_section',
+                [
+                    'class' => 'fastpixel-settings-form-row',
+                    'label' => $field_title
+                ]
+            );
+        }
+
+        public function field_vary_cache_cb($args)
+        {
+            $vary_cache = $this->functions->get_option('fastpixel_vary_cache', false);
+            $vary_cache_cookies = $this->functions->get_option('fastpixel_vary_cache_cookies', '');
+            $checked = checked($vary_cache, true, false);
+            $field_name = 'fastpixel_vary_cache';
+            $label = $args['label'];
+
+            $switch = sprintf('<switch>
+            <label>
+                <input type="checkbox" class="fastpixel-switch" id="%1$s" name="%1$s" value="1" %2$s>
+                <div class="the_switch">&nbsp;</div>
+                %3$s
+            </label>
+            </switch>
+            <span class="fastpixel-switch-description fastpixel-setting-description">%4$s</span>',
+                $field_name,
+                $checked,
+                $label,
+                esc_html__('Save different cached versions of the same page depending on the cookie.', 'fastpixel-website-accelerator')
+            );
+
+            $cookies_field = $this->be_functions->print_textarea([
+                'field_name'  => 'fastpixel_vary_cache_cookies',
+                'field_value' => $vary_cache_cookies,
+                'label'       => esc_html__('Important Cookies', 'fastpixel-website-accelerator'),
+                'description' => sprintf(esc_html__('Add one cookie name per line. Adding a cookie is mandatory, otherwise Vary Cache will not work. Values are read dynamically from the current request. %1$s.', 'fastpixel-website-accelerator'), sprintf('<a href="https://fastpixel.io/docs/what-is-vary-cache/" target="_blank">%1$s</a>', esc_html__('Read More', 'fastpixel-website-accelerator'))),
+                'placeholder' => "woocommerce_items_in_cart\nwp_woocommerce_session_",
+                'disabled'    => !$vary_cache
+            ], false);
+
+            $output = '<setting id="' . $field_name . '-container" class="switch"><content>' .
+                $switch .
+                '<div class="fastpixel-fadein-options" ' . ($vary_cache ? '' : 'style="display:none"') . '>' .
+                $cookies_field .
+                '</div></content></setting>';
+
+            echo $output; //phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+        }
+
+        protected function save_vary_cache_options(): void
+        {
+            $vary_cache = isset($_POST['fastpixel_vary_cache']) && 1 == sanitize_text_field($_POST['fastpixel_vary_cache']) ? 1 : 0;
+            $cookies = isset($_POST['fastpixel_vary_cache_cookies']) ? sanitize_textarea_field($_POST['fastpixel_vary_cache_cookies']) : '';
+
+            // The server rejects an empty vary key, so cookies are mandatory: auto-disable and warn.
+            if ($vary_cache && trim($cookies) === '') {
+                $vary_cache = 0;
+                FASTPIXEL_Notices::get_instance()->add_flash_notice(
+                    esc_html__('Vary Cache has been disabled because no cookies were provided. Adding at least one cookie is mandatory for Vary Cache to work.', 'fastpixel-website-accelerator'),
+                    'warning',
+                    false
+                );
+            }
+
+            $this->functions->update_option('fastpixel_vary_cache', $vary_cache);
+            $this->functions->update_option('fastpixel_vary_cache_cookies', $cookies);
+        }
+
         public function sanitize_cache_limit_gb($value): float
         {
             if (is_string($value)) {
@@ -297,7 +375,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Settings')) {
             // Get the value of the setting we've registered with register_setting()
             $speculation_rules = $this->functions->get_option('fastpixel_speculation_rules');
             /* translators: %1$s used to display "a" tag, nothing to translate */
-            $description = sprintf(esc_html__('Enable speculation rules. %1$s.', 'fastpixel-website-accelerator'), sprintf('<a href="https://fastpixel.io/docs/what-are-the-speculation-rules/" target="_blank">%1$s</a>', esc_html__('Read more', 'fastpixel-website-accelerator')));
+            $description = sprintf(esc_html__('Enable speculation rules. %1$s.', 'fastpixel-website-accelerator'), sprintf('<a href="https://fastpixel.io/docs/what-are-the-speculation-rules/" target="_blank">%1$s</a>', esc_html__('Read More', 'fastpixel-website-accelerator')));
             $checked = checked($speculation_rules, true, false);
             $field_name = 'fastpixel_speculation_rules';
             $label = $args['label'];
@@ -531,6 +609,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Settings')) {
             $expired_cleanup_limit_gb = isset($_POST['fastpixel_expired_cleanup_limit_gb']) ? $this->sanitize_cache_limit_gb($_POST['fastpixel_expired_cleanup_limit_gb']) : (float) FASTPIXEL_DEFAULT_CACHE_LIMIT_GB;
             $this->functions->update_option('fastpixel_expired_cleanup_limit_gb', $expired_cleanup_limit_gb);
             $this->functions->delete_option('fastpixel_expired_cleanup_days');
+            $this->save_vary_cache_options();
             //speculation rules
             $sp_rules = isset($_POST['fastpixel_speculation_rules']) && 1 == sanitize_text_field($_POST['fastpixel_speculation_rules']) ? 1 : 0;
             $this->functions->update_option('fastpixel_speculation_rules', $sp_rules);

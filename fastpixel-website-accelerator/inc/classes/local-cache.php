@@ -45,7 +45,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Local_Cache')) {
                     //add_action('wp_head', [$this, 'snapshot_head_styles'], 9999);
                 });
             }
-            add_action('fastpixel/cachefiles/saved', [$this, 'delete_file_on_api_request'], 10, 1);
+            add_action('fastpixel/cachefiles/saved', [$this, 'delete_file_on_api_request'], 10, 2);
             add_action('fastpixel/post/trashed', [$this, 'delete_file_on_trashed'], 10, 1);
             add_action('fastpixel/admin/purge_cache_by_url', [$this, 'delete_file_on_purge'], 10, 1);
             add_action('fastpixel/admin/purge_cache_by_id', [$this, 'delete_file_on_purge'], 10, 1);
@@ -123,7 +123,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Local_Cache')) {
             //if content is not empty, save it to file
             if (strlen($this->page_content) > 0 && $this->is_html_content) {
                 //$this->file($url, 'add', $this->move_late_styles_to_head($this->page_content));
-                $this->file($url, 'add', $this->page_content);
+                $this->file($url, 'add', $this->page_content, $this->functions->get_current_vary_cache_key());
                 ob_end_flush();
             } else {
                 if ($this->debug) {
@@ -212,9 +212,9 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Local_Cache')) {
             return $head_part . implode("\n", $all_links) . "\n" . '</head>' . $body_part_cleaned;
         }
 
-        protected function file($url, $action = 'add', $data = '')
+        protected function file($url, $action = 'add', $data = '', $vary_key = '')
         {
-            $path = $this->functions->check_path($url);
+            $path = $this->functions->check_path($url, $vary_key);
             if (!$path) {
                 return false;
             }
@@ -254,11 +254,11 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Local_Cache')) {
             return true;
         }
 
-        public function delete_file_on_api_request($url) {
+        public function delete_file_on_api_request($url, $vary_key = '') {
             if ($this->debug) {
                 FASTPIXEL_Debug::log('Class FASTPIXEL_Local_Cache: Deleting local cache on rest-api request');
             }
-            $this->file($url, 'delete');
+            $this->file($url, 'delete', '', $vary_key);
         }
 
         public function delete_file_on_purge($url)

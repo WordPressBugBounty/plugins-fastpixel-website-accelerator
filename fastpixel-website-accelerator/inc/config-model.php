@@ -21,6 +21,8 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Config_Model')) {
             'fastpixel_params_exclusions'                       => 'mailpoet_router',
             'fastpixel_registered_params_custom'                => '',
             'fastpixel_registered_params_list'                  => [],
+            'fastpixel_vary_cache'                              => false,
+            'fastpixel_vary_cache_cookies'                      => '',
             'fastpixel_force_trailing_slash'                    => true, //used in single site install, usually is set to true
             'fastpixel_wpml_use_directory_for_default_language' => false
         ];
@@ -100,6 +102,8 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Config_Model')) {
                         'fastpixel_params_exclusions',
                         'fastpixel_exclude_all_params',
                         'fastpixel_registered_params_custom',
+                        'fastpixel_vary_cache',
+                        'fastpixel_vary_cache_cookies',
                     ];
                     foreach($options as $option_name) {
                         //validating checkboxes
@@ -107,7 +111,8 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Config_Model')) {
                             'fastpixel_serve_stale',
                             'fastpixel_display_cached_for_logged',
                             'fastpixel_expired_cleanup',
-                            'fastpixel_exclude_all_params'
+                            'fastpixel_exclude_all_params',
+                            'fastpixel_vary_cache'
                         ])) {
                             if (isset($_POST[$option_name]) && $_POST[$option_name]) {
                                 $value = true;
@@ -119,7 +124,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Config_Model')) {
                             // other fields
                             if (isset($_POST[$option_name])) {
                                 // textarea-like option: keep newlines so we can split per line
-                                if ($option_name === 'fastpixel_registered_params_custom') {
+                                if (in_array($option_name, ['fastpixel_registered_params_custom', 'fastpixel_vary_cache_cookies'], true)) {
                                     $this->set_option($option_name, sanitize_textarea_field($_POST[$option_name]));
                                 } else {
                                     $this->set_option($option_name, sanitize_text_field($_POST[$option_name]));

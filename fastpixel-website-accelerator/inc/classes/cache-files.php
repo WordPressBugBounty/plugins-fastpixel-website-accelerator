@@ -15,6 +15,8 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Cache_Files')) {
         protected $cache_dir;
         protected $url;
         protected $url_path;
+        protected $vary_key = '';
+        protected $resolved_relative_path;
         protected $html_path;
         protected $local_html_path;
         protected $json_path;
@@ -54,11 +56,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Cache_Files')) {
                 $this->url             = $url;
                 $this->cache_dir       = $this->functions->get_cache_dir();
                 $this->url_path        = $this->url->get_url_path();
-                $this->html_path       = $this->cache_dir . DIRECTORY_SEPARATOR . $this->url_path . 'index.html';
-                $this->local_html_path = $this->cache_dir . DIRECTORY_SEPARATOR . $this->url_path . 'index_local.html';
-                $this->json_path       = $this->cache_dir . DIRECTORY_SEPARATOR . $this->url_path . 'index.json';
-                $this->header_path     = $this->cache_dir . DIRECTORY_SEPARATOR . $this->url_path . 'headers.json';
-                $this->meta_path       = $this->cache_dir . DIRECTORY_SEPARATOR . $this->url_path . 'meta';
+                $this->vary_key        = $this->functions->get_current_vary_cache_key();
                 if (empty($this->nonce_life_time)) {
                     $this->nonce_life_time = FASTPIXEL_Nonces::get_instance()->get_lifetime();
                 }
@@ -71,7 +69,10 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Cache_Files')) {
                 return false;
             }
             if ($this->debug) {
-                FASTPIXEL_DEBUG::log('Class FASTPIXEL_Cache_Files: Checking for cached page', $this->url_path);
+                FASTPIXEL_DEBUG::log('Class FASTPIXEL_Cache_Files: Checking for cached page', [
+                    'url_path' => $this->url_path,
+                    'vary_key' => $this->vary_key,
+                ]);
             }
             //no need to continue if path is empty
             if (empty($this->url_path)) {
@@ -81,7 +82,14 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Cache_Files')) {
                 return false;
             }
             //getting page cache status
-            $this->page_cache_status = $this->functions->check_post_cache_status($this->url->get_url());
+            $this->page_cache_status = $this->functions->check_post_cache_status($this->url->get_url(), $this->vary_key);
+            $this->resolved_relative_path = $this->page_cache_status['resolved_relative_path'];
+            $resolved_path = $this->cache_dir . DIRECTORY_SEPARATOR . $this->resolved_relative_path;
+            $this->html_path       = $resolved_path . DIRECTORY_SEPARATOR . 'index.html';
+            $this->local_html_path = $resolved_path . DIRECTORY_SEPARATOR . 'index_local.html';
+            $this->json_path       = $resolved_path . DIRECTORY_SEPARATOR . 'index.json';
+            $this->header_path     = $resolved_path . DIRECTORY_SEPARATOR . 'headers.json';
+            $this->meta_path       = $resolved_path . DIRECTORY_SEPARATOR . 'meta';
             //updating meta depends on parent's data for paginated pages or pages with params
             if (preg_match('/page\/\d+/', $this->url->get_url()) || strpos($this->url->get_url(), '?') > 0) {
                 if (preg_match('/page\/\d+/', $this->url->get_url())) {
@@ -90,7 +98,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Cache_Files')) {
                     $stripped_parent_url = new FASTPIXEL_Url($this->url->get_url(), true);
                     $parent_url = $stripped_parent_url->get_url();
                 }
-                $parent_meta = $this->functions->check_post_cache_status($parent_url);
+                $parent_meta = $this->functions->check_post_cache_status($parent_url, $this->vary_key);
                 if ((isset($this->page_cache_status['have_cache']) && $this->page_cache_status['have_cache'])
                     && (!empty($parent_meta['local_invalidation_time']) && $parent_meta['local_invalidation_time'] > $this->page_cache_status['local_invalidation_time']) 
                     && $this->page_cache_status['html_created_time'] < $parent_meta['local_invalidation_time']
@@ -113,6 +121,8 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Cache_Files')) {
                     'last_access_time'         => gmdate('Y-m-d H:i:s', (int) $this->page_cache_status['last_access_time']) . ' -> ' . $this->page_cache_status['last_access_time'],
                     'error'                    => $this->page_cache_status['error'],
                     'error_time'               => $this->page_cache_status['error_time'],
+                    'vary_key'                 => $this->vary_key,
+                    'resolved_relative_path'   => $this->resolved_relative_path,
                 ];
                 // FASTPIXEL_DEBUG::log('Class FASTPIXEL_Cache_Files: Page cache status', $debug_array);
             }
@@ -233,7 +243,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Cache_Files')) {
                     //if during 24 hours we didn't get new cache then we invalidate it, we need it to refresh pages with nonces
                     if (($modified_time + $this->nonce_life_time) < time()) {
                         //invalidating cache
-                        $this->functions->update_post_cache($this->url->get_url_path(), true);
+                        $this->functions->update_post_cache($this->page_cache_status['resolved_relative_path'], true);
                     }
                     $this->page_cache_status['need_cache'] = true; //setting need_cache to true to request new cache
                     return false;
@@ -258,6 +268,9 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Cache_Files')) {
             }
             if ($this->gzip && function_exists('gzencode') && ini_get('zlib.output_compression') == 0) {
                 $this->headers[] = ['header' => 'Content-Encoding: gzip'];
+            }
+            if (!empty($this->vary_key)) {
+                $this->headers[] = ['header' => 'X-FastPixel-Vary-Key: ' . $this->vary_key];
             }
             if ($local) {
                 $this->headers[] = ['header' => 'X-FastPixel-Local-Cache: HIT'];
@@ -299,7 +312,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Cache_Files')) {
                 if ($this->stats) {
                     $this->stats->record_hit();
                 }
-                $this->functions->update_post_cache($this->url->get_url_path(), false, false, true);
+                $this->functions->update_post_cache($this->resolved_relative_path, false, false, true);
                 $this->cache_exists = true;
             }
             return true;

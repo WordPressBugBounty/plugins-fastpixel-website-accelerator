@@ -507,6 +507,20 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
+    // Server rejected the request because the cache_status nonce expired (long-open admin tabs).
+    function fastpixelIsInvalidNonce(response) {
+        return !!(response && response.code === 'invalid_nonce');
+    }
+
+    let fastpixel_nonce_notice_shown = false;
+    function fastpixelNoticeExpiredNonce(message) {
+        if (fastpixel_nonce_notice_shown) {
+            return;
+        }
+        fastpixel_nonce_notice_shown = true;
+        fastpixelDisplayMessage(message, 'warning');
+    }
+
     function fastpixelCacheStatuses(ids, type, selected_of_type) {
         if (!ids || !Array.isArray(ids)) {
             return false;
@@ -531,6 +545,8 @@ document.addEventListener("DOMContentLoaded", function() {
                         const row = {...{ id: id }, ...data};
                         updatePostRow(row);
                     });
+                } else if (fastpixelIsInvalidNonce(response)) {
+                    fastpixelNoticeExpiredNonce(response.statusText);
                 } else {
                     fastpixelDisplayMessage(response.statusText, response.status);
                 }
@@ -607,6 +623,8 @@ document.addEventListener("DOMContentLoaded", function() {
                             fastpixelMaybeRunPendingPerformanceTests();
                         }, 300);
                     }
+                } else if (fastpixelIsInvalidNonce(response)) {
+                    fastpixelNoticeExpiredNonce(response.statusText);
                 }
             },
             complete: function () {
@@ -655,6 +673,8 @@ document.addEventListener("DOMContentLoaded", function() {
             success: function (response) {
                 if (response.status === 'success' && response.performance_display) {
                     fastpixelUpdateHomepagePerformance(response.performance_display);
+                } else if (fastpixelIsInvalidNonce(response)) {
+                    fastpixelNoticeExpiredNonce(response.statusText);
                 } else if (response.statusText) {
                     fastpixelDisplayMessage(response.statusText, response.status);
                 }
@@ -1085,6 +1105,29 @@ document.addEventListener("DOMContentLoaded", function() {
             jQuery(this).trigger('fastpixelChange');
         });
         fastpixel_expired_cleanup_checkbox.trigger('fastpixelChange');
+    }
+
+    //Vary Cache
+    function fastpixelOnVaryCacheChange(disable = true) {
+        const varyCacheContainer = jQuery('#fastpixel_vary_cache-container').find('.fastpixel-fadein-options');
+        const varyCacheTextarea = jQuery('textarea[name="fastpixel_vary_cache_cookies"]');
+        if (disable) {
+            varyCacheContainer.slideUp(300);
+            varyCacheTextarea.attr('disabled', 'disabled');
+        } else {
+            varyCacheContainer.slideDown(300);
+            varyCacheTextarea.removeAttr('disabled');
+        }
+    }
+    const fastpixel_vary_cache_checkbox = jQuery('#fastpixel_vary_cache');
+    if (fastpixel_vary_cache_checkbox.length > 0) {
+        fastpixel_vary_cache_checkbox.on('fastpixelChange', function () {
+            fastpixelOnVaryCacheChange(jQuery(this).prop('checked') ? false : true);
+        });
+        fastpixel_vary_cache_checkbox.on('change', function () {
+            jQuery(this).trigger('fastpixelChange');
+        });
+        fastpixel_vary_cache_checkbox.trigger('fastpixelChange');
     }
 
     //Params exclusions & registered parameters

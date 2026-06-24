@@ -765,7 +765,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Cache')) {
 
         public function admin_ajax_cache_statuses() {
             if (!isset($_POST['nonce']) || !wp_verify_nonce(sanitize_text_field($_POST['nonce']), 'cache_status_nonce')) {
-                echo wp_json_encode(['status' => 'error', 'statusText' => esc_html__('Can\'t run action, wrong nonce provided', 'fastpixel-website-accelerator')]);
+                echo wp_json_encode(['status' => 'error', 'code' => 'invalid_nonce', 'statusText' => esc_html__('Your session has expired. Please refresh the page.', 'fastpixel-website-accelerator')]);
                 wp_die();
             }
             if (!isset($_POST['ids']) || empty($_POST['ids'])) {

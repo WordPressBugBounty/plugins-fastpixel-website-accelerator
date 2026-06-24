@@ -364,7 +364,8 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Performance_Score')) {
             if (!isset($_POST['nonce']) || !wp_verify_nonce(sanitize_text_field($_POST['nonce']), 'cache_status_nonce')) {
                 wp_send_json([
                     'status' => 'error',
-                    'statusText' => esc_html__('Can\'t run action, wrong nonce provided', 'fastpixel-website-accelerator'),
+                    'code' => 'invalid_nonce',
+                    'statusText' => esc_html__('Your session has expired. Please refresh the page.', 'fastpixel-website-accelerator'),
                 ]);
             }
 
@@ -389,7 +390,8 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Performance_Score')) {
             if (!isset($_POST['nonce']) || !wp_verify_nonce(sanitize_text_field($_POST['nonce']), 'cache_status_nonce')) {
                 wp_send_json([
                     'status' => 'error',
-                    'statusText' => esc_html__('Can\'t run action, wrong nonce provided', 'fastpixel-website-accelerator'),
+                    'code' => 'invalid_nonce',
+                    'statusText' => esc_html__('Your session has expired. Please refresh the page.', 'fastpixel-website-accelerator'),
                 ]);
             }
 

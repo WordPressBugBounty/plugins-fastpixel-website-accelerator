@@ -26,7 +26,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Actions')) {
             add_action('wp_ajax_fastpixel_object_cache_test_connection', [$this, 'ajax_object_cache_test_connection']);
         }
 
-        public function run_action() 
+        public function run_action()
         {
             //generating class name
             $class_name = 'FASTPIXEL\FASTPIXEL_Action_' . $this->action;

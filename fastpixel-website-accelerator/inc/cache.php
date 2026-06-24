@@ -320,7 +320,19 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Cache')) {
             FASTPIXEL_Debug::log('[CACHE] request_page_cache: calling cache_request() with headers', $request_headers);
             $requested = $request->cache_request($this->url->get_url(), $request_headers);
             if ($requested) {
-                $this->functions->update_post_cache($this->url->get_url_path(), false, true);
+                //the frontend request is the only place where the vary key and the real
+                //$_COOKIE values coexist, so persist them now as the source of truth for meta
+                $vary_key = $this->functions->get_current_vary_cache_key();
+                $vary_cache = '' !== $vary_key
+                    ? ['key' => $vary_key, 'cookies' => $this->functions->get_current_vary_cache_cookies(true)]
+                    : null;
+                $this->functions->update_post_cache(
+                    $this->functions->get_cache_relative_path($this->url, $vary_key),
+                    false,
+                    true,
+                    false,
+                    $vary_cache
+                );
                 if ($this->debug) {
                     FASTPIXEL_DEBUG::log('Class FASTPIXEL_Cache: request_page_cache, Ended Successfully');
                 }

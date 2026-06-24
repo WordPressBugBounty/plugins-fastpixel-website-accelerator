@@ -4,7 +4,7 @@ Tags: speed, cache, caching, performance, web vitals
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 5.6
-Stable tag: 1.7.0
+Stable tag: 1.8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -230,6 +230,27 @@ For a detailed documentation about the hooks, please see this page: https://fast
 
 
 == Changelog ==
+
+= 1.8.0 =
+
+🍪 The Vary Cache Update
+
+Release Date: June 24, 2026
+
+✨ New Features
+
+* Vary Cache: Create and serve different cached versions of the same page based on cookies. Perfect for personalized content, membership sites, eCommerce stores, and other dynamic experiences.
+* WPDiscuz Compatibility: Added dedicated compatibility for WPDiscuz comments to ensure a smoother caching experience and up-to-date comment sections.
+
+🎨 UI Improvements
+
+* Interface Refinements: Made several small UI improvements for a cleaner and more intuitive experience throughout the plugin.
+
+🛠️ Fixes & Improvements
+
+* Compatibility Updates: Added several small compatibility improvements.
+
+Update now for smarter caching, improved comment compatibility, and an even better user experience! 🚀
 
 = 1.7.0 =
 

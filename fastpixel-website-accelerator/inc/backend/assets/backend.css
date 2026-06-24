@@ -643,6 +643,15 @@
     white-space: normal;
     pointer-events: auto;
 }
+.fastpixel-website-accelerator-wrap .column-cache_status .pop-up a {
+    color: #ffffff;
+    text-decoration: underline;
+}
+.fastpixel-website-accelerator-wrap .column-cache_status .pop-up a:hover {
+    color: #ffffff;
+    text-decoration: underline;
+    opacity: 0.85;
+}
 .fastpixel-website-accelerator-wrap .column-cache_status .pop-up::before {
     content: "";
     position: absolute;
@@ -796,7 +805,7 @@
 }
 .fastpixel-website-accelerator-wrap .fastpixel-panel-title {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
-    font-size: 14px;
+    font-size: 16px;
     font-weight: 700;
     color: #0f6a7d;
     text-align: center;
@@ -809,6 +818,68 @@
     color: #5d7280;
     line-height: 1.5;
     margin: 0;
+}
+.fastpixel-website-accelerator-wrap .fastpixel-panel-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin: 0 0 10px;
+}
+.fastpixel-website-accelerator-wrap .fastpixel-panel-title-row .fastpixel-panel-title {
+    margin: 0;
+}
+.fastpixel-website-accelerator-wrap .fastpixel-pageviews-help-trigger {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+.fastpixel-website-accelerator-wrap .fastpixel-pageviews-help-button {
+    border: 0;
+    background: transparent;
+    padding: 0;
+    margin: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    line-height: 0;
+}
+.fastpixel-website-accelerator-wrap .fastpixel-pageviews-help-button:focus-visible {
+    outline: 2px solid #2f9ec2;
+    outline-offset: 2px;
+    border-radius: 50%;
+}
+.fastpixel-website-accelerator-wrap .fastpixel-pageviews-help-icon {
+    width: 16px;
+    height: 16px;
+    display: block;
+}
+.fastpixel-website-accelerator-wrap .fastpixel-pageviews-help-tooltip {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 3;
+    min-width: 220px;
+    max-width: 260px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    background: #1c5f6e;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1.35;
+    text-align: left;
+    box-shadow: 0 6px 14px rgba(15, 41, 48, 0.2);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+.fastpixel-website-accelerator-wrap .fastpixel-pageviews-help-trigger:hover .fastpixel-pageviews-help-tooltip,
+.fastpixel-website-accelerator-wrap .fastpixel-pageviews-help-trigger:focus-within .fastpixel-pageviews-help-tooltip {
+    opacity: 1;
+    visibility: visible;
 }
 /* Pageviews stats */
 .fastpixel-website-accelerator-wrap .fastpixel-pageviews-numbers {
@@ -3195,4 +3266,110 @@ settinglist.onboard-submit {
 
 .shortpixel-settings-error {
     color: #ff0000;
+}
+
+/* Vary Cache - cache status column variants popup */
+.fastpixel-website-accelerator-wrap .column-cache_status .fastpixel-vary-cache-icon {
+    color: var(--fastpixel-color-accent);
+    margin-left: 6px;
+    vertical-align: text-bottom;
+}
+.fastpixel-website-accelerator-wrap .column-cache_status .fastpixel-vary-cache-popup {
+    max-width: min(360px, calc(100vw - 32px));
+    background: var(--fastpixel-color-surface);
+    border-color: var(--fastpixel-color-panel-border);
+    color: var(--fastpixel-color-accent-dark);
+    box-shadow: 0 10px 24px rgba(17, 108, 126, 0.18);
+}
+.fastpixel-website-accelerator-wrap .column-cache_status .fastpixel-vary-cache-popup::before {
+    background: var(--fastpixel-color-surface);
+    border-color: var(--fastpixel-color-panel-border);
+}
+.fastpixel-website-accelerator-wrap .column-cache_status .fastpixel-vary-cache-popup p {
+    margin: 8px 0 0;
+}
+.fastpixel-website-accelerator-wrap .column-cache_status .fastpixel-vary-cache-variants {
+    margin: 8px 0 0;
+}
+.fastpixel-website-accelerator-wrap .column-cache_status .fastpixel-vary-cache-variants li {
+    margin: 0 0 8px;
+}
+.fastpixel-website-accelerator-wrap .column-cache_status .fastpixel-vary-cache-variants li:last-child {
+    margin-bottom: 0;
+}
+.fastpixel-website-accelerator-wrap .column-cache_status .fastpixel-vary-cache-variants pre {
+    margin: 4px 0 0;
+    max-height: 240px;
+    overflow: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+.fastpixel-website-accelerator-wrap .column-cache_status .fastpixel-vary-cache-variants code {
+    color: var(--fastpixel-color-accent-dark);
+    background: #ffffff;
+}
+.fastpixel-website-accelerator-wrap .column-cache_status .fastpixel-vary-cache-json-preview {
+    position: relative;
+    cursor: pointer;
+}
+.fastpixel-website-accelerator-wrap .column-cache_status .fastpixel-vary-cache-json-preview:focus {
+    outline: 2px solid var(--fastpixel-color-accent);
+    outline-offset: 2px;
+}
+.fastpixel-website-accelerator-wrap .column-cache_status .fastpixel-vary-cache-json-popout {
+    display: none;
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    z-index: 30;
+    width: min(520px, calc(100vw - 48px));
+    max-height: 320px;
+    overflow: auto;
+    padding: 8px 10px;
+    border: 1px solid var(--fastpixel-color-panel-border);
+    border-radius: var(--fastpixel-radius-sm);
+    background: #ffffff;
+    color: var(--fastpixel-color-accent-dark);
+    box-shadow: 0 10px 24px rgba(17, 108, 126, 0.18);
+}
+.fastpixel-website-accelerator-wrap .column-cache_status .fastpixel-vary-cache-json-preview:hover .fastpixel-vary-cache-json-popout,
+.fastpixel-website-accelerator-wrap .column-cache_status .fastpixel-vary-cache-json-preview:focus .fastpixel-vary-cache-json-popout {
+    display: block;
+}
+.fastpixel-website-accelerator-wrap .column-cache_status .fastpixel-vary-cache-json-popout pre {
+    margin: 0;
+    max-height: none;
+    overflow: visible;
+}
+.fastpixel-website-accelerator-wrap .column-cache_status span.dont-have-popup { cursor: auto; }
+.fastpixel-website-accelerator-wrap .column-cache_status img { width: 32px; }
+
+/* Vary Cache - settings container */
+.fastpixel-website-accelerator-wrap #fastpixel_vary_cache-container .fastpixel-fadein-options {
+    width: 100%;
+    padding-left: 0;
+    box-sizing: border-box;
+}
+.fastpixel-website-accelerator-wrap #fastpixel_vary_cache-container,
+.fastpixel-website-accelerator-wrap #fastpixel_vary_cache-container > content,
+.fastpixel-website-accelerator-wrap #fastpixel_vary_cache-container .fastpixel-fadein-options,
+.fastpixel-website-accelerator-wrap #fastpixel_vary_cache-container #fastpixel_vary_cache_cookies-container,
+.fastpixel-website-accelerator-wrap #fastpixel_vary_cache-container #fastpixel_vary_cache_cookies-container > content {
+    width: 100%;
+    box-sizing: border-box;
+}
+.fastpixel-website-accelerator-wrap #fastpixel_vary_cache-container .fastpixel-textarea-setting {
+    width: 100%;
+}
+.fastpixel-website-accelerator-wrap #fastpixel_vary_cache-container #fastpixel_vary_cache_cookies-container {
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    border-radius: 0;
+}
+.fastpixel-website-accelerator-wrap #fastpixel_vary_cache-container textarea.fastpixel-textarea {
+    width: 100%;
+    max-width: none;
+    display: block;
+    box-sizing: border-box;
 }
