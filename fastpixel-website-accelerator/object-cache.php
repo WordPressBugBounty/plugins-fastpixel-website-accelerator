@@ -1111,10 +1111,12 @@ if (!class_exists('WP_Object_Cache')) {
 
             // if unix socket, use port 0
             $port = $is_socket ? 0 : (int) $this->port;
-            if ($port <= 0) {
+            if (!$is_socket && $port <= 0) {
                 $port = $this->method === 'memcached' ? 11211 : 6379;
                 /**
                  * if port is not valid, we'll use default ones (memcached is 1211) and redis is 6379
+                 * Skip this for unix sockets: they must keep port 0, otherwise phpredis
+                 * treats the socket path as a TCP host and getaddrinfo() fails.
                  */
             }
 

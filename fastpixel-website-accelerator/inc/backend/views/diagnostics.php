@@ -89,3 +89,29 @@ if (!empty($tests_results) && is_array($tests_results)) : ?>
     </table>
 </div>
 <?php endif;
+$active_integrations = FASTPIXEL_Auto_Exclusions::get_instance()->get_active_integrations();
+if (!empty($active_integrations)) : ?>
+<div class="fastpixel-diagnostics-container fastpixel-active-integrations">
+    <table class="fastpixel-table wp-list-table widefat fixed striped table-view-list">
+        <thead>
+            <tr>
+                <th colspan="2"><?php esc_html_e('Active Integrations', 'fastpixel-website-accelerator'); ?></th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td colspan="2">
+                    <p><?php esc_html_e('Plugins that were detected and have special integrations. These integrations may include automatic exclusions or compatibility fixes that are applied automatically to help ensure everything works correctly.', 'fastpixel-website-accelerator'); ?></p>
+                </td>
+            </tr>
+            <?php foreach ($active_integrations as $integration) : ?>
+            <tr class="plugin-status-row passed">
+                <td><?php echo esc_html($integration); ?></td>
+                <td><strong class="passed"><?php esc_html_e('Active', 'fastpixel-website-accelerator'); ?></strong></td>
+            </tr>
+            <?php endforeach; ?>
+        </tbody>
+        <tfoot></tfoot>
+    </table>
+</div>
+<?php endif;

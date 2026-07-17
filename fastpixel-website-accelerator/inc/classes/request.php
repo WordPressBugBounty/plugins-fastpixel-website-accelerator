@@ -70,6 +70,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Request')) {
             if (class_exists('FASTPIXEL\FASTPIXEL_Settings_Javascript')) {
                 $script_settings = FASTPIXEL_Settings_Javascript::get_instance();
                 $this->request_data['settings']['modules']['ScriptRewrite'] = $script_settings->get_module_settings();
+                $this->request_data['settings']['modules']['StyleRewrite'] = $script_settings->get_style_module_settings();
             }
             //gettting images settings
             if (class_exists('FASTPIXEL\FASTPIXEL_Settings_Images')) {

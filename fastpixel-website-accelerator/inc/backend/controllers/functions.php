@@ -319,6 +319,153 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Backend_Functions')) {
             }
         }
 
+        public function print_asset_exclusions($args = [], $display = false)
+        {
+            $defaults = [
+                'field_name'       => '',
+                'field_value'      => '[]',
+                'label'            => '',
+                'description'      => '',
+                'placeholder'      => '',
+                'data'             => [],
+                'allow_regex'      => true,
+                'allow_nodelay'    => true,
+                'show_behavior'    => true,
+                'strings_label'    => esc_html__('URL', 'fastpixel-website-accelerator'),
+                'regex_label'      => esc_html__('RegExp', 'fastpixel-website-accelerator'),
+                'nodelay_label'    => esc_html__('nodelay', 'fastpixel-website-accelerator'),
+                'exclude_label'    => esc_html__('exclude', 'fastpixel-website-accelerator'),
+                'add_label'        => esc_html__('Add', 'fastpixel-website-accelerator'),
+                'rules_label'      => esc_html__('rules', 'fastpixel-website-accelerator'),
+            ];
+
+            $args = wp_parse_args($args, $defaults);
+            if (empty($args['field_name'])) {
+                return false;
+            }
+
+            $field_name = esc_attr($args['field_name']);
+            $placeholder = esc_attr($args['placeholder']);
+            $data = implode(' ', $args['data']);
+            $regex_option = $args['allow_regex'] ? sprintf(
+                '<option value="regex">%s</option>',
+                esc_html($args['regex_label'])
+            ) : '';
+            $behavior_options = sprintf(
+                '<option value="exclude">%s</option>',
+                esc_html($args['exclude_label'])
+            );
+            if ($args['allow_nodelay']) {
+                $behavior_options = sprintf(
+                    '<option value="nodelay">%s</option>%s',
+                    esc_html($args['nodelay_label']),
+                    $behavior_options
+                );
+            }
+            $behavior_field = '';
+            if ($args['show_behavior']) {
+                $behavior_field = sprintf(
+                    '<select class="fastpixel-select" data-fastpixel-exclusion-behavior>%s</select>',
+                    $behavior_options
+                );
+            } else {
+                $behavior_field = '<input type="hidden" value="exclude" data-fastpixel-exclusion-behavior>';
+            }
+            $meta_class = $args['show_behavior'] ? '' : ' fastpixel-asset-exclusions-meta-hidden';
+
+            $output = sprintf(
+                '<setting id="%1$s-container" class="fastpixel-asset-exclusions-setting"><content>
+                    <label class="fastpixel-textarea-label">%2$s</label>
+                    <div class="fastpixel-asset-exclusions"
+                        data-fastpixel-asset-exclusions
+                        data-allow-regex="%3$s"
+                        data-allow-nodelay="%4$s"
+                        data-rules-label="%5$s"
+                        %16$s>
+                        <input type="hidden" name="%1$s" value="%6$s" data-fastpixel-exclusion-rules>
+                        <div class="fastpixel-asset-exclusions-list" data-fastpixel-exclusion-list></div>
+                        <div class="fastpixel-asset-exclusions-meta%15$s">
+                            <span class="fastpixel-exclusion-legend fastpixel-exclusion-legend-nodelay">%7$s</span>
+                            <span class="fastpixel-exclusion-legend fastpixel-exclusion-legend-exclude">%8$s</span>
+                            <span class="fastpixel-exclusion-count" data-fastpixel-exclusion-count></span>
+                        </div>
+                        <div class="fastpixel-asset-exclusions-add">
+                            <select class="fastpixel-select" data-fastpixel-exclusion-type>
+                                <option value="url">%9$s</option>
+                                %10$s
+                            </select>
+                            <input type="text" class="fastpixel-input" placeholder="%11$s" data-fastpixel-exclusion-pattern>
+                            %12$s
+                            <button type="button" class="button fastpixel-exclusion-add-button" data-fastpixel-exclusion-add>+ %13$s</button>
+                        </div>
+                    </div>
+                    <span class="fastpixel-textarea-description fastpixel-setting-description">%14$s</span>
+                </content></setting>',
+                $field_name,
+                $args['label'],
+                $args['allow_regex'] ? '1' : '0',
+                $args['allow_nodelay'] ? '1' : '0',
+                esc_attr($args['rules_label']),
+                esc_attr($args['field_value']),
+                esc_html($args['nodelay_label']),
+                esc_html($args['exclude_label']),
+                esc_html($args['strings_label']),
+                $regex_option,
+                $placeholder,
+                $behavior_field,
+                esc_html($args['add_label']),
+                $args['description'],
+                $meta_class,
+                $data
+            );
+
+            if ($display) {
+                echo $output; //phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+            } else {
+                return $output;
+            }
+        }
+
+        public function sanitize_asset_exclusion_rules($raw_rules, $allow_nodelay = true)
+        {
+            $decoded = is_string($raw_rules) ? json_decode($raw_rules, true) : $raw_rules;
+            if (!is_array($decoded)) {
+                return [];
+            }
+
+            $rules = [];
+            $seen = [];
+            foreach ($decoded as $rule) {
+                if (!is_array($rule)) {
+                    continue;
+                }
+                $type = isset($rule['type']) ? sanitize_key($rule['type']) : 'url';
+                if (!in_array($type, ['url', 'regex'], true)) {
+                    $type = 'url';
+                }
+                $behavior = isset($rule['behavior']) ? sanitize_key($rule['behavior']) : 'exclude';
+                if ($behavior !== 'exclude' && (!$allow_nodelay || $behavior !== 'nodelay')) {
+                    $behavior = 'exclude';
+                }
+                $value = isset($rule['value']) ? trim(sanitize_text_field($rule['value'])) : '';
+                if ($value === '') {
+                    continue;
+                }
+                $key = $type . "\n" . $behavior . "\n" . $value;
+                if (isset($seen[$key])) {
+                    continue;
+                }
+                $seen[$key] = true;
+                $rules[] = [
+                    'type'     => $type,
+                    'value'    => $value,
+                    'behavior' => $behavior,
+                ];
+            }
+
+            return $rules;
+        }
+
         public function print_horizontal_selector($args = [], $display = false) {
             $defaults = array(
                 'field_name'   => '',

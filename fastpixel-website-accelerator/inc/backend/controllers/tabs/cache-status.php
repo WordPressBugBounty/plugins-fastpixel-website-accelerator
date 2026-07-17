@@ -74,13 +74,8 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Cache_Status')) {
             }
 
             $domain   = (string) parse_url(get_site_url(), PHP_URL_HOST);
-            $transient_key = 'fastpixel_pageviews_data_' . md5($api_key . '|' . $domain);
-            $cached = get_transient($transient_key);
-            if ($cached !== false) {
-                return $cached;
-            }
 
-            $response = wp_remote_post('https://dash.fastpixel.io/api/get-associated-domain', [
+            $response = wp_remote_post(FASTPIXEL_DASHBOARD_HOST . '/api/get-associated-domain', [
                 'headers' => [
                     'Accept'       => 'application/json',
                     'Content-Type' => 'text/plain',
@@ -107,7 +102,6 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Cache_Status')) {
             }
 
             FASTPIXEL_Debug::log('[PAGEVIEWS] Request successful', $domain);
-            set_transient($transient_key, $data, 5 * MINUTE_IN_SECONDS);
             return $data;
         }
 

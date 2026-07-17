@@ -97,14 +97,13 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Excluded_Url_Params')) {
                 $excluded_params = array_merge($excluded_params, $user_excluded_params);
             }
             $excluded_params_keys = array_keys($excluded_params);
-            if (!$url->params_stripped()) {
-                $url_checked = $url;
-            } else if ($url->params_stripped()) {
-                $url_checked = new FASTPIXEL_Url($url->get_original_url());
-            }
-            if ($url_checked->get_query()) {
+            //checking params on the original request url, $url query may be already
+            //filtered by "Ignore Unregistered Parameters" option and excluded params would not be visible
+            // phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url -- none available before WordPress is loaded.
+            $raw_query = parse_url((string) $url->get_original_url(), PHP_URL_QUERY); //phpcs:ignore
+            if ($raw_query) {
                 //parsing request params
-                parse_str($url_checked->get_query(), $parsed_request_params);
+                parse_str($raw_query, $parsed_request_params);
                 //checking url params with excluded keys
                 foreach ($parsed_request_params as $key => $value) {
                     //check if key is present in excluded array

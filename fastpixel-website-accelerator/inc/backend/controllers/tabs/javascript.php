@@ -21,8 +21,6 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Javascript')) {
 
         public function settings() {
             register_setting(FASTPIXEL_TEXTDOMAIN, 'fastpixel_javascript_optimization', ['type' => 'integer']);
-            register_setting(FASTPIXEL_TEXTDOMAIN, 'fastpixel_javascript_excludes', ['type' => 'array']);
-            register_setting(FASTPIXEL_TEXTDOMAIN, 'fastpixel_javascript_excludes_regexp', ['type' => 'array']);
             register_setting(FASTPIXEL_TEXTDOMAIN, 'fastpixel_javascript_exclude_gdpr', ['type' => 'boolean']);
             add_settings_section(
                 'fastpixel_settings_section-javascript',
@@ -44,21 +42,9 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Javascript')) {
             );
             $field_title = esc_html__('Exclusions', 'fastpixel-website-accelerator');
             add_settings_field(
-                'fastpixel_javascript_excludes',
+                'fastpixel_javascript_exclusion_rules',
                 $field_title,
-                [$this, 'field_fastpixel_javascript_excludes_cb'],
-                FASTPIXEL_TEXTDOMAIN . '-javascript',
-                'fastpixel_settings_section-javascript',
-                [
-                    'class' => 'fastpixel-settings-form-row',
-                    'label' => $field_title
-                ]
-            );
-            $field_title = esc_html__('RegExp Exclusions', 'fastpixel-website-accelerator');
-            add_settings_field(
-                'fastpixel_javascript_excludes_regexp',
-                $field_title,
-                [$this, 'field_fastpixel_javascript_excludes_regexp_cb'],
+                [$this, 'field_fastpixel_javascript_exclusion_rules_cb'],
                 FASTPIXEL_TEXTDOMAIN . '-javascript',
                 'fastpixel_settings_section-javascript',
                 [
@@ -106,33 +92,19 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Javascript')) {
                 ]
             ], true);
         }
-        public function field_fastpixel_javascript_excludes_cb($args) {
-            // Get the value of the setting we've registered with register_setting()
-            $excludes = stripslashes($this->functions->get_option('fastpixel_javascript_excludes'));
-            /* translators: %s used to display "a" tag(read more), nothing to translate */
-            $description = sprintf(esc_html__('Scripts that should be excluded from caching. Each script URL should be added on a new line. %1$s.', 'fastpixel-website-accelerator'), '<a href="https://fastpixel.io/docs/fastpixel-exclusions/" target="_blank">' . esc_html(__('Read More', 'fastpixel-website-accelerator')) . '</a>');
-            $description .= '<br/><br/>' . esc_html__('Example:', 'fastpixel-website-accelerator') . '&nbsp;' . esc_url(home_url('/wp-includes/js/jquery/jquery.js'));
-            $this->be_functions->print_textarea([
-                'field_name'  => 'fastpixel_javascript_excludes',
-                'field_value' => $excludes,
+        public function field_fastpixel_javascript_exclusion_rules_cb($args) {
+            $rules = $this->get_javascript_exclusion_rules();
+            $description = sprintf(
+                esc_html__('Scripts matching these rules can be excluded from optimization or kept out of delay. Use URL for simple text matches and RegExp only for advanced patterns. %1$s', 'fastpixel-website-accelerator'),
+                '<a href="https://fastpixel.io/docs/fastpixel-exclusions/" target="_blank">' . esc_html(__('Read More', 'fastpixel-website-accelerator')) . '</a>'
+            );
+            $this->be_functions->print_asset_exclusions([
+                'field_name'  => 'fastpixel_javascript_exclusion_rules',
+                'field_value' => wp_json_encode($rules),
                 'label'       => $args['label'],
+                'placeholder' => esc_html__('e.g. /wp-content/plugins/my-plugin/script.js', 'fastpixel-website-accelerator'),
                 'description' => $description,
-                'data'        => ['data-depends-on="fastpixel-javascript-optimization"']
-            ], true);
-        }
-        public function field_fastpixel_javascript_excludes_regexp_cb($args) {
-            // Get the value of the setting we've registered with register_setting()
-            $excludes = stripslashes($this->functions->get_option('fastpixel_javascript_excludes_regexp'));
-            $examples_text = '<span class="fastpixel-textarea-desc">' . esc_html__('Examples:', 'fastpixel-website-accelerator') . '&nbsp;fastpixel(\.min)?\.js<br/><span class="fastpixel-javascript-regexp-excludes-example-2d-row">fastpixel\.js\?ver=2\.8\.4</span></span>';
-            /* translators: %s used to display "br" tag, nothing to translate */
-            $description = sprintf(esc_html__('Specify URLs, keywords, or regular expressions that can identify inline or src of JavaScript to exclude from deferred execution (one per line). %1$s.%2$s
-            This is a good place to put your menus, carousels in the hero area, GA (Google Analytics), and GTM. %3$s', 'fastpixel-website-accelerator'), '<a href="https://fastpixel.io/docs/fastpixel-exclusions/" target="_blank">' . esc_html(__('Read More', 'fastpixel-website-accelerator')) . '</a>', '<br/><br/>', $examples_text);
-            $this->be_functions->print_textarea([
-                'field_name'  => 'fastpixel_javascript_excludes_regexp',
-                'field_value' => $excludes,
-                'label'       => $args['label'],
-                'description' => $description,
-                'data'        => ['data-depends-on="fastpixel-javascript-optimization"']
+                'data'        => ['data-depends-on="fastpixel-javascript-optimization"'],
             ], true);
         }
 
@@ -154,13 +126,19 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Javascript')) {
             if (isset($_POST['fastpixel_javascript_optimization']) && is_numeric($_POST['fastpixel_javascript_optimization'])) {
                 $this->functions->update_option('fastpixel_javascript_optimization', (int)sanitize_text_field($_POST['fastpixel_javascript_optimization']));
             }
-            if (isset($_POST['fastpixel_javascript_excludes'])) {
-                $this->functions->update_option('fastpixel_javascript_excludes', sanitize_textarea_field($_POST['fastpixel_javascript_excludes']));
-            }
-            if (isset($_POST['fastpixel_javascript_excludes_regexp'])) {
-                $this->functions->update_option('fastpixel_javascript_excludes_regexp', sanitize_textarea_field($_POST['fastpixel_javascript_excludes_regexp']));
+            if (isset($_POST['fastpixel_javascript_exclusion_rules'])) {
+                $rules = $this->be_functions->sanitize_asset_exclusion_rules(wp_unslash($_POST['fastpixel_javascript_exclusion_rules']), true);
+                $old_rules = $this->be_functions->sanitize_asset_exclusion_rules($this->functions->get_option('fastpixel_javascript_exclusion_rules', ''), true);
+                if ($rules != $old_rules) {
+                    $this->purge_all = true;
+                }
+                $this->functions->update_option('fastpixel_javascript_exclusion_rules', wp_json_encode($rules));
+                $this->delete_legacy_javascript_exclusion_options();
             }
             $gdpr = isset($_POST['fastpixel_javascript_exclude_gdpr']) && 1 == sanitize_text_field($_POST['fastpixel_javascript_exclude_gdpr']) ? 1 : 0;
+            if ($gdpr != (int) $this->functions->get_option('fastpixel_javascript_exclude_gdpr', 1)) {
+                $this->purge_all = true;
+            }
             $this->functions->update_option('fastpixel_javascript_exclude_gdpr', $gdpr);
         }
 
@@ -170,6 +148,57 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Javascript')) {
                 return $status;
             }
             return $this->purge_all;
+        }
+
+        protected function get_javascript_exclusion_rules() {
+            $rules = $this->be_functions->sanitize_asset_exclusion_rules($this->functions->get_option('fastpixel_javascript_exclusion_rules', ''), true);
+            if (!empty($rules)) {
+                return $rules;
+            }
+
+            $legacy_rules = $this->get_legacy_javascript_exclusion_rules();
+            if (!empty($legacy_rules)) {
+                $this->functions->update_option('fastpixel_javascript_exclusion_rules', wp_json_encode($legacy_rules));
+                $this->delete_legacy_javascript_exclusion_options();
+            }
+
+            return $legacy_rules;
+        }
+
+        protected function get_legacy_javascript_exclusion_rules() {
+            $rules = [];
+            $js_excludes = $this->functions->get_option('fastpixel_javascript_excludes', '');
+            $js_excludes_array = preg_split('/\r\n|\r|\n/', $js_excludes);
+            foreach ($js_excludes_array as $entry) {
+                $entry = trim(stripslashes($entry));
+                if ($entry !== '') {
+                    $rules[] = [
+                        'type'     => 'url',
+                        'value'    => $entry,
+                        'behavior' => 'exclude',
+                    ];
+                }
+            }
+
+            $js_excludes_regexp = $this->functions->get_option('fastpixel_javascript_excludes_regexp', '');
+            $js_excludes_regexp_array = preg_split('/\r\n|\r|\n/', $js_excludes_regexp);
+            foreach ($js_excludes_regexp_array as $regexp_exclude) {
+                $regexp_exclude = trim(stripslashes($regexp_exclude));
+                if ($regexp_exclude !== '') {
+                    $rules[] = [
+                        'type'     => 'regex',
+                        'value'    => $regexp_exclude,
+                        'behavior' => 'exclude',
+                    ];
+                }
+            }
+
+            return $this->be_functions->sanitize_asset_exclusion_rules($rules, true);
+        }
+
+        protected function delete_legacy_javascript_exclusion_options() {
+            $this->functions->delete_option('fastpixel_javascript_excludes');
+            $this->functions->delete_option('fastpixel_javascript_excludes_regexp');
         }
     }
     new FASTPIXEL_Tab_Javascript();

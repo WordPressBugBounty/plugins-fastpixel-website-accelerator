@@ -110,12 +110,47 @@ document.addEventListener("DOMContentLoaded", function() {
     }
     fastpixelToggleUpgradeBanner();
 
-    function fastpixelOnOptimizationChange(disable = true) {
-        if (disable) {
-            jQuery('[data-depends-on="fastpixel-javascript-optimization"]').attr('readonly', 'readonly');
-        } else {
-            jQuery('[data-depends-on="fastpixel-javascript-optimization"]').removeAttr('readonly');
+    function fastpixelSetAssetExclusionsDisabled(container, disabled) {
+        const hidden = container.querySelector('[data-fastpixel-exclusion-rules]');
+        const typeInput = container.querySelector('[data-fastpixel-exclusion-type]');
+        const patternInput = container.querySelector('[data-fastpixel-exclusion-pattern]');
+        const behaviorInput = container.querySelector('[data-fastpixel-exclusion-behavior]');
+        const addButton = container.querySelector('[data-fastpixel-exclusion-add]');
+
+        container.classList.toggle('fastpixel-asset-exclusions-disabled', disabled);
+        container.setAttribute('aria-disabled', disabled ? 'true' : 'false');
+
+        if (hidden) {
+            hidden.disabled = disabled;
         }
+        if (typeInput) {
+            typeInput.disabled = disabled;
+        }
+        if (patternInput) {
+            patternInput.disabled = disabled;
+            patternInput.readOnly = disabled;
+        }
+        if (behaviorInput && behaviorInput.tagName === 'SELECT') {
+            behaviorInput.disabled = disabled;
+        }
+        if (addButton) {
+            addButton.disabled = disabled;
+        }
+    }
+
+    function fastpixelOnOptimizationChange(disable = true) {
+        document.querySelectorAll('[data-depends-on="fastpixel-javascript-optimization"]').forEach(function(element) {
+            if (element.hasAttribute('data-fastpixel-asset-exclusions')) {
+                fastpixelSetAssetExclusionsDisabled(element, disable);
+                return;
+            }
+
+            if ('readOnly' in element) {
+                element.readOnly = disable;
+            } else if ('disabled' in element) {
+                element.disabled = disable;
+            }
+        });
     }
 
     //adding custom event to have ability to trigger it programmatically and avoid loop triggering
@@ -123,7 +158,7 @@ document.addEventListener("DOMContentLoaded", function() {
         const checked = jQuery(this).prop('checked');
         if (checked) {
             const value = jQuery(this).val();
-            const disable = (parseInt(value) == 2 ? false : true);
+            const disable = (parseInt(value, 10) === 3);
             fastpixelOnOptimizationChange(disable);
         }
     });
@@ -138,6 +173,120 @@ document.addEventListener("DOMContentLoaded", function() {
     if (jQuery('.fastpixel-horizontal-selector input').length > 0) {
         jQuery('.fastpixel-horizontal-selector input:checked').trigger('change');
     }
+
+    function fastpixelInitAssetExclusions(container) {
+        const hidden = container.querySelector('[data-fastpixel-exclusion-rules]');
+        const list = container.querySelector('[data-fastpixel-exclusion-list]');
+        const count = container.querySelector('[data-fastpixel-exclusion-count]');
+        const typeInput = container.querySelector('[data-fastpixel-exclusion-type]');
+        const patternInput = container.querySelector('[data-fastpixel-exclusion-pattern]');
+        const behaviorInput = container.querySelector('[data-fastpixel-exclusion-behavior]');
+        const addButton = container.querySelector('[data-fastpixel-exclusion-add]');
+        const allowRegex = container.getAttribute('data-allow-regex') === '1';
+        const allowNodelay = container.getAttribute('data-allow-nodelay') === '1';
+        const rulesLabel = container.getAttribute('data-rules-label') || 'rules';
+        let rules = [];
+
+        try {
+            const parsed = JSON.parse(hidden.value || '[]');
+            if (Array.isArray(parsed)) {
+                rules = parsed;
+            }
+        } catch (e) {
+            rules = [];
+        }
+
+        function normalizeRule(rule) {
+            const type = allowRegex && rule.type === 'regex' ? 'regex' : 'url';
+            const behavior = allowNodelay && rule.behavior === 'nodelay' ? 'nodelay' : 'exclude';
+            const value = (rule.value || '').trim();
+            if (!value) {
+                return null;
+            }
+            return { type: type, value: value, behavior: behavior };
+        }
+
+        function setHiddenValue() {
+            hidden.value = JSON.stringify(rules);
+        }
+
+        function renderRules() {
+            list.innerHTML = '';
+            rules = rules.map(normalizeRule).filter(Boolean);
+            rules.forEach(function(rule, index) {
+                const chip = document.createElement('button');
+                chip.type = 'button';
+                chip.className = 'fastpixel-exclusion-chip fastpixel-exclusion-chip-' + rule.behavior;
+                chip.setAttribute('data-index', index);
+
+                const type = document.createElement('span');
+                type.className = 'fastpixel-exclusion-chip-type fastpixel-exclusion-chip-type-' + rule.type;
+                type.title = rule.type === 'regex' ? 'RegExp' : 'URL';
+                type.textContent = rule.type === 'regex' ? '.*' : '';
+
+                const value = document.createElement('span');
+                value.className = 'fastpixel-exclusion-chip-value';
+                value.textContent = rule.value;
+
+                const remove = document.createElement('span');
+                remove.className = 'fastpixel-exclusion-chip-remove';
+                remove.textContent = 'x';
+
+                chip.appendChild(type);
+                chip.appendChild(value);
+                chip.appendChild(remove);
+                list.appendChild(chip);
+            });
+            count.textContent = rules.length + ' ' + rulesLabel;
+            setHiddenValue();
+        }
+
+        function addRule() {
+            if (container.classList.contains('fastpixel-asset-exclusions-disabled')) {
+                return;
+            }
+            const nextRule = normalizeRule({
+                type: typeInput ? typeInput.value : 'url',
+                value: patternInput ? patternInput.value : '',
+                behavior: behaviorInput ? behaviorInput.value : 'exclude'
+            });
+            if (!nextRule) {
+                return;
+            }
+            const exists = rules.some(function(rule) {
+                return rule.type === nextRule.type && rule.value === nextRule.value && rule.behavior === nextRule.behavior;
+            });
+            if (!exists) {
+                rules.push(nextRule);
+            }
+            patternInput.value = '';
+            patternInput.focus();
+            renderRules();
+        }
+
+        addButton.addEventListener('click', addRule);
+        patternInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addRule();
+            }
+        });
+        list.addEventListener('click', function(e) {
+            if (container.classList.contains('fastpixel-asset-exclusions-disabled')) {
+                return;
+            }
+            const chip = e.target.closest('[data-index]');
+            if (!chip) {
+                return;
+            }
+            rules.splice(parseInt(chip.getAttribute('data-index'), 10), 1);
+            renderRules();
+        });
+
+        renderRules();
+    }
+
+    document.querySelectorAll('[data-fastpixel-asset-exclusions]').forEach(fastpixelInitAssetExclusions);
     
     //status page
     jQuery(function($) {

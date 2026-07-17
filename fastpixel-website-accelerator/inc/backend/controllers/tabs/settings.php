@@ -43,6 +43,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Settings')) {
             ]);
             register_setting(FASTPIXEL_TEXTDOMAIN, 'fastpixel_exclusions', ['type' => 'array']);
             register_setting(FASTPIXEL_TEXTDOMAIN, 'fastpixel_cookie_exclusions', ['type' => 'string']);
+            register_setting(FASTPIXEL_TEXTDOMAIN, 'fastpixel_user_agent_exclusions', ['type' => 'string']);
             register_setting(FASTPIXEL_TEXTDOMAIN, 'fastpixel_exclude_all_params', ['type' => 'array']);
             register_setting(FASTPIXEL_TEXTDOMAIN, 'fastpixel_params_exclusions', ['type' => 'array']);
             register_setting(FASTPIXEL_TEXTDOMAIN, 'fastpixel_registered_params_custom', ['type' => 'string']);
@@ -185,6 +186,19 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Settings')) {
                 'fastpixel_excluded_post_types',
                 $field_title,
                 [$this, 'field_exclude_post_types_cb'],
+                FASTPIXEL_TEXTDOMAIN,
+                'fastpixel_settings_section',
+                [
+                    'class' => 'fastpixel-settings-form-row',
+                    'label' => $field_title
+                ]
+            );
+
+            $field_title = esc_html__('User-agent Exclusions', 'fastpixel-website-accelerator');
+            add_settings_field(
+                'fastpixel_user_agent_exclusions',
+                $field_title,
+                [$this, 'field_user_agent_exclusions_cb'],
                 FASTPIXEL_TEXTDOMAIN,
                 'fastpixel_settings_section',
                 [
@@ -443,6 +457,20 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Settings')) {
             ], true);
         }
 
+        public function field_user_agent_exclusions_cb($args)
+        {
+            $user_agent_exclusions = (string) $this->functions->get_option('fastpixel_user_agent_exclusions', '');
+            /* translators: %1$s is the "Read More" link, %2$s is a br tag */
+            $description = sprintf(esc_html__('Visitors whose user agent matches one of these will not trigger page optimizations and they will not be served cached pages, helping reduce pageview usage. Each user agent should be added on a new line and the * character can be used as a wildcard. Most known crawlers and bots are excluded by default. %1$s.%2$sExample: SomeBot/1.0', 'fastpixel-website-accelerator'), '<a href="https://fastpixel.io/docs/user-agent-exclusions/" target="_blank">' . esc_html(__('Read More', 'fastpixel-website-accelerator')) . '</a>', '<br/>');
+            $this->be_functions->print_textarea([
+                'field_name'  => 'fastpixel_user_agent_exclusions',
+                'field_value' => $user_agent_exclusions,
+                'label'       => $args['label'],
+                'description' => $description,
+                'placeholder' => "SomeBot/1.0\n*PreviewBot*"
+            ], true);
+        }
+
         public function field_exclude_all_params_cb($args)
         {
             // Get the value of the settings we've registered with register_setting()
@@ -624,6 +652,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Settings')) {
             $exclude_all_params = isset($_POST['fastpixel_exclude_all_params']) && 1 == sanitize_text_field($_POST['fastpixel_exclude_all_params']) ? 1 : 0;
             $this->functions->update_option('fastpixel_exclude_all_params', $exclude_all_params);
             $this->functions->update_option('fastpixel_cookie_exclusions', sanitize_textarea_field($_POST['fastpixel_cookie_exclusions'] ?? ''));
+            $this->functions->update_option('fastpixel_user_agent_exclusions', sanitize_textarea_field($_POST['fastpixel_user_agent_exclusions'] ?? ''));
             $registered_params_custom = isset($_POST['fastpixel_registered_params_custom']) ? sanitize_textarea_field($_POST['fastpixel_registered_params_custom']) : '';
             $this->functions->update_option('fastpixel_registered_params_custom', $registered_params_custom);
             $this->functions->update_option('fastpixel_params_exclusions', sanitize_textarea_field($_POST['fastpixel_params_exclusions']));

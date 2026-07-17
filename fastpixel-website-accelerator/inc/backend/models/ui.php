@@ -322,7 +322,8 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_UI')) {
 
         public function get_icon()
         {
-            return '<div class="fastpixel-top-menu-icon"><img src="' . $this->icon_url . '" /></div>';
+            //width/height attributes keep icon size when our css is not loaded, some plugins remove third party styles on their pages
+            return '<div class="fastpixel-top-menu-icon"><img src="' . $this->icon_url . '" width="30" height="30" /></div>';
         }
 
         protected function header($page = false) {

@@ -10,11 +10,21 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Css')) {
         protected $order = 4.5;
         protected $custom_css_error = false;
         protected $custom_css_value = null;
+        protected $purge_all = false;
 
         public function __construct() {
             parent::__construct();
             $this->name = esc_html__('CSS', 'fastpixel-website-accelerator');
             add_action('fastpixel/tabs/loaded', [$this, 'save_options'], 13);
+            add_filter('fastpixel/settings_tab/purge_all', [$this, 'get_purge_all_status'], 12, 1);
+        }
+
+        public function get_purge_all_status($status)
+        {
+            if ($status == true) {
+                return $status;
+            }
+            return $this->purge_all;
         }
 
         public function settings() {
@@ -47,6 +57,18 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Css')) {
                     ]
                 );
             }
+            $field_title = esc_html__('CSS Exclusions', 'fastpixel-website-accelerator');
+            add_settings_field(
+                'fastpixel_css_exclusion_rules',
+                $field_title,
+                [$this, 'field_css_exclusion_rules_cb'],
+                FASTPIXEL_TEXTDOMAIN . '-css',
+                'fastpixel_settings_section-css',
+                [
+                    'class' => 'fastpixel-settings-form-row',
+                    'label' => $field_title
+                ]
+            );
             $field_title = esc_html__('Custom CSS', 'fastpixel-website-accelerator');
             add_settings_field(
                 'fastpixel_custom_css',
@@ -98,6 +120,20 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Css')) {
             ], true);
         }
 
+        public function field_css_exclusion_rules_cb($args) {
+            $rules = $this->be_functions->sanitize_asset_exclusion_rules($this->functions->get_option('fastpixel_css_exclusion_rules', ''), false);
+            $description = esc_html__('Stylesheets matching these rules will be excluded from CSS optimization. Use URL for simple text matches and RegExp only for advanced patterns.', 'fastpixel-website-accelerator');
+            $this->be_functions->print_asset_exclusions([
+                'field_name'    => 'fastpixel_css_exclusion_rules',
+                'field_value'   => wp_json_encode($rules),
+                'label'         => $args['label'],
+                'placeholder'   => esc_html__('e.g. /wp-content/themes/my-theme/style.css', 'fastpixel-website-accelerator'),
+                'description'   => $description,
+                'allow_nodelay' => false,
+                'show_behavior' => false,
+            ], true);
+        }
+
         public function sanitize_fastpixel_custom_css($value) {
             $error = $this->validate_fastpixel_custom_css($value);
             if ($error !== '') {
@@ -142,6 +178,15 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Tab_Css')) {
             }
             $two_phase = isset($_POST['fastpixel_css_two_phase_loading']) && 1 == sanitize_text_field($_POST['fastpixel_css_two_phase_loading']) ? 1 : 0;
             $this->functions->update_option('fastpixel_css_two_phase_loading', $two_phase);
+
+            if (isset($_POST['fastpixel_css_exclusion_rules'])) {
+                $rules = $this->be_functions->sanitize_asset_exclusion_rules(wp_unslash($_POST['fastpixel_css_exclusion_rules']), false);
+                $old_rules = $this->be_functions->sanitize_asset_exclusion_rules($this->functions->get_option('fastpixel_css_exclusion_rules', ''), false);
+                if ($rules != $old_rules) {
+                    $this->purge_all = true;
+                }
+                $this->functions->update_option('fastpixel_css_exclusion_rules', wp_json_encode($rules));
+            }
 
             if (isset($_POST['fastpixel_custom_css'])) {
                 $raw_css = wp_unslash($_POST['fastpixel_custom_css']);

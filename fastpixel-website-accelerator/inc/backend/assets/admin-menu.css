@@ -20,13 +20,16 @@
     height: 30px;
     line-height: 30px;
 }
-#adminmenu .toplevel_page_fastpixel-website-accelerator-settings .wp-menu-image img {
+/* max-width and li in selector are needed to win over mailpoet css that limits menu icons to 20px on their pages */
+#adminmenu li.toplevel_page_fastpixel-website-accelerator-settings .wp-menu-image img {
     width: 36px;
+    max-width: 36px;
     padding: 0;
 }
-#adminmenu .toplevel_page_fastpixel-website-accelerator img,
-#adminmenu .toplevel_page_fastpixel-website-accelerator .wp-menu-image img {
+#adminmenu li.toplevel_page_fastpixel-website-accelerator img,
+#adminmenu li.toplevel_page_fastpixel-website-accelerator .wp-menu-image img {
     width: 36px;
+    max-width: 36px;
     padding-top: 0;
 }
 #wpadminbar #wp-admin-bar-fastpixel-top-fastpixel-website-accelerator-purge-current-cache.fastpixel-excluded {

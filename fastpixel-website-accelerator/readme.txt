@@ -4,7 +4,7 @@ Tags: speed, cache, caching, performance, web vitals
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 5.6
-Stable tag: 1.8.0
+Stable tag: 1.9.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -230,6 +230,26 @@ For a detailed documentation about the hooks, please see this page: https://fast
 
 
 == Changelog ==
+
+= 1.9.0 =
+
+🤖 The Smart Exclusions Update
+
+Release Date: July 17, 2026
+
+✨ New Features
+
+* User-Agent Exclusions: Search engine crawlers and AI bots no longer consume your pageview quota. You can also add your own user-agent exclusions to prevent specific visitors from triggering page optimizations or using pageviews.
+* CSS Exclusions: Exclude specific CSS files from optimization with dedicated controls for greater flexibility and compatibility.
+* JavaScript Delay Exclusions: You can now exclude JavaScript files from being delayed when using the Delay JavaScript option rather than fully excluding them from optimization.
+* Automatic Plugin Compatibility: FastPixel now detects supported plugins and automatically enables the appropriate compatibility fixes behind the scenes, no manual configuration required.
+* Redesigned Exclusions UI: JavaScript and CSS exclusions now have a new streamlined interface for a cleaner and more intuitive experience.
+
+🛠️ Fixes & Improvements
+
+* General Enhancements: Various small fixes and under-the-hood improvements to further enhance stability, compatibility, and performance.
+
+Update now for smarter optimization, better compatibility, and even more control over how FastPixel works on your website! ⚡
 
 = 1.8.0 =
 

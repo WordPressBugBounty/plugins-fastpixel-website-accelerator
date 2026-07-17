@@ -17,6 +17,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Config_Model')) {
             'fastpixel_enabled_modules'                         => [],
             'fastpixel_exclusions'                              => false,
             'fastpixel_cookie_exclusions'                       => false,
+            'fastpixel_user_agent_exclusions'                   => false,
             'fastpixel_exclude_all_params'                      => false,
             'fastpixel_params_exclusions'                       => 'mailpoet_router',
             'fastpixel_registered_params_custom'                => '',
@@ -99,6 +100,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Config_Model')) {
                         'fastpixel_cache_lifetime',
                         'fastpixel_exclusions',
                         'fastpixel_cookie_exclusions',
+                        'fastpixel_user_agent_exclusions',
                         'fastpixel_params_exclusions',
                         'fastpixel_exclude_all_params',
                         'fastpixel_registered_params_custom',
@@ -124,7 +126,7 @@ if (!class_exists('FASTPIXEL\FASTPIXEL_Config_Model')) {
                             // other fields
                             if (isset($_POST[$option_name])) {
                                 // textarea-like option: keep newlines so we can split per line
-                                if (in_array($option_name, ['fastpixel_registered_params_custom', 'fastpixel_vary_cache_cookies'], true)) {
+                                if (in_array($option_name, ['fastpixel_registered_params_custom', 'fastpixel_vary_cache_cookies', 'fastpixel_user_agent_exclusions'], true)) {
                                     $this->set_option($option_name, sanitize_textarea_field($_POST[$option_name]));
                                 } else {
                                     $this->set_option($option_name, sanitize_text_field($_POST[$option_name]));
